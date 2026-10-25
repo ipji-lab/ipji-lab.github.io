@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.0.0">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.1.0">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:image" content="https://ipji-lab.github.io/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.0.0</title>
+<title>우리동네 입지분석(광주) v1.1.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -497,7 +497,7 @@ table.calc td.n{text-align:right;white-space:nowrap;font-weight:700}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.0.0</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.1.0</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -508,7 +508,6 @@ table.calc td.n{text-align:right;white-space:nowrap;font-weight:700}
       <button class="btn" id="btnMethod" aria-label="평가기준"><span class="lbl-long">평가</span>기준</button>
     </header>
     <nav class="chips" aria-label="필터">
-      <button class="chip mode" id="locMode" aria-pressed="false" title="입지 점수(교육·생활·직주근접·광역교통)와 입지 등급으로 보기">입지 점수</button>
       <button class="chip dd" data-pop="grade" data-def="등급" aria-pressed="false"><span>등급</span> ▾</button>
       <button class="chip dd" data-pop="price" data-def="가격" aria-pressed="false"><span>가격</span> ▾</button>
       <button class="chip dd" data-pop="py" data-def="평형" aria-pressed="false"><span>평형</span> ▾</button>
@@ -517,13 +516,9 @@ table.calc td.n{text-align:right;white-space:nowrap;font-weight:700}
       <button class="chip dd" data-pop="pkR" data-def="주차대수" aria-pressed="false"><span>주차대수</span> ▾</button>
       <button class="chip" data-f="tag" data-v="chopuma" aria-pressed="false">초품아</button>
       <button class="chip" data-f="tag" data-v="acad" aria-pressed="false">학원가</button>
-      <button class="chip" data-f="tag" data-v="job" aria-pressed="false">직주근접</button>
       <button class="chip" data-f="tag" data-v="slse" aria-pressed="false">슬세권</button>
       <button class="chip" data-f="tag" data-v="gpark" aria-pressed="false">지상공원화</button>
       <button class="chip" data-f="tag" data-v="park" aria-pressed="false">공세권</button>
-      <button class="chip" data-f="tag" data-v="water" aria-pressed="false">수세권</button>
-      <button class="chip dd" data-pop="far" data-def="용적률" aria-pressed="false"><span>용적률</span> ▾</button>
-      <button class="chip dd" data-pop="bcr" data-def="건폐율" aria-pressed="false"><span>건폐율</span> ▾</button>
       <button class="chip dd" data-pop="qR" data-def="매매회전율" aria-pressed="false"><span>매매회전율</span> ▾</button>
       <button class="chip" data-f="band" data-v="under" aria-pressed="false">저평가 단지</button>
       <button class="chip" data-f="band" data-v="over" aria-pressed="false">고평가 단지</button>
@@ -591,7 +586,7 @@ table.calc td.n{text-align:right;white-space:nowrap;font-weight:700}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=daa47ee4", DET=["data/d00.json.gz?v=790ce253", "data/d01.json.gz?v=4745cc34", "data/d02.json.gz?v=04cb7f86", "data/d03.json.gz?v=eb8c15b8", "data/d04.json.gz?v=fe3716ad", "data/d05.json.gz?v=589977e7", "data/d06.json.gz?v=ae29826b", "data/d07.json.gz?v=0c6fb8e7", "data/d08.json.gz?v=a2486c27", "data/d09.json.gz?v=8cc7085c", "data/d10.json.gz?v=cfeefb73", "data/d11.json.gz?v=c3c3b835", "data/d12.json.gz?v=5737d1dd", "data/d13.json.gz?v=a5556703", "data/d14.json.gz?v=6851ddb2", "data/d15.json.gz?v=d34dd504"], APP="app.js?v=c560f9d8";
+  var CORE="data/core.json.gz?v=9567b386", DET=["data/d00.json.gz?v=802670db", "data/d01.json.gz?v=0c53d2fb", "data/d02.json.gz?v=56489b84", "data/d03.json.gz?v=2351bf6d", "data/d04.json.gz?v=6ab4cc4a", "data/d05.json.gz?v=f365417c", "data/d06.json.gz?v=86606578", "data/d07.json.gz?v=dbaafc2d", "data/d08.json.gz?v=e754a2d9", "data/d09.json.gz?v=d937f2ca", "data/d10.json.gz?v=6f8648b3", "data/d11.json.gz?v=9ba01098", "data/d12.json.gz?v=61a9fafa", "data/d13.json.gz?v=92a1f53d", "data/d14.json.gz?v=4555efd8", "data/d15.json.gz?v=cfad540b"], APP="app.js?v=e4d14674";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

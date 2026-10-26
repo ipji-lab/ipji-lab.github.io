@@ -540,7 +540,7 @@ function renderDetail(){
       <div class="dmeta">${c.far?`용적률 ${c.far}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
     <section class="hero">
-      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 상위 ${f1(pp)}%<span class="gtot">종합점수 ${f1(tot)}점(${rk.toLocaleString()}등)${c.rpp!=null?` · ㎡당 실거래가 상위 ${c.rpp<1?'1% 이내':Math.round(c.rpp)+'%'}`:''}</span>`; })()}</span></div>
+      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 상위 ${f1(pp)}%<span class="gtot">종합점수 ${f1(tot)}점(${rk.toLocaleString()}등)</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="sc3">${subsc}</div>
     </section>

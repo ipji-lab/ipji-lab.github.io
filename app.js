@@ -115,7 +115,7 @@ function visible(){
 const HINT = {   // v1.1.3 연구원: 태그를 누르면 뜻을 보여 줌(엔진 태그 규칙과 같은 기준)
   under:['저평가 단지','반경 500m 안 비슷한 조건 단지 시세로 만든 추정가보다 최근 실거래가가 10% 이상 낮은 단지입니다.','종합점수에는 넣지 않는 참고 정보입니다. 감정평가나 적정가격이 아닙니다.'],
   chopuma:['초품아','차도를 건너지 않고 인도로 배정 초등학교까지 도보 5분 내에 가는 단지입니다.','배정 초등학교는 학구도 통학구역 기준입니다. 차도는 OpenStreetMap 기준이며 단지 안 길은 차도로 보지 않습니다.'],
-  acad:['학원가','도보 10분 내 학원이 100개 이상인 단지입니다. 교과 학원은 1개, 예체능·독서실·스터디카페·체육도장은 0.5개로 셉니다.','소상공인시장진흥공단 상가정보(’26.6) 학원 업종 기준입니다. 성인 대상 학원은 뺐습니다.'],
+  acad:['학원가','도보 15분 내 학원이 150개 이상인 단지입니다. 교과 학원은 1개, 예체능·독서실·스터디카페·체육도장은 0.5개로 셉니다.','교육청 학원·교습소 등록 자료(NEIS ’26.10) 기준입니다. 성인 대상 학원은 뺐습니다.'],
   sub:['역세권','운행 중인 도시철도역까지 600m 내인 단지입니다. 개통 예정역까지 600m 내이기도 하면 더블 역세권(예정)으로 표시합니다.','역 위치는 광주교통공사·OpenStreetMap 기준입니다.'],
   sub2:['역세권(예정)','공사 중인 도시철도 2호선 예정역까지 600m 내인 단지입니다.','개통 시기는 공식 발표로 다시 확인하세요.'],
   slse:['슬세권','슬리퍼 신고 다닐 거리에 프랜차이즈·편의시설·병원·마트·공원이 모인 단지입니다. 생활환경 점수가 광주 단지 중 상위 5% 안이면 해당합니다.','생활환경 항목(프랜차이즈·편의시설·동네 병·의원·대형마트·동네마트·공원·종합병원·도서관·영화관·수영장) 점수 기준입니다.'],
@@ -947,11 +947,13 @@ function nvMarkers(){
   if (dongMode){
     if (NVL) NVL.el.innerHTML='';
     const prj0=NV.getProjection(), bx=[], hit0=q=>bx.some(o=>q[0]<o[2]&&q[2]>o[0]&&q[1]<o[3]&&q[3]>o[1]);   // v1.2.2 이름표가 겹치면 큰 동네 먼저
-    dongAgg(lv).sort((a,b)=>b.n-a.n).forEach(d=>{ const p=prj0.fromCoordToOffset(new naver.maps.LatLng(d.lat,d.lon)), w=Math.max(d.k.length*12,aggLab(d).length*6.2)+20, q=[p.x-w/2,p.y-19,p.x+w/2,p.y+19];
-      if (lv!=='gu' && hit0(q)) return; bx.push(q); let m=NVD.get(lv+d.k); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(d.lat,d.lon), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}}); naver.maps.Event.addListener(m,'click',()=>{ NV.morph(m.getPosition(), lv==='gu'?NGZ+1:NDZ+1); }); NVD.set(lv+d.k,m); }
+    dongAgg(lv).sort((a,b)=>b.n-a.n).forEach(d=>{ const p=prj0.fromCoordToOffset(new naver.maps.LatLng(d.lat,d.lon)), w=Math.max(d.k.length*12,aggLab(d).length*6.2)+20;
+      // v1.2.6 연구원(치평동 알약이 안 보임): 겹치면 숨기기 전에 위·아래·옆으로 비켜 봄
+      let q=null, off=[0,0]; for (const [ox,oy] of (lv==='gu'?[[0,0]]:[[0,0],[0,-40],[0,40],[-w*.7,0],[w*.7,0],[0,-80],[0,80]])){ const t=[p.x-w/2+ox,p.y-19+oy,p.x+w/2+ox,p.y+19+oy]; if(!hit0(t)){ q=t; off=[ox,oy]; break; } }
+      if (!q) return; bx.push(q); let m=NVD.get(lv+d.k); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(d.lat,d.lon), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}}); naver.maps.Event.addListener(m,'click',()=>{ NV.morph(m.getPosition(), lv==='gu'?NGZ+1:NDZ+1); }); NVD.set(lv+d.k,m); }
       const gr=clamp(Math.round(d.g),1,9);
       m.setPosition(new naver.maps.LatLng(d.lat,d.lon));
-      m.setIcon({content:`<div class="ndg" style="background:${gCol(gr)};color:${gInk(gr)}"><b>${d.k}</b><span>${aggLab(d)}</span></div>`, anchor:new naver.maps.Point(0,0)});
+      m.setIcon({content:`<div class="ndg" style="background:${gCol(gr)};color:${gInk(gr)}"><b>${d.k}</b><span>${aggLab(d)}</span></div>`, anchor:new naver.maps.Point(-off[0],-off[1])});
       m.setZIndex(100+d.n); m.setMap(NV); });
     nvUp(false);
     return;

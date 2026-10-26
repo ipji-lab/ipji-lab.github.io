@@ -438,13 +438,14 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
 }
 
 /* ═════════ 패널: 상세 ═════════ */
-const SGRP={S1t:'초등학교',S3:'중학교',S5a:'학원'}, SNAME={S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
+const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
 function rankOf(c){   // v1.1.3 연구원: 같은 권역 등급 단지(임대 제외) 안 순위 = 등급 → 점수 순
   const z=c.zn||'gj', L=CX.filter(x=>(x.zn||'gj')===z && gradeOf(x)!=null).sort((a,b)=>gradeOf(a)-gradeOf(b) || (scoreOf(b)??-1)-(scoreOf(a)??-1));
   const i=L.indexOf(c); return [i+1, L.length, 100*(i+.5)/L.length]; }
 function capWhy(c,g){   // v1.1.2: 등급 조건으로 내려간 단지만 한 줄로 사유
   if (g==null) return c.rent&&!S.mine?'임대 단지는 매매가 없어 종합 등급 대신 입지 등급만 보여 줍니다.':'자료가 빠진 항목이 있어 등급을 붙이지 않았습니다.';
   if (c.why==='mktup' && c.grade<c.grade0){ const pg=v=>[4,11,23,40,60,77,89,96,100].findIndex(x=>v<=x)+1, pp=v=>v<1?'1% 이내':Math.round(v)+'%'; return `점수로는 ${c.grade0}등급이지만 ${c.grade}등급입니다. 시장이 인정한 자리값(상위 ${pp(c.pxp)})과 ㎡당 실거래가(상위 ${pp(c.rpp)})가 모두 ${Math.max(pg(c.pxp),pg(c.rpp))}등급 수준 이상이라 점수 등급보다 한 단계 올렸습니다.`; }   // v1.1.6 시장 등급 보정(일반화)
+  if (c.why==='newmkt' && c.grade<c.grade0){ const pp=v=>v<1?'1% 이내':Math.round(v)+'%'; return `점수로는 ${c.grade0}등급이지만 3등급입니다. 준공 10년 이내 400세대 이상 신축이고, 자기 ㎡당 실거래가가 광주 상위 ${pp(c.rpp)}로 3등급 가격대(상위 23%) 안이라 최소 3등급을 줍니다.`; }   // v1.1.8 신축·시세 하한
   if (!(c.grade>c.grade0)) return '';
   const pc=v=>v==null?'-':Math.round(v), n24=(c.p&&c.p.q24&&c.p.q24.n)||0, g0=c.grade0, gg=c.grade;   // v1.1.3 연구원: 왜 그 등급까지만인지 풀어서
   const ex=(t)=>`${t} 최고 3등급입니다. 최근 2년 매매가 10건 이상이고 ㎡당 실거래가가 광주 상위 7% 안이면 2등급까지 줍니다. 이 단지는 매매 ${n24}건, 실거래가 상위 ${pc(c.rpp)}%입니다.`;
@@ -828,7 +829,7 @@ function openMethod(){
   const ctab=`<table class="calc"><thead><tr><th>조건</th><th>기준</th><th>결과</th></tr></thead><tbody>${cond.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
   const pen=[['복도 유형','복도식 · 혼합식','2 · 1'],['나홀로아파트','동 1개 단지(세대수는 상품성에서 이미 반영)','1~2(2 × (1 − 세대÷600))'],['용적률','250% 초과부터 100%p마다','0.5~3'],['평형 구성','전 세대 84㎡ 미만 · 59㎡ 미만','1 · 2'],['소음','큰 도로 200m · 지상 철도 100m · 공항 3km 안','최대 2'],['악취','산업단지 · 축사 · 퇴비 사업장','최대 2'],['청소년 유해업소','단지 경계 200m 안 유흥·숙박·노래방·PC방 등','최대 3'],['기피시설','하수·소각·매립·교정·화장장 등 1km 안','최대 3'],['노후 빌라·원룸촌','단지 경계 300m 안 30년 넘은 저층 주택·원룸','최대 2'],['미분양','미분양 비율 × 15','최대 3'],['임대','전체 임대 · 혼합은 임대 비율만큼','2'],['하이엔드 브랜드','디에이치·아크로·르엘 등','+2(가점)']];
   const ptab=`<table class="calc"><thead><tr><th>항목</th><th>기준</th><th>점수</th></tr></thead><tbody>${pen.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="n">${r[2]}</td></tr>`).join('')}</tbody></table>`;
-  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span></summary><table class="calc"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">비중 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
+  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span></summary><table class="calc"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">비중 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
   const basisL = M.basis?`<ul class="sm">${Object.entries({grade:'등급 비율',price:'실거래가 조건',unsold:'미분양',small:'소단지',old:'구축',walk:'도보 시간',harm:'청소년 유해업소',far:'용적률',noise:'소음',nimby:'기피시설',villa:'노후 빌라·원룸촌',rent:'임대 단지',weight:'영역 비중',penalty:'보정 합계'}).filter(([k])=>M.basis.rule[k]).map(([k,n])=>`<li><b>${n}</b>: ${M.basis.rule[k]}</li>`).join('')}</ul>`:'';
   ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db mth">
     <section><h3>① 종합점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 점수</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다(가격 구성비 아님). 비중 근거는 아래 ⑤에 있습니다.</p></section>

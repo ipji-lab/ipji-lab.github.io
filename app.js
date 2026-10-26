@@ -223,7 +223,8 @@ function drawMap(){
   const gus=d3.groups(DATA.geo.emd.features,f=>f.properties.g).filter(([g])=>GU5.includes(g)).map(([g,fs])=>{ let a=0,cx=0,cy=0; fs.forEach(f=>{ const q=pcent(f); a+=q.a; cx+=q.c[0]*q.a; cy+=q.c[1]*q.a; }); return {t:g,x:cx/a,y:cy/a,cls:'lbl-gu',pr:0,min:GZ,max:2.4,fs:16}; });
   const pl=PLACES.map(([t,la,lo,ty,lv])=>{ const [x,y]=proj([lo,la]); return {t,x,y,ty,cls:'lbl-pl '+ty,pr:lv*2+(ty==='area'?1:0),min:lv===1?0:lv===2?1.6:2.6,max:99,fs:ty==='area'?13:12,icon:!['area','ind','water'].includes(ty)}; });
   const stn=SUB1.map(([t,la,lo])=>{ const [x,y]=proj([lo,la]); return {t,x,y,cls:'lbl-stn',pr:7,min:3.4,max:99,fs:10.5}; });
-  const dong=DATA.geo.emd.features.map(f=>{ const c=pcent(f).c; return {t:f.properties.n,x:c[0],y:c[1],cls:'lbl-dong',pr:8,min:2.4,max:99,fs:11}; });
+  // v1.2.5 연구원: 확대 단계의 동 이름은 법정동(치평동·쌍촌동…). 행정동은 중간 단계(동 평균 알약)에서만. 법정동 경계 자료가 없어 단지 평균 위치에 표시
+  const dong=d3.groups(CX.filter(c=>c.lat&&c.lon),c=>c.gu+'|'+c.dong).map(([k,cs])=>{ const la=d3.mean(cs,c=>c.lat), lo=d3.mean(cs,c=>c.lon); const [x,y]=proj([lo,la]); return {t:k.split('|')[1].replace(/\(.*\)$/,''),x,y,cls:'lbl-dong',pr:8-Math.min(cs.length,20)/40,min:2.4,max:99,fs:11}; });
   LBL=[...gus,...pl,...stn,...dong];
   const g=gLbl.selectAll('g.lb').data(LBL).join(e=>{ const g=e.append('g').attr('class','lb'); g.append('circle'); g.append('text'); return g; });
   g.attr('class',d=>'lb '+d.cls);
@@ -938,6 +939,7 @@ function nvUp(show){
     naver.maps.Event.addListener(m,'click',()=>openUp(u.id)); NVU.set(u.id,m); }
     m.setMap(show?NV:null); });
 }
+const BJ = d3.groups(CX.filter(c=>c.lat&&c.lon),c=>c.gu+'|'+c.dong).map(([k,cs])=>({t:k.split('|')[1].replace(/\(.*\)$/,''), lat:d3.mean(cs,c=>c.lat), lon:d3.mean(cs,c=>c.lon), n:cs.length}));   // v1.2.5 법정동 이름 위치(단지 평균)
 function nvMarkers(){
   if (!NV) return;
   const vis=VIS||new Set(visible().map(c=>c.id)), z=NV.getZoom(), dongMode = z<=NDZ, lv = z<=NGZ?'gu':'dong';
@@ -963,6 +965,8 @@ function nvMarkers(){
   const prj=NVL.getProjection(); if(!prj) return;
   const ord=VC.sort((a,b)=>(b.id===S.sel)-(a.id===S.sel) || vis.has(b.id)-vis.has(a.id) || (gradeOf(a)??10)-(gradeOf(b)??10) || (scoreOf(b)??-1)-(scoreOf(a)??-1));
   const NG=boxGrid(), out=[];
+  // v1.2.5 연구원: 단지 단계에서는 법정동 이름(치평동·쌍촌동…)을 단지 평균 위치에 표시(행정동 이름은 동 평균 단계에서만)
+  for (const b of BJ){ if (!(b.lat>=sw.lat()-dy && b.lat<=ne.lat()+dy && b.lon>=sw.lng()-dx && b.lon<=ne.lng()+dx)) continue; const p=prj.fromCoordToOffset(new naver.maps.LatLng(b.lat,b.lon)); out.push(`<div class="nmw" style="transform:translate(${Math.round(p.x)}px,${Math.round(p.y)}px);z-index:0"><div class="nbj">${b.t}</div></div>`); }
   for (const c of ord){
     const p=prj.fromCoordToOffset(new naver.maps.LatLng(c.mla,c.mlo)); const w=(z>=16?96:44), bx=[p.x-2,p.y-12,p.x+w,p.y+12];
     const sel=c.id===S.sel, lab = sel || !NG.hit(bx); if (lab) NG.add(bx);

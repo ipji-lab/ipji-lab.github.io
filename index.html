@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.2.4">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.2.5">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:image" content="https://ipji-lab.github.io/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.2.4</title>
+<title>우리동네 입지분석(광주) v1.2.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -124,6 +124,7 @@ header.top{display:flex;align-items:center;gap:10px;padding-block:8px;background
 .nmk{position:absolute;left:0;top:0;transform:translate(-19px,-50%);display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer;font-family:var(--f-num);font-size:11.5px;line-height:1}
 .nmk b{display:inline-block;padding:4px 6px;border-radius:6px;color:#fff;font-weight:500;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .nmk span{background:#fff;color:#17201c;border:1px solid #cfd6d2;border-radius:5px;padding:3px 5px}
+.nbj{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:#3d4a44;white-space:nowrap;pointer-events:none;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;letter-spacing:.02em}
 .nmk.under b{background:var(--under)} .nmk.fair b{background:var(--fair)} .nmk.over b{background:var(--over)} .nmk.hold b{background:#fff;color:#17201c;border:1.5px dashed #6b7570}
 .nmk.dot{width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .nmk.dot.under{background:var(--under)} .nmk.dot.fair{background:var(--fair)} .nmk.dot.over{background:var(--over)} .nmk.dot.hold{background:#fff;border-color:#6b7570}
@@ -561,7 +562,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.2.4</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.2.5</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -646,7 +647,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=d821aa04", DET=["data/d00.json.gz?v=a99e5a2f", "data/d01.json.gz?v=3a1d435f", "data/d02.json.gz?v=06df3747", "data/d03.json.gz?v=97117256", "data/d04.json.gz?v=14635153", "data/d05.json.gz?v=5e4afa72", "data/d06.json.gz?v=60a1b177", "data/d07.json.gz?v=db041fbc", "data/d08.json.gz?v=79094943", "data/d09.json.gz?v=35822534", "data/d10.json.gz?v=167baeff", "data/d11.json.gz?v=d9113443", "data/d12.json.gz?v=d71189e4", "data/d13.json.gz?v=60803a4a", "data/d14.json.gz?v=c91e893e", "data/d15.json.gz?v=614da0a2"], APP="app.js?v=7b51020d";
+  var CORE="data/core.json.gz?v=af52dd46", DET=["data/d00.json.gz?v=a99e5a2f", "data/d01.json.gz?v=3a1d435f", "data/d02.json.gz?v=06df3747", "data/d03.json.gz?v=97117256", "data/d04.json.gz?v=14635153", "data/d05.json.gz?v=5e4afa72", "data/d06.json.gz?v=60a1b177", "data/d07.json.gz?v=db041fbc", "data/d08.json.gz?v=79094943", "data/d09.json.gz?v=35822534", "data/d10.json.gz?v=167baeff", "data/d11.json.gz?v=d9113443", "data/d12.json.gz?v=d71189e4", "data/d13.json.gz?v=60803a4a", "data/d14.json.gz?v=c91e893e", "data/d15.json.gz?v=614da0a2"], APP="app.js?v=40cdd71d";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

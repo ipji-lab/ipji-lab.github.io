@@ -56,12 +56,17 @@ function matchTypes(c){ return c.types.filter(t=>(!S.py || (t.py>=S.py[0] && t.p
 // v3.1.0 연구원: 대표 평형 = 그 단지에서 세대가 가장 많은 평형대(K-apt 면적별 세대수, 없으면 최근 1년 거래가 가장 많은 평형), 가격 = 그 평형 최근 3개월 평균 실거래가
 const HBR={1:[0,60],2:[60,85],3:[85,135],4:[135,999]};
 function mainType(c){ if(!c.types.length) return null;
-  if (c.ut&&c.ut.length){ const top=[...c.ut].sort((a,b)=>b[1]-a[1])[0]; const t=c.types.filter(t=>Math.abs(t.ex-top[0])<=1).sort((x,y)=>y.n-x.n)[0]; if(t) return t; }   // v1.1.2: 공시가격 자료로 세대가 가장 많은 전용면적
+  if (c.ut&&c.ut.length){ const top=c.utop!=null?[c.utop]:[...c.ut].sort((a,b)=>b[1]-a[1])[0]; const t=c.types.filter(t=>Math.abs(t.ex-top[0])<=1).sort((x,y)=>y.n-x.n)[0]; if(t) return t; }   // v1.2.4 utop: 청약 일반분양 구성 + K-apt 면적 구간으로 정한 대표 전용면적   // v1.1.2: 공시가격 자료로 세대가 가장 많은 전용면적
   let m=c.types; const mx=Math.max(...m.map(t=>t.n));
   if(c.hb){ const [a,b]=HBR[c.hb]; const f=m.filter(t=>t.ex>a&&t.ex<=b+0.5); if(f.length && Math.max(...f.map(t=>t.n))>=0.25*mx) m=f; }   // v1.1.2: K-apt 면적 구간이 공급면적 기준인 단지가 있어(무등산자이앤어울림 115㎡ 오류) 그 구간 거래가 최다 평형의 1/4도 안 되면 무시
   return [...m].sort((x,y)=>(y.n-x.n)||(y.n3-x.n3))[0]; }
 function repType(c){ if(S.py||S.priceR){ const m=matchTypes(c); if(!m.length) return null; return [...m].sort((a,b)=>b.n-a.n)[0]; } return mainType(c); }
-const repPrice = c => { const t=repType(c); return t?(t.a3??t.med):c.p84; };
+// v1.2.4 연구원(위파크마륵 10억): 대표 가격 = 세대가 가장 많은 평형의 최근 실거래. 그 평형 거래가 없고 분양가(청약홈 주택형별 최고가)가 있으면 분양가, 둘 다 없으면 84㎡ 환산값
+function topEx(c){ return c.utop!=null?c.utop:(c.ut&&c.ut.length?[...c.ut].sort((a,b)=>b[1]-a[1])[0][0]:null); }
+function bpOf(c){ if(!c.bp||!c.bp.length) return null; let ex=topEx(c); const L=ex==null?[...c.bp].sort((a,b)=>b[2]-a[2]):c.bp.filter(b=>Math.abs(b[0]-ex)<=1); const b=L.find(b=>b[1]); return b?{ex:b[0],py:Math.round(b[0]*0.4),top:b[1]}:null; }
+function repInfo(c){ const t=repType(c); if(t&&(t.a3!=null||t.med!=null)){ const top=topEx(c); if(top!=null&&Math.abs(t.ex-top)>1&&!(S.py||S.priceR)){ const b=bpOf(c); if(b) return {pt:b.top,src:'bp',t:null,b}; } return {pt:t.a3??t.med,src:t.a3!=null?'a3':'med',t}; } const b=bpOf(c); if(b) return {pt:b.top,src:'bp',t:null,b}; return {pt:c.p84,src:'p84',t:null}; }
+const repPrice = c => repInfo(c).pt;
+const repLab = c => { const i=repInfo(c); if(i.pt==null) return '–'; const te=topEx(c); const other=i.t&&te!=null&&Math.abs(i.t.ex-te)>1; return (i.src==='bp'?'분양 ':other?`${i.t.py}평 `:'')+eok(i.pt); };   // 최다 평형 거래가 없어 다른 평형 값이면 평형을 붙여 표시
 const typeLabel = t => `${t.py}평`;
 function bandPrice(c){ if (S.mine && S.mine.size!=='all'){ const b=c.p.bands?.[S.mine.size]; return b && b[1]>0 ? b[0] : null; } return c.p84; }
 function tagsShow(c){   // v1.1 연구원: 태그는 최대 4개, 왼쪽부터 좋은 점(파랑) → 보통(초록) → 아쉬운 점(빨강)
@@ -320,8 +325,9 @@ function drawMarkers(){
     g.select('.pill').style('fill', gr==null?'var(--surface)':gCol(gr)).style('stroke', gr==null?'var(--muted)':null).attr('stroke-dasharray', gr==null?'3 2':null);
     g.select('.sc').text(mLab(c)).style('fill', gInk(gr));
     const pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : repPrice(c);
-    g.select('.pr').text(eok(pt)).attr('x',22).attr('y',0);
-    g.select('.prbg').attr('x',17).attr('y',-9).attr('width',eok(pt).length*7+10).attr('height',18).attr('rx',6);
+    const ptl = S.mine && S.mine.size!=='all' ? eok(pt) : repLab(c);
+    g.select('.pr').text(ptl).attr('x',22).attr('y',0);
+    g.select('.prbg').attr('x',17).attr('y',-9).attr('width',ptl.length*7+10).attr('height',18).attr('rx',6);
     g.classed('dim',!vis.has(c.id)).classed('sel',c.id===S.sel).classed('cmp',S.cmp.includes(c.id));
     this.__m=null;                                                     // 모양 다시 그리기 표시
   });
@@ -370,7 +376,7 @@ function place(){
     const pill=[x-19*sz,y-10*sz,x+19*sz,y+10*sz];
     if (c.id!==S.sel && hit(pill)){ mode.set(c.id,'dot'); continue; }
     _push(pill);
-    const pw=(eok(repPrice(c)).length*7+10)*sz, lab=[x+19.5*sz,y-9*sz,x+17*sz+pw,y+9*sz];
+    const pw=(repLab(c).length*7+10)*sz, lab=[x+19.5*sz,y-9*sz,x+17*sz+pw,y+9*sz];
     if (showPrice && !hit(lab)){ _push(lab); mode.set(c.id,'full'); } else mode.set(c.id,'pill');
   }
   MKB=boxes;
@@ -423,12 +429,12 @@ function renderPanel(){
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPrice(b.dataset.pid); });
 }
 function itemHTML(c){
-  const pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : repPrice(c), r=repType(c), sc=scoreOf(c);
+  const ri=repInfo(c), pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : ri.pt, r=ri.t||ri.b, sc=scoreOf(c);
   return `<li class="row"><button class="item" data-id="${c.id}">
     ${gradeChip(c)}
     <span style="min-width:0"><span class="nm">${c.dong} ${c.n}</span><br><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span>
       <span class="tags">${tagsShow(c)}</span></span>
-    <span class="rt"><span class="score num">${f1(sc)}<small>${S.mine?'':'점'}</small></span><span class="price">${r?`${typeLabel(r)} `:''}${eok(pt)}</span></span>
+    <span class="rt"><span class="score num">${f1(sc)}<small>${S.mine?'':'점'}</small></span><span class="price">${r?`${typeLabel(r)} `:''}${(!(S.mine && S.mine.size!=='all')&&ri.src==='bp')?'분양 ':''}${eok(pt)}</span></span>
   </button>${bandBtn(c)}</li>`;
 }
 async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) await window.__ensureDetail(_c); }
@@ -536,7 +542,9 @@ function renderDetail(){
   const flags=[]; if (c.mktG && c.locG && !c.mktE && (c.y||9999)<=2023 && Math.abs(c.mktG-c.locG)>=3) flags.push(c.mktG<c.locG?`시장 평가와 차이 큼: 입지 점수는 ${c.locG}등급인데 실거래가로 본 입지(시장 검증)는 ${c.mktG}등급입니다. 점수에 안 잡히는 장점(동네 평판·학군 선호 등)이 있을 수 있습니다.`:`시장 평가와 차이 큼: 입지 점수는 ${c.locG}등급인데 실거래가로 본 입지(시장 검증)는 ${c.mktG}등급입니다. 점수에 안 잡히는 약점이 있는지 확인하세요.`); if (c.xs.ecross==='big' && !c.xs.evia) flags.push('배정 초등학교 가는 길에 왕복 4차로 이상 큰길을 건넙니다. 통학 안전을 따로 확인하세요.'); if (c.xs.evia) flags.push(`배정 초등학교 가는 길에 큰길을 ${c.xs.evia}로 건넙니다.`); if (c.xs.encr && c.xs.encr[0]>=3) flags.push(`배정 초등학교 가는 길에 왕복 2차로 이하 길을 ${c.xs.encr[0]}번 건넙니다.`);
   const a3=c.p.a3, gp = c.gap!=null ? pct(c.gap) : '';
   const mt=mainType(c), mtl=mt?`${mt.py}평형(전용 ${mt.ex}㎡)`:'';
-  const priceTop = mt && mt.a3 ? `<div class="ptop3"><span class="v num">${eok(mt.a3)}원</span>${bandBtn(c)}</div><div class="ptop3"><span class="s">${mtl} 최근 3개월 평균 실거래가 · ${mt.n3}건 · ${c.ut&&c.ut.length?'세대가 가장 많은 평형':'거래가 가장 많은 평형'}</span></div>`
+  const rinf=repInfo(c), bpi=rinf.src==='bp'?rinf.b:null, _te=topEx(c), utSrc=(mt&&_te!=null&&Math.abs(mt.ex-_te)>1)?`세대가 가장 많은 평형(전용 ${_te}㎡)은 최근 1년 매매가 없어 거래가 있는 평형`:(c.ut&&c.ut.length?(c.uts?`세대가 가장 많은 평형(${c.uts})`:'세대가 가장 많은 평형'):'거래가 가장 많은 평형');   // v1.2.4
+  const priceTop = bpi ? `<div class="ptop3"><span class="v num">분양가 ${eok(bpi.top)}원</span>${bandBtn(c)}</div><div class="ptop3"><span class="s">${bpi.py}평형(전용 ${bpi.ex}㎡) 분양 최고가(청약홈 주택형별) · ${utSrc} · ${mt?`이 평형은 최근 1년 매매가 없어 분양가를 보여 줍니다`:'최근 1년 매매가 없어 분양가를 보여 줍니다'}</span></div>`
+    : mt && mt.a3 ? `<div class="ptop3"><span class="v num">${eok(mt.a3)}원</span>${bandBtn(c)}</div><div class="ptop3"><span class="s">${mtl} 최근 3개월 평균 실거래가 · ${mt.n3}건 · ${utSrc}</span></div>`
     : `<div class="ptop3"><span class="s">${mt?`${mtl} 최근 3개월 거래가 없습니다 · 최근 거래 ${eok(mt.last)}원(’${mt.dt.slice(0,2)}.${+mt.dt.slice(2,4)})`:'최근 1년 매매 거래가 없습니다'}</span>${bandBtn(c)}</div>`;
   const pmsg = c.band==='hold' ? `${(c.pm&&c.pm.holdWhy)||'비교 자료 부족'}이라 고평가·저평가를 판정하지 않습니다.`
     : c.band==='over' ? '인근 비슷한 조건 단지의 시세보다 실거래가가 높습니다.'
@@ -964,7 +972,7 @@ function nvMarkers(){
     const bg = gr==null ? 'background:#fff;color:#6b7684;border:1.5px dashed #8b95a1' : `background:${gCol(gr)};color:${gInk(gr)}`;
     const zi=sel?1000:cmp?900:on?200+(10-(gr||10))*10:1;
     out.push(`<div class="nmw nvp" data-cid="${c.id}" style="transform:translate(${Math.round(p.x)}px,${Math.round(p.y)}px);z-index:${zi}">`+(dot ? `<div class="nmk dot${on?'':' dim'}" style="${gr==null?'background:#fff;border-color:#8b95a1':`background:${gCol(gr)}`}"></div>`
-      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${c.dong} ${c.n} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${mLab(c)}</b>${(z>=16||sel)&&pt?`<span>${eok(pt)}</span>`:''}</div>`)+'</div>');
+      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${c.dong} ${c.n} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${mLab(c)}</b>${(z>=16||sel)&&pt?`<span>${S.mine && S.mine.size!=='all'?eok(pt):repLab(c)}</span>`:''}</div>`)+'</div>');
   }
   NVL.el.innerHTML=out.join('');
 }

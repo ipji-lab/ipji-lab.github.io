@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.1.2">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.1.6">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 부동산 입지분석 서비스 프로토타입">
 <meta property="og:image" content="https://ipji-lab.github.io/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.1.2</title>
+<title>우리동네 입지분석(광주) v1.1.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -521,6 +521,33 @@ table.t.pt tr.tyd td{text-align:left;background:var(--surface2)}
 .mth details.mi summary{cursor:pointer;font-size:13.5px}
 .mth table.calc td,.mth table.calc th{font-size:12px;vertical-align:top}
 .mth table.calc.wt td:nth-child(2){white-space:nowrap}
+/* v1.1.3 */
+:root{--aL:#2a78d6;--aS:#eb6834;--aJ:#1baf7a;--aT:#eda100;--aD:#e87ba4;--aC:#008300;--aQ:#6250d6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--aL:#3987e5;--aS:#d95926;--aJ:#199e70;--aT:#c98500;--aD:#d55181;--aC:#008300;--aQ:#9085e9}}
+:root[data-theme="dark"]{--aL:#3987e5;--aS:#d95926;--aJ:#199e70;--aT:#c98500;--aD:#d55181;--aC:#008300;--aQ:#9085e9}
+.mth .wbar{gap:2px;background:var(--surface)} .mth .wbar i{border-right:0;border-radius:3px}
+.wsw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.mth .wleg{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.ghead .gwhere .gtot{display:block;font-size:13.5px;font-weight:600;color:var(--ink);margin-top:1px}
+table.t.pt th,table.t.pt td{white-space:nowrap;padding:6px 4px;font-size:12.5px}
+table.t.pt th:first-child,table.t.pt td:first-child{width:31%}
+table.t.pt th:last-child,table.t.pt td:last-child{width:37%}
+table.t.pt tr.tyd td{white-space:normal}
+table.t.pt .pdt{font-size:11px;color:var(--muted)}
+dl.kv.trk{grid-template-columns:max-content 1fr;gap:6px 14px}
+dl.kv.trk dt{white-space:nowrap} dl.kv.trk dd{text-align:left}
+dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
+.fpop .abar{display:grid;grid-template-columns:repeat(11,1fr);gap:3px;margin:4px 0 2px}
+.fpop .abar .ab{height:34px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;padding:0;font-family:var(--f-num)}
+.fpop .abar .ab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.fpop .abar .ab.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.fpop .tagb{max-height:220px;overflow:auto}
+.fpop .tagb .chip small{font-size:11px;color:var(--muted);margin-left:2px}
+.fpop .tagb .chip.good{border-color:var(--tag-good-bg)} .fpop .tagb .chip.bad{border-style:dashed}
+.fpop .tdesc{font-size:12.5px;line-height:1.5;margin-top:8px;min-height:0}
+.fpop .tdesc:empty{display:none}
+.fpop .tdesc b{margin-right:4px} .fpop .tdesc small{display:block;color:var(--muted);font-size:11.5px;margin-top:2px}
+.chip.reset{font-weight:600}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -531,7 +558,7 @@ table.t.pt tr.tyd td{text-align:left;background:var(--surface2)}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.1.2</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.1.6</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -547,16 +574,13 @@ table.t.pt tr.tyd td{text-align:left;background:var(--surface2)}
       <button class="chip dd" data-pop="py" data-def="평형" aria-pressed="false"><span>평형</span> ▾</button>
       <button class="chip dd" data-pop="units" data-def="세대수" aria-pressed="false"><span>세대수</span> ▾</button>
       <button class="chip dd" data-pop="ageR" data-def="입주년차" aria-pressed="false"><span>입주년차</span> ▾</button>
-      <button class="chip dd" data-pop="pkR" data-def="주차대수" aria-pressed="false"><span>주차대수</span> ▾</button>
-      <button class="chip" data-f="tag" data-v="chopuma" aria-pressed="false">초품아</button>
-      <button class="chip" data-f="tag" data-v="acad" aria-pressed="false">학원가</button>
-      <button class="chip" data-f="tag" data-v="slse" aria-pressed="false">슬세권</button>
-      <button class="chip" data-f="tag" data-v="gpark" aria-pressed="false">지상공원화</button>
-      <button class="chip" data-f="tag" data-v="park" aria-pressed="false">공세권</button>
-      <button class="chip dd" data-pop="qR" data-def="매매회전율" aria-pressed="false"><span>매매회전율</span> ▾</button>
-      <button class="chip" data-f="band" data-v="under" aria-pressed="false">저평가 단지</button>
-      <button class="chip" data-f="band" data-v="over" aria-pressed="false">고평가 단지</button>
-      <button class="chip reset" id="fReset" type="button" aria-label="필터 초기화" title="필터 초기화"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>초기화</button>
+      <button class="chip dd" data-pop="aL" data-def="생활환경" aria-pressed="false"><span>생활환경</span> ▾</button>
+      <button class="chip dd" data-pop="aS" data-def="교육환경" aria-pressed="false"><span>교육환경</span> ▾</button>
+      <button class="chip dd" data-pop="aC" data-def="단지상품성" aria-pressed="false"><span>단지상품성</span> ▾</button>
+      <button class="chip dd" data-pop="aJ" data-def="직주근접" aria-pressed="false"><span>직주근접</span> ▾</button>
+      <button class="chip dd" data-pop="aQ" data-def="거래활발도" aria-pressed="false"><span>거래활발도</span> ▾</button>
+      <button class="chip dd" data-pop="tag" data-def="태그" aria-pressed="false"><span>태그</span> ▾</button>
+      <button class="chip reset" id="fReset" type="button" aria-label="필터 초기화">초기화</button>
     </nav>
     <div id="fpop" class="fpop" hidden></div>
   </div>
@@ -620,7 +644,7 @@ table.t.pt tr.tyd td{text-align:left;background:var(--surface2)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=d113dfea", DET=["data/d00.json.gz?v=def30451", "data/d01.json.gz?v=dadf9ae2", "data/d02.json.gz?v=3fccd447", "data/d03.json.gz?v=4380f848", "data/d04.json.gz?v=5366f313", "data/d05.json.gz?v=d22ae068", "data/d06.json.gz?v=9747076e", "data/d07.json.gz?v=5df8cf79", "data/d08.json.gz?v=27f150a2", "data/d09.json.gz?v=2ef029b1", "data/d10.json.gz?v=91a440ec", "data/d11.json.gz?v=6cddf331", "data/d12.json.gz?v=19830102", "data/d13.json.gz?v=ddc78153", "data/d14.json.gz?v=5099cc8b", "data/d15.json.gz?v=27ca21b2"], APP="app.js?v=9d805ca1";
+  var CORE="data/core.json.gz?v=982777a9", DET=["data/d00.json.gz?v=19442a03", "data/d01.json.gz?v=a88e90ee", "data/d02.json.gz?v=10f327ae", "data/d03.json.gz?v=16dd0cd6", "data/d04.json.gz?v=74ad74f3", "data/d05.json.gz?v=9c76d590", "data/d06.json.gz?v=19745f75", "data/d07.json.gz?v=ac32f773", "data/d08.json.gz?v=398edf1f", "data/d09.json.gz?v=aef2b9a2", "data/d10.json.gz?v=af96dd92", "data/d11.json.gz?v=80956bde", "data/d12.json.gz?v=8523acd0", "data/d13.json.gz?v=70653b3e", "data/d14.json.gz?v=c9a35037", "data/d15.json.gz?v=92707464"], APP="app.js?v=99078609";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

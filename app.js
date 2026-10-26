@@ -42,7 +42,7 @@ const bandColor = b => ({under:'var(--under)',fair:'var(--fair)',over:'var(--ove
 
 /* ═════════ 상태 ═════════ */
 const RMAX = { p:Math.min(20, Math.ceil(Math.max(...CX.flatMap(c=>c.types.map(t=>t.med/10000))))), py:Math.max(...CX.flatMap(c=>c.types.map(t=>t.py))), u:Math.ceil(Math.max(...CX.map(c=>c.u))/100)*100, age:Math.max(...CX.map(c=>c.age)) };
-const S = { sel:null, band:'all', py:null, units:null, ageR:null, grades:new Set(), tags:new Set(), sort:'score', cmp:[], mine:null, openCat:null, view:'list', pop:null };
+const S = { sel:null, band:'all', py:null, units:null, ageR:null, grades:new Set(), tags:new Set(), amin:{}, sort:'score', cmp:[], mine:null, openCat:null, view:'list', pop:null };
 try { const v = JSON.parse(localStorage.getItem('dn10-mine')||'null'); if (v) S.mineDraft = v; } catch(e){}
 
 /* ═════════ 내 조건: 예산·비용 (지방세법 제11조①8, 공인중개사법 시행규칙 제20조) ═════════ */
@@ -82,7 +82,8 @@ function passes(c){
   if (S.qR && !inR(c.qr,S.qR,15)) return false;
   if (S.pkR && !inR(pkU(c),S.pkR,2)) return false;
   if ((S.py || S.priceR) && !matchTypes(c).length) return false;
-  for (const t of S.tags){ if (t==='final'){ if (!c.final) return false; } else if (!c.tags.some(x=>x[0]===t)) return false; }
+  for (const t of S.tags){ if (t==='final'){ if (!c.final) return false; } else if (t==='under'){ if (c.band!=='under') return false; } else if (!c.tags.some(x=>x[0]===t)) return false; }   // v1.1.3 연구원: 저평가 단지도 태그로
+  for (const a in S.amin){ const v=S.amin[a]; if (v!=null && (c.area[a]==null || c.area[a] < v)) return false; }   // v1.1.3 연구원: 영역 점수 N점 이상
   if (S.mine){ const p=bandPrice(c); if (p==null || p*10000 > S.mine.maxP) return false; }
   return true;
 }
@@ -106,17 +107,33 @@ function visible(){
 }
 
 /* ═════════ 필터 안내 상자 ═════════ */
-const HINT = {
-  chopuma:['초품아 기준','차도를 건너지 않고 인도로 배정 초등학교까지 도보 5분 안에 가는 단지입니다.','배정 초등학교는 학구도 통학구역 기준입니다. 차도는 OpenStreetMap 기준이며 단지 안 길은 차도로 보지 않습니다.'],
-  acad:['학원가 기준','걸어서 10분 안에 학원(예체능 포함)이 50곳 이상 모여 있는 단지입니다. 한 학원은 과목 수와 관계없이 1곳으로 셉니다.','소상공인시장진흥공단 상가정보(’26.6.30) 학원 업종 기준입니다.'],
-  job:['직주근접 기준','주요 업무지구의 일자리 규모(통계청 사업체조사 종사자 수 × 국민연금 평균 임금)와 자가용 출퇴근 시간으로 매긴 점수가 광주 단지 상위 5% 안인 단지입니다. 가까울수록 크게 셉니다. 거리 반영 비율은 2020 인구주택총조사(통계청)의 실제 통근시간 분포로 정했습니다: 45분 안에 출퇴근하는 사람 중 통근시간이 그보다 긴 사람의 비율(0분 100% · 15분 72% · 30분 39% · 45분 0%). 45분이 넘는 업무지구는 세지 않습니다. 만점은 광주 전체에서 가까운 일자리가 가장 많은 단지이고, 모든 지역에 같은 기준을 씁니다.','출퇴근 시간은 경로 탐색 시간 × 1.3(혼잡 보정)입니다. 종사자 수는 근무지 기준(2024)이라 지사·공무원이 포함됩니다. 공무원 임금은 국민연금 자료에 없어 인사혁신처가 고시한 공무원 평균 소득(월 571만 원)을 씁니다.'],
-  park:['공세권 기준','걸어서 5분 안(공원 경계까지)에 큰 공원이나 호수가 있는 단지입니다. 공원·호수 10만㎡ 이상, 또는 5만㎡ 이상이면서 하천·산책로로 더 큰 녹지에 이어진 곳(예: 수완호수공원)이 해당합니다.','도시공원정보 표준데이터 면적과 OpenStreetMap 공원·호수 경계 기준입니다. 실제 입구 위치와 다를 수 있습니다.'],
-  water:['수세권 기준','걸어서 5분 안에 하천 둔치나 수변 산책로(광주천·풍영정천·영산강 자전거길, 푸른길, 지역 하천·해안 산책로 등)가 있는 단지입니다. 공세권과 겹치면 공세권만 표시합니다.','OpenStreetMap 하천·이름 있는 산책로 기준입니다. 작은 천은 복개 구간이 있을 수 있어 제외했습니다.'],
-  gpark:['지상공원화 기준','주차장이 모두 지하에 있어(지상 주차 0대) 단지 지상을 공원처럼 쓰는 단지입니다.','K-apt 지상·지하 주차대수 기준입니다. 방문·상가 주차가 일부 지상에 있어도 K-apt에 0대로 입력돼 있으면 해당합니다.'],
-  slse:['슬세권 기준','슬리퍼 신고 다닐 거리에 장보기·병원·약국·공원·은행·상권이 모인 단지입니다. 생활환경 점수가 광주 단지 중 상위 5% 안이면 해당합니다.','생활환경 항목(마트·의원·공원·대형마트·종합병원·도서관·은행·상권·영화관·수영장) 점수 기준입니다.'],
-  final:['확정 등급이란?','모든 기본 항목이 관측된 단지만 도시 내 상대등급을 받습니다.','자료가 빠진 단지는 잠정점수와 가능한 점수 범위만 보여 줍니다(평가 기준 [4]).'],
-  under:['저평가 단지란?','반경 500m 안 단지 시세와 조건으로 만든 추정가보다 최근 실거래가가 10% 이상 낮은 단지입니다.','종합점수에는 넣지 않는 참고 정보입니다. 감정평가나 적정가격이 아닙니다.'],
-  over:['고평가 단지란?','반경 500m 안 단지 시세와 조건으로 만든 추정가보다 최근 실거래가가 10% 이상 높은 단지입니다.','종합점수에는 넣지 않는 참고 정보입니다. 감정평가나 적정가격이 아닙니다.'],
+const HINT = {   // v1.1.3 연구원: 태그를 누르면 뜻을 보여 줌(엔진 태그 규칙과 같은 기준)
+  under:['저평가 단지','반경 500m 안 비슷한 조건 단지 시세로 만든 추정가보다 최근 실거래가가 10% 이상 낮은 단지입니다.','종합점수에는 넣지 않는 참고 정보입니다. 감정평가나 적정가격이 아닙니다.'],
+  chopuma:['초품아','차도를 건너지 않고 인도로 배정 초등학교까지 도보 5분 내에 가는 단지입니다.','배정 초등학교는 학구도 통학구역 기준입니다. 차도는 OpenStreetMap 기준이며 단지 안 길은 차도로 보지 않습니다.'],
+  acad:['학원가','도보 10분 내 학원이 100개 이상인 단지입니다. 교과 학원은 1개, 예체능·독서실·스터디카페·체육도장은 0.5개로 셉니다.','소상공인시장진흥공단 상가정보(’26.6) 학원 업종 기준입니다. 성인 대상 학원은 뺐습니다.'],
+  sub:['역세권','운행 중인 도시철도역까지 600m 내인 단지입니다. 개통 예정역까지 600m 내이기도 하면 더블 역세권(예정)으로 표시합니다.','역 위치는 광주교통공사·OpenStreetMap 기준입니다.'],
+  sub2:['역세권(예정)','공사 중인 도시철도 2호선 예정역까지 600m 내인 단지입니다.','개통 시기는 공식 발표로 다시 확인하세요.'],
+  slse:['슬세권','슬리퍼 신고 다닐 거리에 프랜차이즈·편의시설·병원·마트·공원이 모인 단지입니다. 생활환경 점수가 광주 단지 중 상위 5% 안이면 해당합니다.','생활환경 항목(프랜차이즈·편의시설·동네 병·의원·대형마트·동네마트·공원·종합병원·도서관·영화관·수영장) 점수 기준입니다.'],
+  park:['공세권','걸어서 5분 내(공원 경계까지)에 큰 공원이나 호수가 있는 단지입니다. 공원·호수 10만㎡ 이상, 또는 5만㎡ 이상이면서 하천·산책로로 더 큰 녹지에 이어진 곳(예: 수완호수공원)이 해당합니다.','도시공원정보 표준데이터 면적과 OpenStreetMap 공원·호수 경계 기준입니다.'],
+  water:['수세권','걸어서 5분 내에 하천 둔치나 수변 산책로(광주천·풍영정천·영산강 자전거길, 푸른길 등)가 있는 단지입니다. 공세권과 겹치면 공세권만 표시합니다.','OpenStreetMap 하천·이름 있는 산책로 기준입니다.'],
+  job:['직주근접','주요 업무지구의 일자리 규모와 자가용 출퇴근 시간으로 매긴 직주근접 점수가 광주 단지 상위 5% 안인 단지입니다.','통계청 사업체조사 종사자 수 × 국민연금 평균 임금, 2020 인구주택총조사 통근시간 분포 기준입니다.'],
+  new:['신축','입주 5년 이내인 단지입니다.','사용승인 연도 기준입니다.'],
+  big:['대단지','1,000세대 이상인 단지입니다.','K-apt 세대수 기준입니다.'],
+  gpark:['지상공원화','주차장이 모두 지하에 있어(지상 주차 0대) 단지 지상을 공원처럼 쓰는 단지입니다.','K-apt 지상·지하 주차대수 기준입니다.'],
+  park2:['주차 여유','세대당 주차가 1.5대 이상인 단지입니다.','K-apt 주차대수 ÷ 세대수 기준입니다.'],
+  liq:['거래 활발','거래활발도 점수가 10점 만점에 8점 이상인 단지입니다. 최근 2년 매매가 광주 평균보다 많아 팔고 사기 쉬운 편입니다.','국토교통부 실거래가 기준입니다.'],
+  rent:['임대','분양형태가 임대인 단지입니다. 매매가 없어 종합 등급 대신 입지 등급만 보여 줍니다.','K-apt 분양형태 기준입니다.'],
+  mixr:['임대 혼합','분양 세대와 임대 세대가 함께 있는 단지입니다.','K-apt 분양형태(혼합) 기준입니다.'],
+  mixu:['주상복합','아래층에 상가가 있는 주상복합 단지입니다.','K-apt 단지 분류 기준입니다.'],
+  solo:['나홀로아파트','동이 1개뿐인 소규모 단지입니다. 거래가 적고 시세가 덜 오르는 경향이 있습니다.','건축물대장·K-apt 동 수 기준입니다.'],
+  pklow:['주차 부족','세대당 주차가 0.7대 미만인 단지입니다. 저녁 시간 주차가 빠듯할 수 있습니다.','K-apt 주차대수 ÷ 세대수 기준입니다.'],
+  hall:['복도식','복도식 구조 단지입니다.','K-apt 복도 유형 기준입니다.'],
+  harm:['유해업소 밀집','단지 경계 200m 내에 유흥주점 등 유해업소가 많아 보정 점수가 2점 이상인 단지입니다.','소상공인 상가정보 업종 기준입니다. 50m 내 업소는 더 크게 셉니다.'],
+  noise:['소음 주의','큰 도로(왕복 6차로 이상·도시고속도로), 지상 철도, 광주공항 활주로가 가까워 소음 보정이 2점인 단지입니다.','실제 소음 측정값이 아닌 거리 기준 추정입니다.'],
+  nimby:['기피시설 인접','하수처리·매립·소각장, 교정시설, 장사시설, 차량기지·발전소·345kV 변전소가 1km 내에 있어 보정 점수가 1점 이상인 단지입니다.','가까울수록 크게 셉니다(300m 내 기본점, 1km에서 0).'],
+  odor:['악취 주의','산업단지·축사·퇴비 시설이 가까워 악취 보정이 1.5점 이상인 단지입니다.','바람 방향을 반영한 거리 기준 추정입니다.'],
+  final:['확정 등급이란?','모든 기본 항목이 관측된 단지만 도시 내 상대등급을 받습니다.','자료가 빠진 단지는 잠정점수와 가능한 점수 범위만 보여 줍니다.'],
+  over:['고평가 단지','반경 500m 안 비슷한 조건 단지 시세로 만든 추정가보다 최근 실거래가가 10% 이상 높은 단지입니다.','종합점수에는 넣지 않는 참고 정보입니다.'],
 };
 function renderMacro(){
   const box=$('macro');
@@ -270,6 +287,7 @@ function drawDong(lv){
   });
 }
 const gLab = c => { const g=gradeOf(c); return g==null ? (c.rent&&!S.mine?`입지 ${c.locG??'-'}등급`:'잠정') : g+'등급'; };
+const mapG = c => gradeOf(c) ?? (c.rent&&!S.mine ? (c.locG??null) : null), mLab = c => { const g=mapG(c); return g==null?'잠정':g+'등급'; };   // v1.1.3 연구원: 지도의 임대 단지는 'N등급'만, 매매 단지와 같은 모양
 function drawOutline(){
   const c=S.sel?CX.find(x=>x.id===S.sel):null;
   if (proj){ gOl.selectAll('*').remove();
@@ -294,11 +312,11 @@ function drawMarkers(){
     return g;
   });
   mk.each(function(c){
-    const g=d3.select(this), gr=gradeOf(c);
+    const g=d3.select(this), gr=mapG(c);
     g.attr('aria-label',`${c.dong} ${c.n}, ${gLab(c)}, 종합 ${f1(scoreOf(c))}점`);
     g.select('title').text(`${c.dong} ${c.n} · ${gLab(c)} · 종합 ${f1(scoreOf(c))}점${c.final?'':'(잠정)'} · ${BAND[c.band]}`);
     g.select('.pill').style('fill', gr==null?'var(--surface)':gCol(gr)).style('stroke', gr==null?'var(--muted)':null).attr('stroke-dasharray', gr==null?'3 2':null);
-    g.select('.sc').text(gLab(c)).style('fill', gInk(gr));
+    g.select('.sc').text(mLab(c)).style('fill', gInk(gr));
     const pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : repPrice(c);
     g.select('.pr').text(eok(pt)).attr('x',22).attr('y',0);
     g.select('.prbg').attr('x',17).attr('y',-9).attr('width',eok(pt).length*7+10).attr('height',18).attr('rx',6);
@@ -421,16 +439,23 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
 
 /* ═════════ 패널: 상세 ═════════ */
 const SGRP={S1t:'초등학교',S3:'중학교',S5a:'학원'}, SNAME={S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
+function rankOf(c){   // v1.1.3 연구원: 같은 권역 등급 단지(임대 제외) 안 순위 = 등급 → 점수 순
+  const z=c.zn||'gj', L=CX.filter(x=>(x.zn||'gj')===z && gradeOf(x)!=null).sort((a,b)=>gradeOf(a)-gradeOf(b) || (scoreOf(b)??-1)-(scoreOf(a)??-1));
+  const i=L.indexOf(c); return [i+1, L.length, 100*(i+.5)/L.length]; }
 function capWhy(c,g){   // v1.1.2: 등급 조건으로 내려간 단지만 한 줄로 사유
   if (g==null) return c.rent&&!S.mine?'임대 단지는 매매가 없어 종합 등급 대신 입지 등급만 보여 줍니다.':'자료가 빠진 항목이 있어 등급을 붙이지 않았습니다.';
+  if (c.why==='mktup' && c.grade<c.grade0){ const pg=v=>[4,11,23,40,60,77,89,96,100].findIndex(x=>v<=x)+1, pp=v=>v<1?'1% 이내':Math.round(v)+'%'; return `점수로는 ${c.grade0}등급이지만 ${c.grade}등급입니다. 시장이 인정한 자리값(상위 ${pp(c.pxp)})과 ㎡당 실거래가(상위 ${pp(c.rpp)})가 모두 ${Math.max(pg(c.pxp),pg(c.rpp))}등급 수준 이상이라 점수 등급보다 한 단계 올렸습니다.`; }   // v1.1.6 시장 등급 보정(일반화)
   if (!(c.grade>c.grade0)) return '';
-  const pc=v=>v==null?'-':Math.round(v), n24=(c.p&&c.p.q24&&c.p.q24.n)||0;
-  const W={small:`100세대 미만은 최고 3등급(2년 매매 10건 이상 + 실거래가 상위 7%면 2등급 · 이 단지 ${n24}건)`,old:`입주 25년 이상은 최고 3등급(2년 매매 10건 이상 + 실거래가 상위 7%면 2등급 · 이 단지 ${n24}건)`,
-    price:`1등급은 실거래가(㎡당) 광주 상위 ${M.p1pct||11}% 안에서만 · 이 단지 상위 ${pc(c.rpp)}%`,nopx:'최근 2년 실거래가 없어 최고 3등급',
-    px:c.pxp==null?'실거래 시세가 없어 최고 3등급':`1·2등급은 시장 검증 입지 상위 11% 안에서만 · 이 단지 상위 ${pc(c.pxp)}%`,
-    px1:`1등급은 순수 자리값 상위 ${M.px1p||23}% 안에서만 · 이 단지 상위 ${pc(c.mktPg)}%`,
-    unsold2:c.unsT?`미분양(준공 때 ${c.unsT[2]}세대 · 단지의 ${c.unsT[1]}%)이라 최고 ${c.unsT[0]}등급`:'미분양 단지 상한'};
-  return `점수로는 ${c.grade0}등급 → ${W[c.why]||'등급 조건'}`;
+  const pc=v=>v==null?'-':Math.round(v), n24=(c.p&&c.p.q24&&c.p.q24.n)||0, g0=c.grade0, gg=c.grade;   // v1.1.3 연구원: 왜 그 등급까지만인지 풀어서
+  const ex=(t)=>`${t} 최고 3등급입니다. 최근 2년 매매가 10건 이상이고 ㎡당 실거래가가 광주 상위 7% 안이면 2등급까지 줍니다. 이 단지는 매매 ${n24}건, 실거래가 상위 ${pc(c.rpp)}%입니다.`;
+  const W={small:ex('100세대 미만 소단지는'), old:ex('입주 25년이 넘은 단지는'),
+    price:`1등급은 이 단지의 ㎡당 실거래가가 광주 상위 ${M.p1pct||11}% 안이어야 합니다. 이 단지는 상위 ${pc(c.rpp)}%입니다.`,
+    nopx:'최근 2년 매매가 없어 시장 가격을 확인할 수 없으므로 최고 3등급입니다.',
+    rentpx:'임대 단지는 매매 가격이 없어 최고 4등급입니다.',
+    px:c.pxp==null?'최근 실거래가 없어 시장이 매기는 자리값을 확인할 수 없으므로 최고 3등급입니다.':`1·2등급은 시장이 인정한 자리값이 광주 상위 11% 안이어야 합니다. 자리값은 ㎡당 실거래가에서 연식·세대수·주차 같은 단지 조건 몫을 빼고 남은 값입니다. 이 단지의 자리값은 상위 ${pc(c.pxp)}%입니다.`,
+    px1:`1등급은 신축·대단지 프리미엄까지 뺀 순수 자리값도 광주 상위 ${M.px1p||23}% 안이어야 합니다. 이 단지는 상위 ${pc(c.mktPg)}%입니다.`,   // v1.1.4 기본 끔(M.px1on)
+    unsold2:c.unsT?`미분양이 남아 있어(준공 때 ${c.unsT[2]}세대 · 단지의 ${c.unsT[1]}%) 최고 ${c.unsT[0]}등급입니다.`:'미분양이 남아 있어 등급을 낮췄습니다.'};
+  return `점수로는 ${g0}등급이지만 ${gg}등급입니다. ${W[c.why]||'등급 조건에 걸렸습니다.'}`;
 }
 function itemRow(c,k,lab){
   const v=c.it[k];
@@ -442,7 +467,7 @@ function typeTable(c){   // v1.1.2 연구원: 가로 스크롤 없이 전용면�
   c.types.forEach(t=>{ if(!used.has(t)) rows.push({ex:t.ex,u:null,ds:null,t}); });
   rows.sort((a,b)=>a.ex-b.ex); if(!rows.length) return '';
   const hasU=rows.some(r=>r.u), all=c.udong||[], fx=v=>Number.isInteger(v)?String(v):v.toFixed(2);
-  const dt=t=>t&&t.dt?` <span style="color:var(--muted)">’${t.dt.slice(0,2)}.${+t.dt.slice(2,4)}</span>`:'';
+  const dt=t=>t&&t.dt?` <span class="pdt">’${t.dt.slice(0,2)}.${+t.dt.slice(2,4)}</span>`:'';
   return `<table class="t pt"><thead><tr><th>전용</th>${hasU?'<th>세대</th>':''}<th>최근 1년</th><th>최근 거래</th></tr></thead><tbody>${rows.map(r=>{
     const tr=`<tr${r.ds?' class="tyr" tabindex="0" role="button" aria-expanded="false" title="눌러서 이 면적이 있는 동 보기"':''}><td>${fx(r.ex)}㎡${r.ds?' <span class="dgi">동 ▾</span>':''}</td>${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num">${r.t?r.t.n+'건':'0건'}</td><td class="num">${r.t&&r.t.last?eok(r.t.last)+dt(r.t):'<span style="color:var(--muted)">거래 없음</span>'}</td></tr>`;
     const dd=r.ds?`<tr class="tyd" hidden><td colspan="${hasU?4:3}"><div class="dongs">${(all.length?all:r.ds).map(d=>`<span class="dg${r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note" style="margin:4px 0 0">${fx(r.ex)}㎡가 있는 동 ${r.ds.length}개(진한 칸) · 공동주택 공시가격 자료 기준</p></td></tr>`:'';
@@ -515,11 +540,11 @@ function renderDetail(){
       <div class="dmeta">${c.far?`용적률 ${c.far}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
     <section class="hero">
-      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):`${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${(c.zN||CX.length).toLocaleString()}곳 중 상위 ${f1(c.pct)}% · 종합 ${f1(tot)}점`}</span></div>
+      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 상위 ${f1(pp)}%<span class="gtot">종합점수 ${f1(tot)}점(${rk.toLocaleString()}등)${c.rpp!=null?` · ㎡당 실거래가 상위 ${c.rpp<1?'1% 이내':Math.round(c.rpp)+'%'}`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="sc3">${subsc}</div>
     </section>
-    <section class="sec"><h2>보정 점수 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${(c.M&&c.M.length)?c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join(''):'<p class="note" style="margin:6px 0">해당하는 보정 항목이 없습니다.</p>'}</div></section>
+    <section class="sec"><h2>보정 점수 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${(c.M&&c.M.length)?c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join(''):'<p class="note" style="margin:6px 0">이 단지는 시장에서 할인되는 특성이 없어 깎인 점수가 없습니다.</p>'}</div></section>
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
     <section class="sec"><h2>영역별 점수</h2><div>${areas}</div></section>
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">실거래가<span class="tagref">참고 정보</span></h2>
@@ -528,7 +553,7 @@ function renderDetail(){
       ${typeTable(c)}
       <div class="chart" id="pchart"></div>
       ${jsHTML(c)}</section>
-    ${(c.xs.tr||[]).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통 한눈에</h2><dl class="kv">${c.xs.tr.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></section>`:''}
+    ${(c.xs.tr||[]).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통 한눈에</h2><dl class="kv trk">${c.xs.tr.map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">개별 위험·확인 사항</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}<p>이 분석은 AI가 공공데이터로 자동 계산한 결과입니다. 실제 매수 등 중요한 결정 전에는 현장 방문과 공식 자료로 사람이 직접 다시 확인해 주세요.</p></div></section>
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">출처</h2><ul class="note" style="margin:0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></section>
@@ -631,14 +656,8 @@ $('q').addEventListener('input',e=>{
 document.addEventListener('click',e=>{ if(!e.target.closest('.search')) $('sugg').hidden=true; });
 
 /* ═════════ 필터 칩 ═════════ */
-document.querySelectorAll('.chip[data-f]').forEach(b=>b.onclick=()=>{
-  const v=b.dataset.v;
-  if (b.dataset.f==='band'){ S.band = S.band===v ? 'all' : v; document.querySelectorAll('.chip[data-f="band"]').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===S.band))); S.hint = S.band==='all'?null:v; }
-  else { S.tags.has(v)?S.tags.delete(v):S.tags.add(v); b.setAttribute('aria-pressed',String(S.tags.has(v))); S.hint = S.tags.has(v)?v:null; }
-  S.macroMin=false; renderMacro(); refresh();
-});
 $('fReset') && ($('fReset').onclick=()=>{
-  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null});
+  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,amin:{}});
   S.grades.clear(); S.tags.clear();
   document.querySelectorAll('.chip[data-f]').forEach(x=>x.setAttribute('aria-pressed','false'));
   const pp=$('fpop'); if (pp) pp.hidden=true;
@@ -655,9 +674,13 @@ const RANGE = {
   bcr:{ title:'건폐율', unit:'%', step:5, max:()=>80, vals:()=>CX.map(c=>c.bcr).filter(v=>v!=null), get:()=>S.bcr, set:v=>S.bcr=v },
   qR:{ title:'매매회전율', def:`1년 동안 단지 전체 세대 중 몇 %가 실제로 팔렸는지 나타냅니다. 최근 2년 매매 건수 ÷ 세대수 ÷ 2로 계산하며, 높을수록 사고팔기 쉬운 단지입니다(광주 평균 연 ${(DATA.meta.qCity/2).toFixed(1)}%).`, unit:'%', step:0.5, max:()=>15, vals:()=>CX.map(c=>c.qr).filter(v=>v!=null), get:()=>S.qR, set:v=>S.qR=v },
 };
+const AF={L:'생활환경',S:'교육환경',C:'단지상품성',J:'직주근접',Q:'거래활발도'};
+const AFD={L:'프랜차이즈·편의시설·병원·마트·공원 등 생활 편의를 모은',S:'초등 통학·중학교·학원가를 모은',C:'연식·세대수·시공사·주차·커뮤니티를 모은',J:'주요 업무지구 출퇴근 거리로 매긴',Q:'최근 2년 매매가 얼마나 활발한지로 매긴'};
 function chipLabels(){
   const L=(k,txt)=>{ const b=document.querySelector(`.chip[data-pop="${k}"]`); if(b){ b.querySelector('span').textContent=txt; b.setAttribute('aria-pressed',String(txt!==b.dataset.def)); } };
   for (const k in RANGE){ const r=RANGE[k], v=r.get(); L(k, v? `${r.title} ${v[0].toLocaleString()}~${v[1].toLocaleString()}${r.unit}${k==='price'&&v[1]>=RMAX.p?' 이상':''}` : r.title); }
+  for (const a in AF){ const v=S.amin[a]; L('a'+a, v!=null?`${AF[a]} ${v}점↑`:AF[a]); }
+  L('tag', S.tags.size?`태그 ${S.tags.size}`:'태그');
   L('grade', S.grades.size? [...S.grades].sort().map(g=>g?g:'잠정').join('·')+(S.grades.has(0)&&S.grades.size===1?'':'등급') : '등급');
 }
 function openPop(k, btn){
@@ -666,7 +689,23 @@ function openPop(k, btn){
   S.pop=k; pop.hidden=false;
   const r=btn.getBoundingClientRect(), host=pop.offsetParent.getBoundingClientRect();
   pop.style.left=Math.max(8, Math.min(r.left-host.left, host.width-pop.offsetWidth-8))+'px';
-  if (k==='grade'){
+  if (k[0]==='a' && AF[k.slice(1)]){   // v1.1.3 연구원: 영역 점수 0~10 막대에서 하나를 누르면 'N점 이상'
+    const a=k.slice(1), cur=S.amin[a], vals=CX.map(c=>c.area[a]).filter(v=>v!=null), cnt=t=>vals.filter(v=>v>=t).length;
+    const seg=()=>[...Array(11).keys()].map(t=>`<button class="ab${cur!=null&&t>=cur?' on':''}${t===cur?' cur':''}" data-t="${t}" aria-pressed="${t===cur}" aria-label="${t}점 이상">${t}</button>`).join('');
+    pop.innerHTML=`<div class="pt">${AF[a]} <b id="rv">${cur!=null?cur+'점 이상 · '+cnt(cur).toLocaleString()+'곳':'전체'}</b></div><div class="pdef">${AFD[a]} 10점 만점 영역 점수입니다. 숫자를 누르면 그 점수 이상인 단지만 보여 줍니다.</div><div class="abar" role="group" aria-label="${AF[a]} 최소 점수">${seg()}</div><div class="pax"><span>0점</span><span>10점</span></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    const set=t=>{ S.amin[a]=t; const c2=S.amin[a]; pop.querySelectorAll('.abar .ab').forEach(b=>{ const v=+b.dataset.t; b.classList.toggle('on', c2!=null&&v>=c2); b.classList.toggle('cur', v===c2); b.setAttribute('aria-pressed',String(v===c2)); }); $('rv').textContent=c2!=null?`${c2}점 이상 · ${cnt(c2).toLocaleString()}곳`:'전체'; refresh(); };
+    pop.querySelectorAll('.abar .ab').forEach(b=>b.onclick=()=>{ const t=+b.dataset.t; set(S.amin[a]===t||t===0?null:t); });
+    $('pReset').onclick=()=>set(null);
+  } else if (k==='tag'){   // v1.1.3 연구원: 태그 여러 개 선택 · 누르면 뜻 설명
+    const have=new Map(); CX.forEach(c=>c.tags.forEach(t=>{ if(!have.has(t[0])) have.set(t[0],t); }));
+    const HK=Object.keys(HINT), hi=k=>{ const i=HK.indexOf(k); return i<0?99:i; };
+    const und=CX.some(c=>c.band==='under'), ordT0=[...(und?[['under','저평가 단지','good']]:[]), ...[...have.values()].filter(t=>t[2]==='good'), ...[...have.values()].filter(t=>!t[2]&&t[0]!=='naju'), ...[...have.values()].filter(t=>t[2]==='bad')], ordT=ordT0.sort((a,b)=>hi(a[0])-hi(b[0]));   // 태그 순서: 좋은 점 → 단지 형태 → 아쉬운 점
+    const N=t=>t==='under'?CX.filter(c=>c.band==='under').length:CX.filter(c=>c.tags.some(x=>x[0]===t)).length;
+    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div><div class="pbtns tagb">${ordT.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div><div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    const show=v=>{ const h=HINT[v]; $('tdesc').innerHTML=h?`<b>${h[0]}</b> ${h[1]}<small>${h[2]}</small>`:''; };
+    pop.querySelectorAll('.tagb .chip').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; S.tags.has(v)?S.tags.delete(v):S.tags.add(v); b.setAttribute('aria-pressed',String(S.tags.has(v))); show(v); refresh(); });
+    $('pReset').onclick=()=>{ S.tags.clear(); pop.querySelectorAll('.tagb .chip').forEach(b=>b.setAttribute('aria-pressed','false')); $('tdesc').innerHTML=''; refresh(); };
+  } else if (k==='grade'){
     const opts = [1,2,3,4,5,6,7,8,9].map(g=>[g,g+'등급']), set = S.grades;
     pop.innerHTML=`<div class="pt">종합 등급(여러 개 선택)</div><div class="pbtns">${opts.map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${set.has(v)}">${l}</button>`).join('')}</div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
     pop.querySelectorAll('.pbtns .chip').forEach(b=>b.onclick=()=>{ const v=+b.dataset.v; set.has(v)?set.delete(v):set.add(v); b.setAttribute('aria-pressed',String(set.has(v))); refresh(); });
@@ -771,15 +810,16 @@ function openMethod(){
   const ov=$('ovMethod'); ov.hidden=false;
   const itemsT = AREAS.map(a=>Object.keys(IN[a]).map((k,i)=>`<tr>${i===0?`<td rowspan="${Object.keys(IN[a]).length}"><b>${AN[a]}</b><br><span class="ver">${Math.round(M.areaW[a]*100)}%</span>${(M.basis&&M.basis.area[a])?`<br><span class="sm">${M.basis.area[a]}</span>`:''}</td>`:''}<td>${NAMES[k]}<br><span class="ver">${(()=>{const t=Object.values(IN[a]).reduce((x,y)=>x+y,0); return t>1?IN[a][k]+'점':'100점';})()}</span></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">배점 근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')).join('');
   const sens = M.sens.map(s=>`<tr><td>${AN[s.area]} ${s.f<1?'−20%':'+20%'}</td><td class="n">${s.changed}곳 (${s.changedPct}%)</td><td class="n">${s.top1Keep}/${s.top1N}</td></tr>`).join('');
-  const AD={L:'상권·병원·마트·동네마트·공원·도서관',S:'초등 통학·중학교·학원가',J:'주요 업무지구 출퇴근(자가용)',T:'KTX(광주송정역)·공항·유스퀘어',D:'반경 2km 새 아파트 입주 물량',C:'연식·세대수·시공사·주차·커뮤니티',Q:'최근 2년 월 거래율'};
-  const GRP={L:'loc',S:'loc',J:'loc',T:'loc',D:'loc',C:'prd',Q:'liq'}, GC={loc:'var(--accent)',prd:'#2e9e6b',liq:'#e08a1e'}, GN={loc:'입지',prd:'단지 상품성',liq:'환금성'};
+  const AD={L:'프랜차이즈·편의시설·병원·마트·동네마트·공원·도서관',S:'초등 통학·중학교·학원가',J:'주요 업무지구 출퇴근(자가용)',T:'KTX(광주송정역)·공항·유스퀘어',D:'반경 2km 새 아파트 입주 물량',C:'연식·세대수·시공사·주차·커뮤니티',Q:'최근 2년 월 거래율'};
+  const GRP={L:'loc',S:'loc',J:'loc',T:'loc',D:'loc',C:'prd',Q:'liq'}, GN={loc:'입지',prd:'단지 상품성',liq:'환금성'}, AC=a=>`var(--a${a})`, AK={T:1,J:1,D:1};   // v1.1.3 연구원: 영역마다 다른 색(색약 검증 팔레트)
   const ord=['L','S','J','T','D','C','Q'].filter(a=>M.areaW[a]!=null), pc=a=>Math.round(M.areaW[a]*100);
   const gsum=g=>ord.filter(a=>GRP[a]===g).reduce((x,a)=>x+pc(a),0);
-  const wbar=`<div class="wbar" role="img" aria-label="영역 비중">${ord.map((a,i)=>`<i style="width:${pc(a)}%;background:${GC[GRP[a]]};opacity:${GRP[a]==='loc'?1-0.12*i:1}"><b>${({L:'생활',S:'교육',J:'직주',T:'광역',D:'공급',C:'상품성',Q:'환금성'})[a]}</b><small>${pc(a)}</small></i>`).join('')}</div>
-    <div class="wleg">${['loc','prd','liq'].map(g=>`<span><i style="background:${GC[g]}"></i>${GN[g]} ${gsum(g)}%</span>`).join('')}</div>`;
-  const wtab=`<table class="calc wt"><thead><tr><th>영역</th><th>비중</th><th>무엇을 보나</th></tr></thead><tbody>${ord.map(a=>`<tr><td><b>${AN[a]}</b></td><td class="n">${pc(a)}%</td><td>${AD[a]}</td></tr>`).join('')}</tbody></table>`;
-  const cond=[['1등급','① 시장 검증 입지 상위 11% ② 순수 자리값 상위 '+(M.px1p||23)+'% ③ 자기 실거래가 상위 '+(M.p1pct||11)+'%','셋 다 만족해야 1등급'],
+  const wbar=`<div class="wbar" role="img" aria-label="영역 비중">${ord.map((a,i)=>`<i style="width:${pc(a)}%;background:${AC(a)}${AK[a]?';color:#17201c':''}"><b>${({L:'생활',S:'교육',J:'직주',T:'광역',D:'공급',C:'상품성',Q:'환금성'})[a]}</b><small>${pc(a)}</small></i>`).join('')}</div>
+    <div class="wleg">${['loc','prd','liq'].map(g=>`<span>${GN[g]} ${gsum(g)}%</span>`).join('<span>·</span>')}</div>`;
+  const wtab=`<table class="calc wt"><thead><tr><th>영역</th><th>비중</th><th>무엇을 보나</th></tr></thead><tbody>${ord.map(a=>`<tr><td><i class="wsw" style="background:${AC(a)}"></i><b>${AN[a]}</b></td><td class="n">${pc(a)}%</td><td>${AD[a]}</td></tr>`).join('')}</tbody></table>`;
+  const cond=[['1등급', M.px1on?('① 시장 검증 입지 상위 11% ② 순수 자리값 상위 '+(M.px1p||23)+'% ③ 자기 실거래가 상위 '+(M.p1pct||11)+'%'):('① 시장 검증 입지 상위 11% ② 자기 실거래가 상위 '+(M.p1pct||11)+'%'), M.px1on?'셋 다 만족해야 1등급':'둘 다 만족해야 1등급(신축·대단지 프리미엄은 인정)'],
     ['1·2등급','시장 검증 입지(실거래가에서 건물 몫을 뺀 자리값) 상위 11%','못 미치면 최고 3등급'],
+    ['시장 등급 보정','시장 검증 입지·자기 실거래가 등급이 모두 점수 등급보다 높음(2년 매매 10건 이상)','점수 등급보다 한 단계 위(다른 상한은 그대로)'],
     ['입주 25년 이상','노후 단지','최고 3등급(2년 매매 10건 + 실거래가 상위 7%면 2등급)'],
     ['100세대 미만','소단지','최고 3등급(위와 같은 예외)'],
     ['실거래 없음','최근 2년 매매 0건','최고 3등급'],
@@ -904,13 +944,13 @@ function nvMarkers(){
   for (const c of ord){
     const p=prj.fromCoordToOffset(new naver.maps.LatLng(c.mla,c.mlo)); const w=(z>=16?96:44), bx=[p.x-2,p.y-12,p.x+w,p.y+12];
     const sel=c.id===S.sel, lab = sel || !NG.hit(bx); if (lab) NG.add(bx);
-    const gr=gradeOf(c), on=vis.has(c.id), cmp=S.cmp.includes(c.id);
+    const gr=mapG(c), on=vis.has(c.id), cmp=S.cmp.includes(c.id);
     const pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : repPrice(c);
     const dot = !sel && (z<=11 || (!on && z<=13) || !lab);
     const bg = gr==null ? 'background:#fff;color:#6b7684;border:1.5px dashed #8b95a1' : `background:${gCol(gr)};color:${gInk(gr)}`;
     const zi=sel?1000:cmp?900:on?200+(10-(gr||10))*10:1;
     out.push(`<div class="nmw nvp" data-cid="${c.id}" style="transform:translate(${Math.round(p.x)}px,${Math.round(p.y)}px);z-index:${zi}">`+(dot ? `<div class="nmk dot${on?'':' dim'}" style="${gr==null?'background:#fff;border-color:#8b95a1':`background:${gCol(gr)}`}"></div>`
-      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${c.dong} ${c.n} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${gLab(c)}</b>${(z>=16||sel)&&pt?`<span>${eok(pt)}</span>`:''}</div>`)+'</div>');
+      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${c.dong} ${c.n} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${mLab(c)}</b>${(z>=16||sel)&&pt?`<span>${eok(pt)}</span>`:''}</div>`)+'</div>');
   }
   NVL.el.innerHTML=out.join('');
 }

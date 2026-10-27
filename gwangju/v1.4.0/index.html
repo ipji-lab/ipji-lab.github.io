@@ -563,13 +563,45 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 .mth details.faq p{margin:6px 0 0;font-size:13px;color:var(--ink)}
 @media (max-width:420px){.mth .stat3 b{font-size:18px}}
 
-/* v1.4.0 내 조건으로 찾기 */
-.db.mine h3{font-size:14px;font-weight:800;margin:14px 0 6px;padding-top:10px;border-top:1px solid var(--line)} .db.mine h3:first-of-type{border-top:0;padding-top:0;margin-top:4px} .db.mine h3 .sm{font-weight:500;color:var(--muted);font-size:12px}
-.db.mine .seg{flex-wrap:wrap} .db.mine .seg button{font-size:12.5px}
+/* v1.4.1 내 조건으로 찾기 — 읽기 쉬운 폼 */
+.db.mine2{gap:14px;word-break:keep-all;overflow-wrap:anywhere}
+.db.mine2 .priv{margin:0;font-size:13px;color:var(--muted);background:var(--surface2);border-radius:10px;padding:10px 12px}
+.db.mine2 .blk{display:grid;gap:12px;border:1px solid var(--line);border-radius:14px;padding:14px}
+.db.mine2 h3{margin:0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px} .db.mine2 h3 span{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:12px} .db.mine2 h3 small{font-weight:500;color:var(--muted);font-size:12px;margin-left:auto}
+.db.mine2 .fld{display:grid;gap:6px} .db.mine2 .lb{font-size:13px;font-weight:600} .db.mine2 .lb small{font-weight:400;color:var(--muted);margin-left:4px}
+.db.mine2 .inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface2);padding:0 12px;height:44px} .db.mine2 .inp input{border:0;background:transparent;width:100%;height:100%;font-family:var(--f-num);font-size:16px;text-align:right;min-width:0} .db.mine2 .inp em{font-style:normal;color:var(--muted);margin-left:6px;white-space:nowrap}
+.db.mine2 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:420px){.db.mine2 .g2{grid-template-columns:1fr}}
+.db.mine2 .opt{display:grid;grid-template-columns:repeat(var(--n,2),minmax(0,1fr));gap:6px}
+.db.mine2 .opt button{border:1px solid var(--line);background:var(--surface);border-radius:10px;min-height:44px;padding:6px 8px;font-size:13.5px;font-weight:600;cursor:pointer;display:grid;place-items:center;line-height:1.2;word-break:keep-all} .db.mine2 .opt button small{font-weight:400;font-size:11px;color:var(--muted)}
+.db.mine2 .opt button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)} .db.mine2 .opt button[aria-pressed="true"] small{color:inherit;opacity:.8}
+@media (max-width:420px){.db.mine2 .opt[style*="--n:4"]{grid-template-columns:1fr 1fr} .db.mine2 #mHub{grid-template-columns:1fr 1fr}}
+.db.mine2 .kid{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;display:grid;gap:8px} .db.mine2 .kid-h{display:flex;justify-content:space-between;align-items:center;font-size:13px} .db.mine2 .kDel{border:0;background:transparent;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline}
+.db.mine2 .kid-b{display:grid;grid-template-columns:1fr 1fr;gap:10px} @media (max-width:420px){.db.mine2 .kid-b{grid-template-columns:1fr}}
+.db.mine2 .add{border:1px dashed var(--line);background:transparent;border-radius:10px;min-height:40px;font-size:13px;cursor:pointer;color:var(--accent);font-weight:600;width:100%;margin-top:6px}
+.db.mine2 .hint{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55} .db.mine2 .hint b{color:var(--ink)}
+.db.mine2 .chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4} .db.mine2 .chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)} .db.mine2 .chk small{display:block;color:var(--muted);font-size:12px}
+.db.mine2 .res{background:var(--surface2);border-radius:12px;padding:12px 14px;display:grid;gap:8px}
+.db.mine2 .big{display:flex;justify-content:space-between;align-items:baseline;gap:8px} .db.mine2 .big span{font-size:13px;color:var(--muted)} .db.mine2 .big b{font-family:var(--f-num);font-size:24px;font-weight:800;color:var(--accent)}
+.db.mine2 .kv2{display:grid;grid-template-columns:1fr auto;gap:5px 12px;margin:0;font-size:13.5px} .db.mine2 .kv2 dt{color:var(--muted)} .db.mine2 .kv2 dd{margin:0;text-align:right;font-family:var(--f-num)} .db.mine2 .kv2 small{font-size:11px;color:var(--muted)}
+.db.mine2 .warn{margin:0;font-size:12.5px;color:var(--warn-ink);background:var(--warn-bg);border-radius:8px;padding:8px 10px;line-height:1.5}
+.db.mine2 .btns{display:flex;gap:6px;flex-wrap:wrap} .db.mine2 .pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+.db.mine2 .sl{display:grid;grid-template-columns:72px 1fr 36px;gap:10px;align-items:center;font-size:13px} .db.mine2 .sl input{width:100%;accent-color:var(--accent)} .db.mine2 .sl output{font-family:var(--f-num);text-align:right;font-weight:700}
+.db.mine2 .sum{margin:0;font-size:13.5px;text-align:right} .db.mine2 .sum b.bad{color:var(--warn-ink)}
 .card.mine{border-left:4px solid var(--accent)}
-
-.db.mine .kid{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;align-items:center;margin:4px 0} .db.mine .kid .kn{font-size:12.5px;color:var(--muted);white-space:nowrap} .db.mine .kid .seg{display:inline-flex} .db.mine .kDel{border:0;background:transparent;color:var(--muted);font-size:14px;cursor:pointer}
 .prk{font-size:11px;color:var(--accent);font-weight:700;margin-right:2px}
+/* v1.4.1 평가기준 정리 */
+.mth2{display:grid;gap:12px;word-break:keep-all;overflow-wrap:anywhere}
+.mth2 .mb{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.mth2 h3{margin:0;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px} .mth2 h3 span{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--surface);font-size:12px;flex:0 0 auto}
+.mth2 p{margin:0;font-size:13.5px;line-height:1.6} .mth2 .sm{font-size:12.5px;color:var(--muted)} .mth2 .sm b{color:var(--ink)}
+.mth2 ul{margin:0;padding-left:18px;font-size:12.5px;color:var(--muted);line-height:1.7}
+.mth2 .fx{font-size:13.5px;background:var(--surface2);border-radius:8px;padding:8px 10px}
+.mth2 .wbar{display:flex;height:46px;border-radius:10px;overflow:hidden;gap:2px;background:var(--surface)} .mth2 .wbar i{display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-style:normal;min-width:0;border-radius:3px} .mth2 .wbar i b{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;max-width:100%} .mth2 .wbar i small{font-size:12px;font-weight:800}
+.mth2 .wleg{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.mth2 table.calc td,.mth2 table.calc th{font-size:12.5px;vertical-align:top;line-height:1.45} .mth2 table.calc.wt td:nth-child(2){white-space:nowrap}
+.mth2 details.mi{border:1px solid var(--line);border-radius:10px;padding:8px 12px} .mth2 details.mi summary{cursor:pointer;font-size:13.5px;font-weight:600} .mth2 details.mi[open] summary{margin-bottom:6px}
+.mth2 .warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:12px;padding:12px 14px} .mth2 .warn h3{font-size:14px;margin-bottom:6px} .mth2 .warn ul{color:var(--warn-ink)}
+.mth2 .by{text-align:center} .mth2 .by a{color:var(--accent)}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -665,7 +697,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=cda02bcf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=96898334";
+  var CORE="data/core.json.gz?v=cda02bcf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=0000ad40";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

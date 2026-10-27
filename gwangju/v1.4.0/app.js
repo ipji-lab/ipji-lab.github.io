@@ -799,11 +799,11 @@ const MW = AREAS.map(a=>[a, AN[a], Math.round(M.areaW[a]*100)]);
 // 출처: 금융위 가계부채 관리방안(’25.6.27) 요약 2차 자료, 스트레스 DSR 3단계(’25.7~, 지방 주담대 0.75%p 유예 ’26.12까지), 디딤돌·보금자리론 안내 요약(’26.8~10)
 const LOAN = {
   asof:'’26.10',
-  bank:{n:'시중은행 주담대', ltv:0.70, ltvFirst:0.80, cap:null, priceMax:null, inc:null, rate:4.0, dsr:0.40, stress:0.75, desc:'광주(비규제지역) LTV 70% · 생애최초 80% · DSR 40%(연소득 입력 시, 스트레스 금리 +0.75%p로 심사) · 상품 한도 없음'},
-  didim:{n:'디딤돌(주택도시기금)', ltv:0.70, ltvFirst:0.80, cap:25000, capFirst:30000, capNew:40000, capBaby:50000, priceMax:50000, priceMaxNew:60000, inc:6000, incFirst:7000, incNew:8500, incBaby:13000, rate:3.0, dti:0.60, desc:'한도 2.5억(생애최초 3억 · 신혼 4억 · 신생아 5억) · 집값 5억 이하(신혼·신생아 6억) · 부부합산 소득 6천(생애최초 7천 · 신혼 8.5천 · 신생아 1.3억) · DTI 60%(DSR 미적용) · 만 30세 미만 미혼 단독세대주 불가'},
-  bogeum:{n:'보금자리론', ltv:0.70, ltvFirst:0.80, cap:36000, capFirst:42000, priceMax:60000, inc:7000, incNew:8500, incChild:9000, rate:4.0, dti:0.60, desc:'한도 3.6억(생애최초 4.2억) · 집값 6억 이하 · 부부합산 소득 7천(신혼 8.5천 · 자녀 1명 9천) · DTI 60%(DSR 미적용)'},
-  gap:{n:'갭투자(전세 끼고)', desc:'매매 중위가 − 전세 중위가(최근 1년, 대표 평형)가 보유 현금(세금·중개보수 뺀 뒤) 안인 단지만. 실거주 아님'},
-  manual:{n:'직접 입력', desc:'은행 상담에서 들은 대출 가능액을 그대로 넣습니다'}};
+  bank:{n:'시중은행 주담대', ltv:0.70, ltvFirst:0.80, cap:null, priceMax:null, inc:null, rate:4.0, dsr:0.40, stress:0.75, desc:'집값의 70%까지(생애최초 80%). 연소득을 넣으면 DSR 40%로 한도를 다시 계산합니다(심사금리 +0.75%p).'},
+  didim:{n:'디딤돌(주택도시기금)', ltv:0.70, ltvFirst:0.80, cap:25000, capFirst:30000, capNew:40000, capBaby:50000, priceMax:50000, priceMaxNew:60000, inc:6000, incFirst:7000, incNew:8500, incBaby:13000, rate:3.0, dti:0.60, desc:'집값 5억 이하(신혼·신생아 6억), 부부합산 연소득 6천만원 이하(생애최초 7천·신혼 8.5천·신생아 1.3억). 한도 2.5억(생애최초 3억·신혼 4억·신생아 5억), DTI 60%. 만 30세 미만 미혼 단독세대주는 안 됩니다.'},
+  bogeum:{n:'보금자리론', ltv:0.70, ltvFirst:0.80, cap:36000, capFirst:42000, priceMax:60000, inc:7000, incNew:8500, incChild:9000, rate:4.0, dti:0.60, desc:'집값 6억 이하, 부부합산 연소득 7천만원 이하(신혼 8.5천·자녀 있으면 9천). 한도 3.6억(생애최초 4.2억), DTI 60%.'},
+  gap:{n:'갭투자(전세 끼고)', desc:'전세를 끼고 삽니다. 매매가에서 전세가를 뺀 돈이 보유 현금 안인 단지만 보여 줍니다.'},
+  manual:{n:'직접 입력', desc:'은행에서 들은 대출 가능액을 그대로 넣습니다.'}};
 const pmtY=(P,rate,yrs)=>{ const r=rate/100/12, n=yrs*12; return r>0?P*r/(1-Math.pow(1+r,-n))*12:P/yrs; };   // 원리금균등 연 상환액
 function loanCap(m, P){   // 상품 규칙으로 집값 P(원)일 때 빌릴 수 있는 최대액(원)
   const L=LOAN[m.prod]; if (!L) return {cap:0, msg:[]}; const msg=[];
@@ -829,73 +829,73 @@ function maxPriceProd(m){   // cash + loanCap(P) ≥ P + 비용(P) 를 만족하
 }
 const PRESET = { none:{S:15,L:35,J:15,T:5,D:5,C:20,Q:5}, pre:{S:40,L:25,J:5,T:5,D:5,C:15,Q:5}, elem:{S:40,L:25,J:5,T:5,D:5,C:15,Q:5}, mid:{S:40,L:20,J:5,T:5,D:5,C:20,Q:5}, high:{S:35,L:20,J:10,T:5,D:5,C:20,Q:5} };
 function openMine(){
-  const d = Object.assign({cash:20000, loan:30000, inc:0, debt:0, rate:0, yrs:30, age:35, marry:'single', child:false, kids:[{by:2018,sex:''}], prod:'bank', hub:null, size:'M', first:false, w:Object.fromEntries(MW.map(m=>[m[0],m[2]]))}, S.mineDraft||{});
-  if (!Array.isArray(d.kids)||!d.kids.length) d.kids=[{by:d.cby||2018,sex:d.csex||''}];
+  const d = Object.assign({cash:20000, loan:30000, inc:0, debt:0, rate:0, yrs:30, age:35, marry:'single', child:false, kids:[{by:'',sex:''}], prod:'bank', hub:null, size:'M', first:false, w:Object.fromEntries(MW.map(m=>[m[0],m[2]]))}, S.mineDraft||{});
+  if (!Array.isArray(d.kids)||!d.kids.length) d.kids=[{by:d.cby||'',sex:d.csex||''}];
   const ov=$('ovMine'); ov.hidden=false;
-  const seg=(id,opts,cur)=>`<div class="seg" id="${id}">${opts.map(([k,l])=>`<button type="button" data-v="${k}" aria-pressed="${String(cur)===String(k)}">${l}</button>`).join('')}</div>`;
-  const kidRow=(k,i)=>`<div class="kid" data-i="${i}"><span class="kn">자녀 ${i+1}</span><div class="money"><input class="kBy" inputmode="numeric" value="${k.by||''}" placeholder="출생연도"><span>년생</span></div><div class="seg kSex">${[['여','여'],['남','남'],['','모름']].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${(k.sex||'')===v}">${l}</button>`).join('')}</div>${i>0?`<button type="button" class="kDel" aria-label="자녀 ${i+1} 빼기">✕</button>`:''}</div>`;
+  const opt=(id,opts,cur,cols)=>`<div class="opt" id="${id}" style="--n:${cols||opts.length}">${opts.map(([k,l,sub])=>`<button type="button" data-v="${k}" aria-pressed="${String(cur)===String(k)}">${l}${sub?`<small>${sub}</small>`:''}</button>`).join('')}</div>`;
+  const money=(id,label,val,unit,ph)=>`<label class="fld" for="${id}"><span class="lb">${label}</span><span class="inp"><input id="${id}" inputmode="numeric" value="${val??''}" placeholder="${ph||''}"><em>${unit}</em></span></label>`;
+  const kidRow=(k,i)=>`<div class="kid" data-i="${i}"><div class="kid-h"><b>자녀 ${i+1}</b>${i>0?`<button type="button" class="kDel">빼기</button>`:''}</div><div class="kid-b">${money('kBy'+i,'출생연도',k.by,'년생','예 2015').replace('id="kBy'+i+'"','class="kBy" id="kBy'+i+'"')}<div class="fld"><span class="lb">성별</span><div class="opt kSex" style="--n:2"><button type="button" data-v="남" aria-pressed="${k.sex==='남'}">남자</button><button type="button" data-v="여" aria-pressed="${k.sex==='여'}">여자</button></div></div></div></div>`;
   ov.innerHTML = `<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="mineT">
     <div class="dh"><h2 id="mineT">내 조건으로 찾기</h2><button class="back" id="mClose" aria-label="닫기">✕</button></div>
-    <div class="db mine">
-      <p class="note" style="margin:0 0 6px"><b>입력한 정보는 서버에 저장되지 않습니다.</b> 계산은 이 화면 안에서만 합니다.</p>
-      <h3>1. 나와 가족</h3>
-      <div class="grid2">
-        <div class="field"><label for="mAge">내 나이(만)</label><div class="money"><input id="mAge" inputmode="numeric" value="${d.age}"><span>세</span></div></div>
-        <div class="field"><label>혼인</label>${seg('mMarry',[['single','미혼'],['new','신혼(혼인신고 7년 이내)'],['married','결혼 7년 넘음']],d.marry)}</div>
-      </div>
-      <p class="note">신혼이면 디딤돌·보금자리론의 소득 요건과 한도가 커집니다(혼인신고일 기준 7년).</p>
-      <div class="field"><label>자녀</label>${seg('mChild',[['0','없음'],['1','있음']],d.child?1:0)}</div>
-      <div id="mKids" ${d.child?'':'hidden'}>${d.kids.map(kidRow).join('')}<button type="button" class="btn" id="kAdd" style="height:32px;margin-top:4px" ${d.kids.length>=3?'hidden':''}>+ 자녀 추가</button></div>
-      <p class="note" id="mChildNote"></p>
-      <h3>2. 자금 현황</h3>
-      <div class="grid2">
-        <div class="field"><label for="mCash">보유 현금</label><div class="money"><input id="mCash" inputmode="numeric" value="${d.cash}"><span>만원</span></div></div>
-        <div class="field"><label for="mInc">연소득(부부합산, 세전)</label><div class="money"><input id="mInc" inputmode="numeric" value="${d.inc||''}" placeholder="모르면 비움"><span>만원</span></div></div>
-        <div class="field"><label for="mDebt">기존 대출 연 상환액</label><div class="money"><input id="mDebt" inputmode="numeric" value="${d.debt||''}" placeholder="없으면 비움"><span>만원</span></div></div>
-        <div class="field"><label for="mYrs">만기</label>${seg('mYrs',[['30','30년'],['40','40년']],d.yrs||30)}</div>
-      </div>
-      <div class="field"><label>대출 상품</label>${seg('mProd',Object.entries(LOAN).filter(([k])=>k!=='asof').map(([k,v])=>[k,v.n]),d.prod)}</div>
-      <p class="note" id="mProdDesc"></p>
-      <div class="grid2">
-        <div class="field" id="mLoanBox" ${d.prod==='manual'?'':'hidden'}><label for="mLoan">대출 가능액</label><div class="money"><input id="mLoan" inputmode="numeric" value="${d.loan}"><span>만원</span></div></div>
-        <div class="field" id="mRateBox"><label for="mRate">금리(연, 비우면 상품 기본값)</label><div class="money"><input id="mRate" inputmode="decimal" value="${d.rate||''}" placeholder="예 3.8"><span>%</span></div></div>
-      </div>
-      <div class="field"><label>찾는 면적</label>${seg('mSize',[['S','60㎡ 이하'],['M','60~85㎡'],['L','85㎡ 초과'],['all','상관없음']],d.size)}</div>
-      <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" id="mFirst" ${d.first?'checked':''}> 생애최초 주택 구입(취득세 감면 · LTV 80% · 대출 한도 우대)</label>
-      <div class="card" id="mBudget"></div>
-      <h3>3. 직장</h3>
-      <div class="field"><label>주로 출근하는 업무지구</label>${seg('mHub',[['','상관없음(기본: 모든 업무지구 가중)']].concat((M.hubN||[]).map((n,i)=>[i,n])),d.hub==null?'':d.hub)}</div>
-      <h3>4. 내가 중요하게 보는 것 <span class="sm">(합계 100)</span></h3>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px"><button class="btn" id="wAuto" style="height:32px">내 상황에 맞는 추천 비중</button><button class="btn" id="mReset" style="height:32px">기본 비중</button></div>
-      ${MW.map(([k,l])=>`<div class="slider"><label for="w_${k}">${l}</label><input type="range" id="w_${k}" min="0" max="60" step="5" value="${d.w[k]??0}"><output class="num" id="o_${k}">${d.w[k]??0}</output></div>`).join('')}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px"><span>합계 <span class="sum" id="wSum"></span></span><button class="btn" id="wFit" style="height:32px">합계 100으로 맞추기</button></div>
-      <p class="note"><b>등급은 바뀌지 않습니다.</b> 내 조건에 맞는 단지만 추려서 '내 점수'로 줄을 세웁니다(순위용). 직장을 고르면 직주근접은 그 업무지구까지 자가용 시간으로, 자녀 성별을 고르면 중·고등학교는 여중·남중을 가려서, 자녀 학년에 안 맞는 항목(예: 중학생이면 초등 통학)은 빼고 계산합니다. 자녀가 여럿이면 자녀마다 계산해 평균합니다.</p>
+    <div class="db mine2">
+      <p class="priv">입력한 정보는 저장되지 않습니다. 이 화면에서 계산만 합니다.</p>
+
+      <section class="blk"><h3><span>1</span>나와 가족</h3>
+        ${money('mAge','내 나이(만)',d.age,'세')}
+        <div class="fld"><span class="lb">혼인</span>${opt('mMarry',[['single','미혼'],['new','신혼','혼인신고 7년 이내'],['married','기혼','7년 넘음']],d.marry,3)}</div>
+        <div class="fld"><span class="lb">자녀</span>${opt('mChild',[['0','없음'],['1','있음']],d.child?1:0,2)}</div>
+        <div id="mKids" ${d.child?'':'hidden'}>${d.kids.map(kidRow).join('')}<button type="button" class="add" id="kAdd" ${d.kids.length>=3?'hidden':''}>＋ 자녀 추가</button></div>
+        <p class="hint" id="mChildNote"></p>
+      </section>
+
+      <section class="blk"><h3><span>2</span>자금 현황</h3>
+        <div class="g2">${money('mCash','보유 현금',d.cash,'만원')}${money('mInc','연소득(세전·부부합산)',d.inc||'','만원','모르면 비움')}</div>
+        <div class="g2">${money('mDebt','기존 대출 연 상환액',d.debt||'','만원','없으면 비움')}<div class="fld"><span class="lb">만기</span>${opt('mYrs',[['30','30년'],['40','40년']],d.yrs||30,2)}</div></div>
+        <div class="fld"><span class="lb">대출 상품</span>${opt('mProd',[['bank','시중은행'],['didim','디딤돌'],['bogeum','보금자리론'],['gap','갭투자'],['manual','직접 입력']],d.prod,3)}</div>
+        <p class="hint" id="mProdDesc"></p>
+        <div class="g2"><div id="mLoanBox" ${d.prod==='manual'?'':'hidden'}>${money('mLoan','대출 가능액',d.loan,'만원')}</div><div id="mRateBox"><label class="fld" for="mRate"><span class="lb">금리(연) <small>비우면 기본값</small></span><span class="inp"><input id="mRate" inputmode="decimal" value="${d.rate||''}" placeholder="예 3.8"><em>%</em></span></label></div></div>
+        <div class="fld"><span class="lb">찾는 면적</span>${opt('mSize',[['S','60㎡ 이하'],['M','60~85㎡'],['L','85㎡ 초과'],['all','상관없음']],d.size,4)}</div>
+        <label class="chk"><input type="checkbox" id="mFirst" ${d.first?'checked':''}><span>생애최초 주택 구입 <small>취득세 감면 · LTV 80% · 한도 우대</small></span></label>
+        <div class="res" id="mBudget"></div>
+      </section>
+
+      <section class="blk"><h3><span>3</span>직장</h3>
+        <div class="fld"><span class="lb">주로 출근하는 업무지구</span>${opt('mHub',[['','상관없음']].concat((M.hubN||[]).map((n,i)=>[i,n])),d.hub==null?'':d.hub,3)}</div>
+        <p class="hint">직장을 고르면 직주근접은 그 업무지구까지 자가용 시간으로 계산합니다. '상관없음'은 모든 업무지구를 일자리 규모로 가중한 기본값입니다.</p>
+      </section>
+
+      <section class="blk"><h3><span>4</span>중요하게 보는 것 <small>합계 100</small></h3>
+        <div class="btns"><button type="button" class="pill" id="wAuto">내 상황에 맞는 추천 비중</button><button type="button" class="pill" id="mReset">기본 비중</button><button type="button" class="pill" id="wFit">합계 100으로 맞추기</button></div>
+        ${MW.map(([k,l])=>`<div class="sl"><label for="w_${k}">${l}</label><input type="range" id="w_${k}" min="0" max="60" step="5" value="${d.w[k]??0}"><output id="o_${k}">${d.w[k]??0}</output></div>`).join('')}
+        <p class="sum">합계 <b id="wSum"></b></p>
+        <p class="hint"><b>등급은 바뀌지 않습니다.</b> 조건에 맞는 단지만 추려서 '내 점수'로 순위만 매깁니다. 자녀 성별을 고르면 중·고등학교는 남중·여중을 가려서 보고, 자녀 학년에 안 맞는 항목(예: 중학생이면 초등 통학)은 빼고 계산합니다. 자녀가 여럿이면 자녀마다 계산해 평균합니다.</p>
+      </section>
     </div>
     <div class="df"><button class="btn" id="mOff" ${S.mine?'':'hidden'}>해제</button><button class="btn primary" id="mApply">지도에 표시</button></div>
   </div>`;
-  const st={marry:d.marry, child:!!d.child, prod:d.prod, hub:d.hub, size:d.size, yrs:String(d.yrs||30), kids:d.kids.map(k=>({by:k.by,sex:k.sex||''}))};
+  const st={marry:d.marry, child:!!d.child, prod:d.prod, hub:d.hub, size:d.size, yrs:String(d.yrs||30)};
   const num=id=>+(($(id).value||'').toString().replace(/[^\d]/g,''))||0;
-  const readKids=()=>[...$('mKids').querySelectorAll('.kid')].map((el,i)=>({by:+((el.querySelector('.kBy').value||'').replace(/[^\d]/g,''))||0, sex:(el.querySelector('.kSex [aria-pressed="true"]')||{}).dataset?.v||''}));
+  const readKids=()=>[...$('mKids').querySelectorAll('.kid')].map(el=>({by:+((el.querySelector('.kBy').value||'').replace(/[^\d]/g,''))||0, sex:((el.querySelector('.kSex [aria-pressed="true"]')||{}).dataset||{}).v||''}));
   const read=()=>({cash:num('mCash'), inc:num('mInc'), debt:num('mDebt'), rate:parseFloat(($('mRate').value||'').replace(/[^\d.]/g,''))||0, yrs:+st.yrs, age:num('mAge'), marry:st.marry, child:st.child, kids:readKids(), prod:st.prod, hub:st.hub===''||st.hub==null?null:+st.hub, loan:num('mLoan'), size:st.size, first:$('mFirst').checked, w:Object.fromEntries(MW.map(([k])=>[k,+$('w_'+k).value]))});
   const upd=()=>{
-    const m=read(); const L=LOAN[m.prod]; $('mProdDesc').textContent=L.desc+(m.prod==='gap'||m.prod==='manual'?'':` · 기준 ${LOAN.asof}, 신청 전 공식 확인`); $('mLoanBox').hidden=m.prod!=='manual'; $('mRateBox').hidden=(m.prod==='gap'); $('mKids').hidden=!m.child;
-    const ks=kidsOf(m); $('mChildNote').textContent = m.child ? (ks.length?ks.map(k=>`${k.by}년생 ${STAGE_KO[k.st]}${k.sex?`(${k.sex})`:''}`).join(' · ')+' → '+({pre:'미취학: 영유아·초등 통학까지 모두 봅니다',elem:'초등: 초등 통학·중학교·학원가를 봅니다',mid:'중등: 초등 항목은 빼고 중학교·학원가·고등학교를 봅니다',high:'고등: 학원가·고등학교만 봅니다'})[childStage(m)]+(ks.length>1?' (여럿이면 자녀마다 계산해 평균)':''):'출생연도를 넣어 주세요. 성인 자녀는 자녀 없음과 같이 계산합니다') : '';
+    const m=read(); const L=LOAN[m.prod]; $('mProdDesc').textContent=L.desc+(m.prod==='gap'||m.prod==='manual'?'':` (기준 ${LOAN.asof}, 신청 전 공식 확인)`); $('mLoanBox').hidden=m.prod!=='manual'; $('mRateBox').hidden=(m.prod==='gap'); $('mKids').hidden=!m.child;
+    const ks=kidsOf(m); $('mChildNote').textContent = m.child ? (ks.length?ks.map(k=>`${k.by}년생 ${STAGE_KO[k.st]}${k.sex?`(${k.sex})`:''}`).join(' · ')+' → '+({pre:'미취학: 영유아·초등 통학까지 모두 봅니다',elem:'초등: 초등 통학·중학교·학원가를 봅니다',mid:'중등: 초등 항목은 빼고 중학교·학원가·고등학교를 봅니다',high:'고등: 학원가·고등학교만 봅니다'})[childStage(m)]:'출생연도를 넣어 주세요. 성인 자녀는 자녀 없음과 같이 계산합니다') : '';
     const big=m.size==='L';
-    if (m.prod==='gap'){ $('mBudget').innerHTML=`<dl class="kv"><dt>보유 현금</dt><dd><b>${eok(m.cash)}</b></dd><dt>조건</dt><dd>매매 중위가 − 전세 중위가 + 취득세·중개보수 ≤ 보유 현금</dd></dl><p class="note">단지별 전세가율 자료(최근 1년 대표 평형, 전세·매매 각 3건 이상)가 있는 단지만 걸러집니다. 전세 끼고 사는 집은 실거주가 아니며, 전세 만기·역전세 위험은 반영하지 않습니다.</p>`; m.maxP=1e13; }
+    if (m.prod==='gap'){ $('mBudget').innerHTML=`<div class="big"><span>보유 현금</span><b>${eok(m.cash)}</b></div><p class="hint">매매 중위가 − 전세 중위가 + 취득세·중개보수가 보유 현금 안인 단지만 보여 줍니다(전세·매매 각 3건 이상 단지). 실거주가 아니며 전세 만기·역전세 위험은 반영하지 않습니다.</p>`; m.maxP=1e13; }
     else { const r=maxPriceProd(m), P=r.P, cs=costs(P,big,m.first), rate=m.rate||L.rate, yrs=m.yrs||30; m.maxP=P; m.loanCalc=Math.round(r.loan/10000);
       const yr=pmtY(r.loan,rate,yrs), mo=yr/12, ratio=m.inc?Math.round(yr/(m.inc*10000)*100):null;
-      $('mBudget').innerHTML = `<dl class="kv"><dt>보유 현금</dt><dd>${eok(m.cash)}</dd><dt>${L.n} 대출(계산)</dt><dd>${eok(m.loanCalc)}</dd><dt>살 수 있는 집값(최대)</dt><dd><b>${eok(P/10000)}</b></dd>
-      <dt>월 상환액(연 ${rate}% · ${yrs}년 원리금균등)</dt><dd><b>${fmtMan(mo/10000)}</b>${ratio!=null?` <span class="sm">(연소득의 ${ratio}%)</span>`:''}</dd>
-      <dt>취득세 ${(cs.r*100).toFixed(2)}%${m.first&&P<=12e8?' (감면 반영)':''}</dt><dd>${fmtMan(cs.acq/10000)}</dd><dt>지방교육세</dt><dd>${fmtMan(cs.edu/10000)}</dd>${big?`<dt>농어촌특별세</dt><dd>${fmtMan(cs.farm/10000)}</dd>`:''}<dt>중개보수(상한)</dt><dd>${fmtMan(cs.fee/10000)}</dd><dt>집값 + 비용 합계</dt><dd>${eok((P+cs.sum)/10000)}</dd></dl>
-      ${r.msg.length?`<p class="note" style="color:var(--warn-ink)">${r.msg.join(' · ')}</p>`:''}
-      <p class="note">1주택 유상취득 가정(지방세법 제11조①8). 대출은 LTV·상품 한도·${L.dsr?'DSR':'DTI'}(연소득 입력 시) 중 작은 값. 등기비용·이사비·금리 변동은 넣지 않았고, 실제 한도와 금리는 은행 심사로 정해집니다. 규칙 기준일 ${LOAN.asof}.</p>`; }
+      $('mBudget').innerHTML = `<div class="big"><span>살 수 있는 집값(최대)</span><b>${eok(P/10000)}</b></div>
+      <dl class="kv2"><dt>보유 현금</dt><dd>${eok(m.cash)}</dd><dt>${L.n} 대출</dt><dd>${eok(m.loanCalc)}</dd><dt>월 상환액 <small>연 ${rate}% · ${yrs}년</small></dt><dd>${fmtMan(mo/10000)}${ratio!=null?` <small>소득의 ${ratio}%</small>`:''}</dd>
+      <dt>취득세 ${(cs.r*100).toFixed(2)}%${m.first&&P<=12e8?' <small>감면</small>':''}</dt><dd>${fmtMan(cs.acq/10000)}</dd><dt>지방교육세${big?' · 농특세':''}</dt><dd>${fmtMan((cs.edu+cs.farm)/10000)}</dd><dt>중개보수(상한)</dt><dd>${fmtMan(cs.fee/10000)}</dd><dt>집값 + 비용</dt><dd>${eok((P+cs.sum)/10000)}</dd></dl>
+      ${r.msg.length?`<p class="warn">${r.msg.join(' · ')}</p>`:''}
+      <p class="hint">1주택 유상취득 기준. 대출은 LTV·상품 한도·${L.dsr?'DSR':'DTI'} 중 작은 값이며, 실제 한도와 금리는 은행 심사로 정해집니다. 등기비용·이사비는 뺐습니다.</p>`; }
     let sum=0; MW.forEach(([k])=>{ const v=+$('w_'+k).value; $('o_'+k).textContent=v; sum+=v; });
     $('wSum').textContent=sum; $('wSum').classList.toggle('bad',sum!==100);
     return m;
   };
-  const bindSeg=(el,fn)=>el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fn(b.dataset.v); upd(); });
-  bindSeg($('mMarry'),v=>st.marry=v); bindSeg($('mChild'),v=>st.child=v==='1'); bindSeg($('mProd'),v=>st.prod=v); bindSeg($('mHub'),v=>st.hub=v); bindSeg($('mSize'),v=>st.size=v); bindSeg($('mYrs'),v=>st.yrs=v);
-  const bindKids=()=>{ $('mKids').querySelectorAll('.kid').forEach(el=>{ bindSeg(el.querySelector('.kSex'),()=>{}); el.querySelector('.kBy').addEventListener('input',upd); const x=el.querySelector('.kDel'); if (x) x.onclick=()=>{ el.remove(); $('kAdd').hidden=$('mKids').querySelectorAll('.kid').length>=3; upd(); }; }); };
+  const bindOpt=(el,fn)=>el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fn(b.dataset.v); upd(); });
+  bindOpt($('mMarry'),v=>st.marry=v); bindOpt($('mChild'),v=>st.child=v==='1'); bindOpt($('mProd'),v=>st.prod=v); bindOpt($('mHub'),v=>st.hub=v); bindOpt($('mSize'),v=>st.size=v); bindOpt($('mYrs'),v=>st.yrs=v);
+  const bindKids=()=>{ $('mKids').querySelectorAll('.kid').forEach((el,i)=>{ el.querySelector('.kid-h b').textContent='자녀 '+(i+1); bindOpt(el.querySelector('.kSex'),()=>{}); el.querySelector('.kBy').oninput=upd; const x=el.querySelector('.kDel'); if (x) x.onclick=()=>{ el.remove(); bindKids(); $('kAdd').hidden=$('mKids').querySelectorAll('.kid').length>=3; upd(); }; }); };
   bindKids();
   $('kAdd').onclick=()=>{ const n=$('mKids').querySelectorAll('.kid').length; if (n>=3) return; $('kAdd').insertAdjacentHTML('beforebegin', kidRow({by:'',sex:''},n)); bindKids(); $('kAdd').hidden=n+1>=3; upd(); };
   ov.querySelectorAll('input:not(.kBy)').forEach(i=>i.addEventListener('input',upd));
@@ -991,27 +991,20 @@ function openMethod(){
     ['제 기준은 다른데요?','기본 등급은 교육 35%를 가장 크게 보는 연구원 기준입니다. 아이가 없거나 직장이 더 중요하면 <b>내 조건으로 찾기</b>에서 비중을 바꿔 보세요. 내 기준으로 다시 매긴 등급이 지도에 나옵니다.'],
     ['앞으로 오를 집을 알려 주나요?','아닙니다. 지금까지의 공개 자료로 지금의 입지를 평가한 것입니다. 투자 추천이나 가격 전망이 아니며, 최종 판단은 임장과 본인 상황으로 하셔야 합니다.']];
   const faqH=faq.map(q=>`<details class="mi faq"><summary><b>${q[0]}</b></summary><p>${q[1]}</p></details>`).join('');
-  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db mth">
-    <section class="sum"><p class="lead">광주 아파트 <b>${CX.length.toLocaleString()}곳</b>(임대 ${CX.filter(c=>c.rent).length}곳 포함)을 같은 자로 재서 <b>1~9등급</b>으로 나눕니다.</p>
-      <div class="chips"><span style="--c:var(--aS)">입지 ${gsum('loc')}%</span><span style="--c:var(--aC)">단지 상품성 ${gsum('prd')}%</span><span style="--c:var(--aQ)">환금성 ${gsum('liq')}%</span></div>
-      <ol class="flow"><li><b>점수 매기기</b><span>교육·생활·교통·단지 조건을 공개 자료로 0~10점</span></li><li><b>줄 세워 9등급</b><span>수능 비율로 상대평가(1등급 = 상위 4%)</span></li><li><b>실거래가로 검증</b><span>시장이 매긴 값보다 한 단계까지만 위. 확실히 높으면 올림</span></li></ol>
-      <p class="sm">사람이 손으로 정하는 점수는 없습니다. 모든 단지에 같은 규칙과 같은 자료를 씁니다.</p></section>
-    <section><h3>① 점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 감점</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다(가격 구성비가 아닙니다). 비중의 근거는 ⑥에 있습니다.</p></section>
-    ${vsec}
-    <section><h3>③ 등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>이란 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
-    <section><h3>④ 보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
-    <section><h3>⑤ 영역별 세부 항목</h3><p class="sm">영역을 누르면 항목별 비중·점수 기준·근거가 펼쳐집니다.</p>${itemsT2}</section>
-    <section><h3>자주 묻는 질문</h3>${faqH}</section>
-    <section><details class="mi"><summary><b>⑥ 기준의 근거</b> <span class="sm">[공식] 법령·공식 통계 · [연구] 논문 · [자료] 광주 자료 분석 · [판단] 근거를 찾지 못해 정한 값</span></summary>${basisL}</details>
-      <details class="mi"><summary><b>⑦ 계산식 · 결측 처리 · 자료 출처</b></summary><p class="sm"><b>계산식</b> ${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p><p class="sm"><b>결측</b> ${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><p class="sm"><b>측정 방식과 한계</b></p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>자료 출처</b></p><ul class="sm">${M.sources.map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db mth2">
+    <section class="mb"><h3><span>1</span>점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 감점</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다. 비중의 근거는 ⑤에 있습니다.</p></section>
+    <section class="mb"><h3><span>2</span>영역별 세부 항목</h3><p class="sm">영역을 누르면 항목별 비중·점수 기준·근거가 펼쳐집니다.</p>${itemsT2}</section>
+    <section class="mb"><h3><span>3</span>등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>은 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
+    <section class="mb"><h3><span>4</span>보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
+    <section class="mb"><h3><span>5</span>기준의 근거</h3><p class="sm"><b>[공식]</b> 법령·공식 통계 · <b>[연구]</b> 논문 · <b>[자료]</b> 광주 자료 분석 · <b>[판단]</b> 근거를 찾지 못해 정한 값</p><details class="mi"><summary>근거 목록 펼치기</summary>${basisL}</details></section>
+    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details><details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
     <section class="warn"><h3>주의사항</h3><ul>
-      <li><b>이 서비스는 방구석 연구원이 AI와 함께 만든 광주 아파트 입지분석 최종판(v1.4.1)입니다.</b> 계산식은 확정했고, 자료 오류는 계속 바로잡습니다.</li>
       <li>공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 특정 단지의 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li>등급·점수·고평가/저평가 표시는 단지의 가치나 미래 가격을 보장하지 않습니다.</li>
       <li>자료는 ${M.evalDate} 기준입니다. 이후 거래·개발 계획은 반영되지 않으며, 원자료의 오류·누락이 있을 수 있습니다.</li>
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
     </ul></section>
-    <section class="by"><p class="sm">만든 사람 · <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">광주 아파트 입지분석 최종판(v1.4.1) · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

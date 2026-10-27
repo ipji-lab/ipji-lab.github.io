@@ -1,0 +1,6 @@
+ipji-lab.github.io/
+├─ index.html              ← 루트: 최신판으로 자동 이동(루트용/index.html)
+├─ gwangju/
+│   ├─ index.html          ← /gwangju/ 로 들어와도 최신판으로 이동(루트용/gwangju_index.html을 index.html로 이름 바꿔 넣기)
+│   ├─ v1.3.0/  index.html · app.js · og.png · data/   ← 지금 루트에 있는 파일을 그대로 옮김
+│   └─ v1.4.0/  index.html · app.js · og.png · data/   ← 드라이브 배포_광주_v1.4.0 안의 파일

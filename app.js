@@ -463,11 +463,11 @@ function capWhy0(c,g){
   const pc=v=>v==null?'-':Math.round(v), n24=(c.p&&c.p.q24&&c.p.q24.n)||0, g0=c.grade0, gg=c.grade;   // v1.1.3 연구원: 왜 그 등급까지만인지 풀어서
   const ex=(t)=>`${t} 최고 3등급입니다. 최근 2년 매매가 10건 이상이고 ㎡당 실거래가가 광주 상위 7% 안이면 2등급까지 줍니다. 이 단지는 매매 ${n24}건, 실거래가 상위 ${pc(c.rpp)}%입니다.`;
   const W={small:ex('100세대 미만 소단지는'), old:ex('입주 25년이 넘은 단지는'),
-    price:`등급은 이 단지의 ㎡당 실거래가 등급보다 한 단계까지만 위로 갑니다(1등급은 실거래가 상위 ${M.p1pct||11}% · 2등급은 23% · 3등급은 40% 안). 이 단지는 상위 ${pc(c.rpp)}%입니다.`,   // v1.2.3 2·3등급에도 가격 조건(한 단계)
+    price:`등급은 이 단지의 ㎡당 실거래가 등급보다 한 단계까지만 위로 갑니다(1등급은 실거래가 상위 ${M.p1pct||11}% · 2등급은 23% · 3등급은 40% · 4등급은 60% 안). 이 단지는 상위 ${pc(c.rpp)}%입니다.`,   // v1.2.3 2·3등급에도 가격 조건(한 단계)
     unit:'전 세대가 전용 59㎡ 미만(소형·원룸형)이라 최고 4등급입니다.',   // v1.2.3
     nopx:'최근 2년 매매가 없어 시장 가격을 확인할 수 없으므로 최고 3등급입니다.',
     rentpx:'임대 단지는 매매 가격이 없어 최고 4등급입니다.',
-    px:c.pxp==null?'최근 실거래가 없어 시장이 매기는 자리값을 확인할 수 없으므로 최고 3등급입니다.':`등급은 시장이 인정한 자리값 등급보다 한 단계까지만 위로 갑니다(1등급은 자리값 상위 11% · 2등급은 23% 안). 자리값은 ㎡당 실거래가에서 연식·세대수·주차 같은 단지 조건 몫을 빼고 남은 값입니다. 이 단지의 자리값은 상위 ${pc(c.pxp)}%입니다.`,
+    px:c.pxp==null?'최근 실거래가 없어 시장이 매기는 자리값을 확인할 수 없으므로 최고 3등급입니다.':`등급은 시장이 인정한 자리값 등급보다 한 단계까지만 위로 갑니다(1등급은 자리값 상위 11% · 2등급은 23% · 3등급은 40% · 4등급은 60% 안). 자리값은 ㎡당 실거래가에서 연식·세대수·주차 같은 단지 조건 몫을 빼고 남은 값입니다. 이 단지의 자리값은 상위 ${pc(c.pxp)}%입니다.`,
     px1:`1등급은 신축·대단지 프리미엄까지 뺀 순수 자리값도 광주 상위 ${M.px1p||23}% 안이어야 합니다. 이 단지는 상위 ${pc(c.mktPg)}%입니다.`,   // v1.1.4 기본 끔(M.px1on)
     unsold2:c.unsT?`미분양이 남아 있어(준공 때 ${c.unsT[2]}세대 · 단지의 ${c.unsT[1]}%) 최고 ${c.unsT[0]}등급입니다.`:'미분양이 남아 있어 등급을 낮췄습니다.'};
   return `점수로는 ${g0}등급이지만 ${gg}등급입니다. ${W[c.why]||'등급 조건에 걸렸습니다.'}`;
@@ -800,7 +800,7 @@ function openMine(){
   $('mApply').onclick=()=>{ const m=upd(); S.mine=m; S.mineDraft=m; try{localStorage.setItem('dn10-mine',JSON.stringify(m));}catch(e){} applyMine(); S.sort='score'; S.view='list'; S.sel=null; ov.hidden=true; refresh(); sheetTo('half'); };
   upd();
 }
-$('btnMine').onclick=()=>alert('준비중입니다. 곧 찾아뵙겠습니다.');   // v1.7 연구원: 내 조건으로 찾기는 추가 개발 후 공개(openMine 유지)
+$('btnMine').onclick=openMine;   // v1.3.0 광주 최종판: 내 조건으로 찾기 공개(보유 자금·대출 → 살 수 있는 집값, 찾는 면적, 내 가중치로 다시 매긴 순위)   // (v1.7~v1.2.8: 준비중 알림)
 
 /* ═════════ 비교함 ═════════ */
 function toggleCmp(id){
@@ -828,6 +828,18 @@ function gradeBar(){
   <div class="gtick">${cut.map((v,i)=>`<span style="left:${v}%">${i<8?v+'%':''}</span>`).join('')}</div>
   <table class="gtab"><tr><th>등급</th>${cnt.map((_,i)=>`<th>${i+1}</th>`).join('')}</tr><tr><th>상위</th>${cut.map(v=>`<td>${v}%</td>`).join('')}</tr><tr><th>단지</th>${cnt.map(n=>`<td>${n}</td>`).join('')}</tr></table>`;
 }
+function validStats(){   // v1.3.0: 등급 ↔ 실거래가 검증(화면에서 자료로 계산)
+  const minN=5, mk=CX.filter(c=>!c.rent&&c.grade&&c.p&&c.p.med&&(((c.p.q24||{}).n)||0)>=minN);
+  if (mk.length<50) return null;
+  const rank=a=>{const idx=a.map((v,i)=>[v,i]).sort((x,y)=>x[0]-y[0]); const r=new Array(a.length); let i=0; while(i<idx.length){let j=i; while(j+1<idx.length&&idx[j+1][0]===idx[i][0]) j++; const m=(i+j)/2+1; for(let k=i;k<=j;k++) r[idx[k][1]]=m; i=j+1;} return r;};
+  const sp=(x,y)=>{const rx=rank(x),ry=rank(y),n=x.length,mx=rx.reduce((a,b)=>a+b,0)/n,my=ry.reduce((a,b)=>a+b,0)/n; let sxy=0,sxx=0,syy=0; for(let i=0;i<n;i++){sxy+=(rx[i]-mx)*(ry[i]-my);sxx+=(rx[i]-mx)**2;syy+=(ry[i]-my)**2;} return sxy/Math.sqrt(sxx*syy);};
+  const med=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length; return n?(n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2):null;};
+  const g=mk.map(c=>c.grade), pr=mk.map(c=>c.p.med);
+  const px=mk.filter(c=>c.pxp!=null);
+  const rows=[1,2,3,4,5,6,7,8,9].map(k=>{const s=mk.filter(c=>c.grade===k), q=s.filter(c=>c.pxp!=null); return {g:k,n:s.length,med:Math.round(med(s.map(c=>c.p.med))||0),px:q.length?med(q.map(c=>c.pxp)):null};}).filter(r=>r.n>0);
+  let monoN=0; for(let i=1;i<rows.length;i++) if(rows[i].med<=rows[i-1].med) monoN++;
+  return {n:mk.length,minN,sp:-sp(g,pr),spx:px.length?sp(px.map(c=>c.grade),px.map(c=>c.pxp)):0,rows,monoN,mono:monoN===rows.length-1};
+}
 function openMethod(){
   const ov=$('ovMethod'); ov.hidden=false;
   const itemsT = AREAS.map(a=>Object.keys(IN[a]).map((k,i)=>`<tr>${i===0?`<td rowspan="${Object.keys(IN[a]).length}"><b>${AN[a]}</b><br><span class="ver">${Math.round(M.areaW[a]*100)}%</span>${(M.basis&&M.basis.area[a])?`<br><span class="sm">${M.basis.area[a]}</span>`:''}</td>`:''}<td>${NAMES[k]}<br><span class="ver">${(()=>{const t=Object.values(IN[a]).reduce((x,y)=>x+y,0); return t>1?IN[a][k]+'점':'100점';})()}</span></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">배점 근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')).join('');
@@ -839,29 +851,53 @@ function openMethod(){
   const wbar=`<div class="wbar" role="img" aria-label="영역 비중">${ord.map((a,i)=>`<i style="width:${pc(a)}%;background:${AC(a)}${AK[a]?';color:#17201c':''}"><b>${({L:'생활',S:'교육',J:'직주',T:'광역',D:'공급',C:'상품성',Q:'환금성'})[a]}</b><small>${pc(a)}</small></i>`).join('')}</div>
     <div class="wleg">${['loc','prd','liq'].map(g=>`<span>${GN[g]} ${gsum(g)}%</span>`).join('<span>·</span>')}</div>`;
   const wtab=`<table class="calc wt"><thead><tr><th>영역</th><th>비중</th><th>무엇을 보나</th></tr></thead><tbody>${ord.map(a=>`<tr><td><i class="wsw" style="background:${AC(a)}"></i><b>${AN[a]}</b></td><td class="n">${pc(a)}%</td><td>${AD[a]}</td></tr>`).join('')}</tbody></table>`;
-  const cond=[['1등급', M.px1on?('① 시장 검증 입지 상위 11% ② 순수 자리값 상위 '+(M.px1p||23)+'% ③ 자기 실거래가 상위 '+(M.p1pct||11)+'%'):('① 시장 검증 입지 상위 11% ② 자기 실거래가 상위 '+(M.p1pct||11)+'%'), M.px1on?'셋 다 만족해야 1등급':'둘 다 만족해야 1등급(신축·대단지 프리미엄은 인정)'],
-    ['1~3등급','시장 검증 입지(실거래가에서 건물 몫을 뺀 자리값) 등급과 자기 ㎡당 실거래가 등급 각각보다 한 단계까지만 위(1등급 상위 11% · 2등급 23% · 3등급 40%)','못 미치면 그 아래 등급'],
-    ['시장 등급 보정','시장 검증 입지·자기 실거래가 등급이 모두 점수 등급보다 높음(2년 매매 10건 이상)','점수 등급보다 한 단계 위(다른 상한은 그대로)'],
-    ['신축·시세 하한','준공 10년 이내 · 400세대 이상 · 2년 매매 10건 이상 · 자기 ㎡당 실거래가 상위 23% / 40%','최소 3등급 / 4등급'],
-    ['전 세대 59㎡ 미만','소형·원룸형(주택법 도시형생활주택 소형주택 기준 전용 60㎡ 이하)','최고 4등급'],
+  // v1.3.0 연구원: 평가기준을 '한눈에' 구조로 재편 — 요약 → 검증 결과 → 점수 → 등급 → 감점 → 세부 → 자주 묻는 질문 → 근거·계산식
+  const cond=[['점수 등급','단지 점수 순으로 줄 세워 수능 비율(4·7·12·17·20·17·12·7·4%)로 1~9등급','출발 등급'],
+    ['시장 검증(1~4등급)','시장이 매긴 <b>자리값</b> 등급과 자기 <b>㎡당 실거래가</b> 등급, 둘 다보다 한 단계까지만 위(1등급 상위 11% · 2등급 23% · 3등급 40% · 4등급 60% 안)','못 미치면 그 아래 등급'],
+    ['1등급 추가 조건','자리값·실거래가 모두 광주 상위 '+(M.p1pct||11)+'% 안(신축·대단지 프리미엄은 인정)','둘 다 만족해야 1등급'],
+    ['시장 보정(올림)','자리값·실거래가 등급이 모두 점수 등급보다 높고 최근 2년 매매 10건 이상','점수 등급보다 한 단계 위'],
+    ['신축·시세 하한(올림)','준공 10년 이내 · 400세대 이상 · 2년 매매 10건 이상 · 실거래가 상위 23% / 40% 안','최소 3등급 / 4등급'],
     ['100세대 미만','소단지','최고 3등급(2년 매매 10건 + 실거래가 상위 7%면 2등급)'],
-    ['실거래 없음','최근 2년 매매 0건','최고 3등급'],
+    ['전 세대 59㎡ 미만','소형·원룸형 단지','최고 4등급'],
+    ['실거래 없음','최근 2년 매매 0건(시세 확인 불가)','최고 3등급'],
     ['미분양','준공 때·지금 미분양 비율 10% 미만 / 10~20 / 20~30 / 30% 이상','최고 2 / 3 / 4 / 5등급'],
-    ['임대 단지','매매할 수 없음','거래활발도 0점, 최고 4등급']];
+    ['임대 단지','매매할 수 없음','거래활발도 0점, 최고 4등급'],
+    ['빈자리','조건으로 내려간 단지의 자리','아래 단지로 채우지 않음']];
   const ctab=`<table class="calc"><thead><tr><th>조건</th><th>기준</th><th>결과</th></tr></thead><tbody>${cond.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
-  const pen=[['복도 유형','복도식 · 혼합식','2 · 1'],['나홀로아파트','동 1개 단지(세대수는 상품성에서 이미 반영)','1~2(2 × (1 − 세대÷600))'],['용적률','250% 초과부터 100%p마다','0.5~3'],['평형 구성','전 세대 84㎡ 미만 · 59㎡ 미만','1 · 2'],['소음','큰 도로 200m · 지상 철도 100m · 공항 3km 안','최대 2'],['악취','산업단지 · 축사 · 퇴비 사업장','최대 2'],['청소년 유해업소','단지 경계 200m 안 유흥·숙박·노래방·PC방 등','최대 3'],['기피시설','하수·소각·매립·교정·화장장 등 1km 안','최대 3'],['노후 빌라·원룸촌','단지 경계 300m 안 30년 넘은 저층 주택·원룸','최대 2'],['미분양','미분양 비율 × 15','최대 3'],['임대','전체 임대 · 혼합은 임대 비율만큼','2'],['하이엔드 브랜드','디에이치·아크로·르엘 등','+2(가점)']];
-  const ptab=`<table class="calc"><thead><tr><th>항목</th><th>기준</th><th>점수</th></tr></thead><tbody>${pen.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="n">${r[2]}</td></tr>`).join('')}</tbody></table>`;
-  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span></summary><table class="calc"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">비중 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
+  const pen=[['복도 유형','복도식 · 혼합식','2 · 1'],['나홀로아파트','동 1개 단지(세대수는 상품성에서 이미 반영)','1~2(2 × (1 − 세대÷600))'],['용적률','250% 초과부터 100%p마다(주상복합은 면제)','0.5~3'],['평형 구성','전 세대 84㎡ 미만 · 59㎡ 미만','1 · 2'],['소음','큰 도로 200m · 지상 철도 100m · 공항 3km 안','최대 2'],['악취','산업단지 · 축사 · 퇴비 사업장','최대 2'],['청소년 유해업소','단지 경계 200m 안 유흥·숙박·노래방·PC방 등','최대 3'],['기피시설','하수·소각·매립·화장·교정시설','최대 2'],['노후 빌라·원룸촌','단지 둘레의 노후 다세대·다가구 비율','최대 2'],['주상복합','상가 위 주거(용적률 감점 대신)','1']];
+  const ptab=`<table class="calc"><thead><tr><th>항목</th><th>기준</th><th>감점</th></tr></thead><tbody>${pen.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="n">${r[2]}</td></tr>`).join('')}</tbody></table>`;
+  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span> <span class="sm">${AD[a]}</span></summary><table class="calc"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">영역 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
   const basisL = M.basis?`<ul class="sm">${Object.entries({grade:'등급 비율',price:'실거래가 조건',unsold:'미분양',small:'소단지',unit:'전 세대 59㎡ 미만',old:'구축',walk:'도보 시간',harm:'청소년 유해업소',far:'용적률',noise:'소음',nimby:'기피시설',villa:'노후 빌라·원룸촌',rent:'임대 단지',weight:'영역 비중',penalty:'보정 합계'}).filter(([k])=>M.basis.rule[k]).map(([k,n])=>`<li><b>${n}</b>: ${M.basis.rule[k]}</li>`).join('')}</ul>`:'';
+  // 검증: 등급과 실제 시장(국토부 실거래)의 관계 — 화면에서 자료로 바로 계산(사람이 적어 넣는 값 없음)
+  const V=validStats();
+  const vtab=V?`<table class="calc vt"><thead><tr><th>등급</th><th class="n">단지</th><th class="n">㎡당 실거래가<br><span class="sm">중앙값</span></th><th class="n">84㎡ 환산</th><th class="n">시장 자리값<br><span class="sm">중앙값(상위 %)</span></th></tr></thead><tbody>${V.rows.map(r=>`<tr><td><b class="gchip" style="background:${gCol(r.g)};color:${gInk(r.g)}">${r.g}</b></td><td class="n">${r.n}</td><td class="n">${r.med.toLocaleString()}만원</td><td class="n">${(r.med*84/10000).toFixed(1)}억</td><td class="n">${r.px==null?'-':(r.px<1?'1% 이내':Math.round(r.px)+'%')}</td></tr>`).join('')}</tbody></table>`:'';
+  const vsec=V?`<section><h3>② 얼마나 맞나 — 실거래가로 확인</h3>
+    <div class="stat3"><div><b>${V.sp.toFixed(2)}</b><span>등급 ↔ ㎡당 실거래가<br>순위 상관(1에 가까울수록 일치)</span></div><div><b>${V.spx.toFixed(2)}</b><span>등급 ↔ 시장 자리값<br>순위 상관</span></div><div><b>${V.monoN}/${V.rows.length-1}</b><span>등급이 한 단계 내려갈 때<br>가격 중앙값도 내려간 구간</span></div></div>
+    ${vtab}
+    <p class="sm">최근 2년 매매 ${V.minN}건 이상인 분양 단지 ${V.n.toLocaleString()}곳(임대 제외) · 국토교통부 실거래(해제 제외) · 자료 ${M.evalDate} 기준. 등급은 가격 순위가 아니라 <b>입지 점수에 시장 검증을 더한 것</b>이라 같은 등급 안에도 가격 차이가 있습니다. 더 자세한 회귀분석은 블로그 글에 있습니다.</p></section>`:'';
+  const faq=[['등급은 집값 순위인가요?','아닙니다. 입지 점수(교육·생활·교통 등)로 먼저 줄을 세우고, 실거래가로 검증만 합니다. 비싼 신축이 꼭 1등급은 아니고, 싼 구축이 꼭 낮은 등급도 아닙니다. "같은 값이면 어디가 입지가 더 좋은가"를 보는 도구입니다.'],
+    ['5등급이면 나쁜 집인가요?','아닙니다. 광주 전체를 수능처럼 상대평가로 나눈 것이라 5등급은 "광주 한가운데"라는 뜻입니다. 1~3등급(상위 23%)이면 교육·생활·교통이 고루 갖춰진 편입니다.'],
+    ['동네 등급인가요, 단지 등급인가요?','단지 등급입니다. 같은 동네라도 30년 넘은 구축, 100세대 미만 소단지, 원룸형 단지는 등급이 낮게 나옵니다. 지도를 넓게 보면 동네 평균, 확대하면 단지별 등급이 나옵니다.'],
+    ['왜 이 단지가 이 등급인가요?','단지를 누르면 "점수로는 2등급이지만 실거래가가 상위 38%라 3등급입니다"처럼 이유가 한 줄로 나옵니다. 등급이 이상하다 싶으면 그 문장을 먼저 봐 주세요.'],
+    ['신축인데 왜 등급이 낮나요?','신축 프리미엄은 단지 상품성(20%)과 시장 검증에서 인정합니다. 그래도 낮다면 학원가·초등 통학·생활 편의 같은 입지 점수가 낮은 경우입니다. 준공 10년 이내·400세대 이상이고 실거래가가 상위 40% 안이면 최소 4등급은 보장합니다.'],
+    ['제 기준은 다른데요?','기본 등급은 교육 35%를 가장 크게 보는 연구원 기준입니다. 아이가 없거나 직장이 더 중요하면 <b>내 조건으로 찾기</b>에서 비중을 바꿔 보세요. 내 기준으로 다시 매긴 등급이 지도에 나옵니다.'],
+    ['앞으로 오를 집을 알려 주나요?','아닙니다. 지금까지의 공개 자료로 지금의 입지를 평가한 것입니다. 투자 추천이나 가격 전망이 아니며, 최종 판단은 임장과 본인 상황으로 하셔야 합니다.']];
+  const faqH=faq.map(q=>`<details class="mi faq"><summary><b>${q[0]}</b></summary><p>${q[1]}</p></details>`).join('');
   ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db mth">
-    <section><h3>① 종합점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 점수</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다(가격 구성비 아님). 비중 근거는 아래 ⑤에 있습니다.</p></section>
-    <section><h3>② 등급은 이렇게 정합니다</h3><ol class="flow"><li><b>점수 순 9등급</b><span>광주 아파트를 단지 점수 순으로 수능 비율(4·7·12·17·20·17·12·7·4%)로 나눔</span></li><li><b>조건 확인</b><span>아래 표의 조건에 걸리면 등급이 내려감</span></li><li><b>빈자리는 그대로</b><span>내려간 단지 자리를 아래 단지로 채우지 않음</span></li></ol>${gradeBar()}${ctab}</section>
-    <section><h3>③ 보정 점수(감점)</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고, 합계에는 상한을 두지 않습니다.</p>${ptab}</section>
-    <section><h3>④ 영역별 세부 항목</h3><p class="sm">영역을 누르면 항목별 비중과 점수 기준이 펼쳐집니다.</p>${itemsT2}</section>
-    <section><details class="mi"><summary><b>⑤ 기준의 근거</b> <span class="sm">[공식] 법령·공식 통계 · [연구] 논문 · [자료] 광주 자료 분석 · [판단] 근거를 찾지 못해 정한 값</span></summary>${basisL}</details>
-      <details class="mi"><summary><b>⑥ 계산식 · 결측 처리 · 자료 출처</b></summary><p class="sm"><b>계산식</b> ${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p><p class="sm"><b>결측</b> ${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><p class="sm"><b>측정 방식과 한계</b></p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>자료 출처</b></p><ul class="sm">${M.sources.map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
+    <section class="sum"><p class="lead">광주 아파트 <b>${CX.length.toLocaleString()}곳</b>(임대 ${CX.filter(c=>c.rent).length}곳 포함)을 같은 자로 재서 <b>1~9등급</b>으로 나눕니다.</p>
+      <div class="chips"><span style="--c:var(--aS)">입지 ${gsum('loc')}%</span><span style="--c:var(--aC)">단지 상품성 ${gsum('prd')}%</span><span style="--c:var(--aQ)">환금성 ${gsum('liq')}%</span></div>
+      <ol class="flow"><li><b>점수 매기기</b><span>교육·생활·교통·단지 조건을 공개 자료로 0~10점</span></li><li><b>줄 세워 9등급</b><span>수능 비율로 상대평가(1등급 = 상위 4%)</span></li><li><b>실거래가로 검증</b><span>시장이 매긴 값보다 한 단계까지만 위. 확실히 높으면 올림</span></li></ol>
+      <p class="sm">사람이 손으로 정하는 점수는 없습니다. 모든 단지에 같은 규칙과 같은 자료를 씁니다.</p></section>
+    <section><h3>① 점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 감점</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다(가격 구성비가 아닙니다). 비중의 근거는 ⑥에 있습니다.</p></section>
+    ${vsec}
+    <section><h3>③ 등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>이란 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
+    <section><h3>④ 보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
+    <section><h3>⑤ 영역별 세부 항목</h3><p class="sm">영역을 누르면 항목별 비중·점수 기준·근거가 펼쳐집니다.</p>${itemsT2}</section>
+    <section><h3>자주 묻는 질문</h3>${faqH}</section>
+    <section><details class="mi"><summary><b>⑥ 기준의 근거</b> <span class="sm">[공식] 법령·공식 통계 · [연구] 논문 · [자료] 광주 자료 분석 · [판단] 근거를 찾지 못해 정한 값</span></summary>${basisL}</details>
+      <details class="mi"><summary><b>⑦ 계산식 · 결측 처리 · 자료 출처</b></summary><p class="sm"><b>계산식</b> ${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p><p class="sm"><b>결측</b> ${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><p class="sm"><b>측정 방식과 한계</b></p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>자료 출처</b></p><ul class="sm">${M.sources.map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
     <section class="warn"><h3>주의사항</h3><ul>
-      <li><b>이 서비스는 AI와 함께 만든 프로토타입입니다.</b> 개발 중이라 계산 방식이 바뀔 수 있습니다.</li>
+      <li><b>이 서비스는 방구석 연구원이 AI와 함께 만든 광주 아파트 입지분석 최종판(v1.3.0)입니다.</b> 계산식은 확정했고, 자료 오류는 계속 바로잡습니다.</li>
       <li>공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 특정 단지의 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li>등급·점수·고평가/저평가 표시는 단지의 가치나 미래 가격을 보장하지 않습니다.</li>
       <li>자료는 ${M.evalDate} 기준입니다. 이후 거래·개발 계획은 반영되지 않으며, 원자료의 오류·누락이 있을 수 있습니다.</li>
@@ -950,6 +986,7 @@ function nvMarkers(){
     dongAgg(lv).sort((a,b)=>b.n-a.n).forEach(d=>{ const p=prj0.fromCoordToOffset(new naver.maps.LatLng(d.lat,d.lon)), w=Math.max(d.k.length*12,aggLab(d).length*6.2)+20;
       // v1.2.6 연구원(치평동 알약이 안 보임): 겹치면 숨기기 전에 위·아래·옆으로 비켜 봄
       let q=null, off=[0,0]; for (const [ox,oy] of (lv==='gu'?[[0,0]]:[[0,0],[0,-40],[0,40],[-w*.7,0],[w*.7,0],[0,-80],[0,80]])){ const t=[p.x-w/2+ox,p.y-19+oy,p.x+w/2+ox,p.y+19+oy]; if(!hit0(t)){ q=t; off=[ox,oy]; break; } }
+      if (!q && lv==='gu') q=[p.x-w/2,p.y-19,p.x+w/2,p.y+19];   // v1.2.9 연구원(첫 화면에 동구 없음): 구 알약 5개는 겹쳐도 모두 표시(v1.2.6에서 숨겨지던 오류)
       if (!q) return; bx.push(q); let m=NVD.get(lv+d.k); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(d.lat,d.lon), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}}); naver.maps.Event.addListener(m,'click',()=>{ NV.morph(m.getPosition(), lv==='gu'?NGZ+1:NDZ+1); }); NVD.set(lv+d.k,m); }
       const gr=clamp(Math.round(d.g),1,9);
       m.setPosition(new naver.maps.LatLng(d.lat,d.lon));

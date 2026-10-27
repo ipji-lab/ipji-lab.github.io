@@ -699,7 +699,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=56eddd42", DET=["data/d00.json.gz?v=81a6bb29", "data/d01.json.gz?v=b98d855a", "data/d02.json.gz?v=c7a07d8d", "data/d03.json.gz?v=6dc72671", "data/d04.json.gz?v=8ac043ab", "data/d05.json.gz?v=ac5f38a2", "data/d06.json.gz?v=66dc73b9", "data/d07.json.gz?v=4b4a18d3", "data/d08.json.gz?v=e2548f5b", "data/d09.json.gz?v=e864decf", "data/d10.json.gz?v=5b671a71", "data/d11.json.gz?v=5b9f9e38", "data/d12.json.gz?v=b9471bba", "data/d13.json.gz?v=a46829d2", "data/d14.json.gz?v=4661f347", "data/d15.json.gz?v=2ee2a3f9"], APP="app.js?v=f1754e98";
+  var CORE="data/core.json.gz?v=d905eda1", DET=["data/d00.json.gz?v=81a6bb29", "data/d01.json.gz?v=b98d855a", "data/d02.json.gz?v=c7a07d8d", "data/d03.json.gz?v=6dc72671", "data/d04.json.gz?v=8ac043ab", "data/d05.json.gz?v=ac5f38a2", "data/d06.json.gz?v=66dc73b9", "data/d07.json.gz?v=4b4a18d3", "data/d08.json.gz?v=e2548f5b", "data/d09.json.gz?v=e864decf", "data/d10.json.gz?v=5b671a71", "data/d11.json.gz?v=5b9f9e38", "data/d12.json.gz?v=b9471bba", "data/d13.json.gz?v=a46829d2", "data/d14.json.gz?v=4661f347", "data/d15.json.gz?v=2ee2a3f9"], APP="app.js?v=d741b74f";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

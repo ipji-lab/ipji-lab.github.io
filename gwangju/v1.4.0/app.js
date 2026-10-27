@@ -315,7 +315,7 @@ function dongAgg(lv){
 const GUC = {}; DATA.geo.sgg.features.forEach(f=>{ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates; let A=0,X=0,Y=0;
   polys.forEach(poly=>{ const r=poly[0]; for(let i=0;i<r.length-1;i++){ const k=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1]; A+=k; X+=(r[i][0]+r[i+1][0])*k; Y+=(r[i][1]+r[i+1][1])*k; } });
   if (A) GUC[f.properties.g]=[Y/(3*A), X/(3*A)]; });   // 시군구 경계 중심(위도, 경도)
-const aggLab = d => d.lv==='gu' ? `평균 ${d.s.toFixed(1)}점 · ${d.g.toFixed(1)}등급 · ${d.n}곳` : `평균 ${d.g.toFixed(1)}등급 · ${d.n}곳`;
+const aggLab = d => S.mine ? `내 점수 평균 ${d.s.toFixed(1)}점 · ${d.n}곳` : d.lv==='gu' ? `평균 ${d.s.toFixed(1)}점 · ${d.g.toFixed(1)}등급 · ${d.n}곳` : `평균 ${d.g.toFixed(1)}등급 · ${d.n}곳`;
 let CURLV = null;
 function drawDong(lv){
   lv = lv || (K<GZ?'gu':'dong'); CURLV = lv;
@@ -595,11 +595,11 @@ function renderDetail(){
       <div class="dmeta">${c.far?`용적률 ${c.far}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
     <section class="hero">
-      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 상위 ${f1(pp)}%<span class="gtot">종합점수 ${f1(tot)}점(${rk.toLocaleString()}등)</span>`; })()}</span></div>
+      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위${pp<1?'':` (상위 ${Math.round(pp)}%)`}<span class="gtot">종합점수 ${f1(tot)}점</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="sc3">${subsc}</div>
     </section>
-    <section class="sec"><h2>보정 점수 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${(c.M&&c.M.length)?c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join(''):'<p class="note" style="margin:6px 0">이 단지는 시장에서 할인되는 특성이 없어 깎인 점수가 없습니다.</p>'}</div></section>
+    ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음 — 시장에서 할인되는 특성(복도식·나홀로·소음·유해업소 등)이 없습니다.</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
     <section class="sec"><h2>영역별 점수</h2><div>${areas}</div></section>
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">실거래가<span class="tagref">참고 정보</span></h2>
@@ -611,8 +611,8 @@ function renderDetail(){
     ${S.mine?(()=>{const pi=personalItems(c,S.mine); const j=c.js&&c.js.rep; const gapTxt=(S.mine.prod==='gap'&&j&&j[1]&&j[3])?`갭: ${j[0]}㎡ 매매 중위 ${eok(j[3])} − 전세 중위 ${eok(j[1])} = ${eok(j[3]-j[1])}`:''; return `<section class="card mine"><h2 style="font-size:14px;margin:0;font-weight:700">내 조건으로 본 이 단지 <span class="tagref">개인 참고</span></h2><div class="lines"><p><b>내 점수 ${f1(c.ps)}점${c.pr?` · 내 조건에 맞는 ${S.mineN}곳 중 ${c.pr}위`:''}</b> · 등급은 그대로 ${c.grade!=null?c.grade+'등급':(c.rent?'임대':'잠정')}입니다(내 점수는 순위용이며 등급을 바꾸지 않습니다)</p>${pi.note.map(t=>`<p>${t}</p>`).join('')}${gapTxt?`<p>${gapTxt}</p>`:''}${pi.note.length?'':'<p>직장·자녀 조건을 넣지 않아 비중만 바꿔 계산했습니다.</p>'}</div></section>`;})():''}
     ${(c.xs.tr||[]).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통 한눈에</h2><dl class="kv trk">${c.xs.tr.map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
-    <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">개별 위험·확인 사항</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}<p>이 분석은 AI가 공공데이터로 자동 계산한 결과입니다. 실제 매수 등 중요한 결정 전에는 현장 방문과 공식 자료로 사람이 직접 다시 확인해 주세요.</p></div></section>
-    <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">출처</h2><ul class="note" style="margin:0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></section>
+    ${flags.length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">확인이 필요한 점</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}</div></section>`:''}<p class="note">공공데이터로 자동 계산한 참고 정보입니다. 매수 전에는 현장과 공식 자료로 직접 확인해 주세요.</p>
+    <details class="src"><summary>자료 출처</summary><ul class="note" style="margin:6px 0 0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></details>
   </div>`;
   $('pbody').querySelectorAll('.area').forEach(b=>b.onclick=()=>{S.openCat=S.openCat===b.dataset.cat?null:b.dataset.cat; renderDetail();});
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));

@@ -602,6 +602,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 .mth2 details.mi{border:1px solid var(--line);border-radius:10px;padding:8px 12px} .mth2 details.mi summary{cursor:pointer;font-size:13.5px;font-weight:600} .mth2 details.mi[open] summary{margin-bottom:6px}
 .mth2 .warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:12px;padding:12px 14px} .mth2 .warn h3{font-size:14px;margin-bottom:6px} .mth2 .warn ul{color:var(--warn-ink)}
 .mth2 .by{text-align:center} .mth2 .by a{color:var(--accent)}
+.db details.src{font-size:12.5px;color:var(--muted)} .db details.src summary{cursor:pointer}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -697,7 +698,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=cda02bcf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=5b9adec7";
+  var CORE="data/core.json.gz?v=cda02bcf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=d166715b";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

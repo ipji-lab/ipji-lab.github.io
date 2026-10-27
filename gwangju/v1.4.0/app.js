@@ -134,6 +134,10 @@ function personal(c){
 function applyMine(){   // v1.4.1 연구원: 내 조건은 등급을 새로 매기지 않음 — 기본 등급은 그대로, 내 점수와 순위만
   if (!S.mine){ CX.forEach(c=>{c.ps=null; c.pg=null; c.pr=null;}); return; }
   CX.forEach(c=>{ c.ps=personal(c); c.pg=null; });
+  // 내 점수를 기본 점수와 같은 자(평균·표준편차)로 맞춤 — 80점대가 상위권이라는 감각이 그대로 유지되게
+  const base=CX.filter(c=>c.final&&!c.rent&&c.total!=null&&c.ps!=null); if (base.length>30){ const mean=a=>a.reduce((x,y)=>x+y,0)/a.length, sd=(a,m)=>Math.sqrt(mean(a.map(v=>(v-m)*(v-m))))||1;
+    const bt=base.map(c=>c.total), bp=base.map(c=>c.ps), mT=mean(bt), sT=sd(bt,mT), mP=mean(bp), sP=sd(bp,mP);
+    CX.forEach(c=>{ if (c.ps!=null) c.ps=Math.max(0,Math.min(100,mT+(c.ps-mP)*sT/sP)); }); }
   const fin=CX.filter(c=>c.final&&c.ps!=null&&passes(c)).sort((a,b)=>b.ps-a.ps); S.mineN=fin.length;
   CX.forEach(c=>c.pr=null); fin.forEach((c,i)=>c.pr=i+1);
 }

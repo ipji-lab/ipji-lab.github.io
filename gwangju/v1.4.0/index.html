@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스(최종판)">
+<meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
 <meta property="og:title" content="우리동네 입지분석(광주) v1.4.1">
-<meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스(최종판)">
+<meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -65,7 +65,7 @@
 .mth .warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:12px 14px;border:0}
 .mth .warn p,.mth .warn .sm{color:var(--warn-ink)}
 html,body{height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;word-break:keep-all;overflow-wrap:break-word;line-height:1.5;overflow:hidden}
 *{box-sizing:border-box}
 button,input,select{font:inherit;color:inherit}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
@@ -667,12 +667,13 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
   <div class="gate-card">
     <button class="gate-x" id="gateX" aria-label="닫고 서비스 종료">✕</button>
     <h2 id="gateT">알림</h2>
-    <p>본 서비스는 광주(5개 구) 아파트 입지를 분석한 서비스입니다.</p>
-    <p>방구석 연구원이 AI와 함께 만든 <b>광주 최종판</b>입니다. 계산식은 확정했고 자료 오류는 계속 바로잡습니다. 완벽하지 않다는 점 참고해 주세요.</p>
+    <p>광주 아파트 1,249곳의 입지를 등급으로 보여 주는 서비스입니다.</p>
+    <p>방구석 연구원이 AI와 함께 만든 <b>프로토타입</b>입니다. 완벽하지 않습니다. 잘못된 정보를 보시면 블로그에 댓글로 알려 주시면 감사하겠습니다.</p>
     <ul class="gate-note">
-      <li>※ 공공데이터를 정해진 규칙으로 가공한 참고 정보이며, 매수·매도 권유나 투자 자문이 아닙니다.</li>
-      <li>※ 등급·점수·고평가/저평가 표시는 단지의 가치나 미래 가격을 보장하지 않습니다.</li>
-      <li>※ 자료는 2026년 10월 21일 기준이며 오류·누락이 있을 수 있습니다.</li>
+      <li>※ 공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 매수·매도 권유나 투자 자문이 아닙니다.</li>
+      <li>※ 등급과 점수는 단지의 가치나 미래 가격을 보장하지 않습니다.</li>
+      <li>※ 자료 기준일은 2026년 10월 21일이며 오류·누락이 있을 수 있습니다.</li>
+      <li>※ 무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처를 밝혀 주세요.</li>
     </ul>
     <button class="gate-ok" id="gateOk">네 이해했습니다.</button>
     <p class="gate-by">만든 사람 · <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p>
@@ -698,7 +699,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=cda02bcf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=d166715b";
+  var CORE="data/core.json.gz?v=19ded8cf", DET=["data/d00.json.gz?v=7281da1d", "data/d01.json.gz?v=7481ff2f", "data/d02.json.gz?v=67040d79", "data/d03.json.gz?v=46adf563", "data/d04.json.gz?v=e32e1ad9", "data/d05.json.gz?v=154653ec", "data/d06.json.gz?v=d1f7d052", "data/d07.json.gz?v=89b4bb8c", "data/d08.json.gz?v=ddac3b09", "data/d09.json.gz?v=a60bc805", "data/d10.json.gz?v=253c1c43", "data/d11.json.gz?v=4936ddd2", "data/d12.json.gz?v=c2b68909", "data/d13.json.gz?v=a76d456c", "data/d14.json.gz?v=19f31153", "data/d15.json.gz?v=5522f526"], APP="app.js?v=f1754e98";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

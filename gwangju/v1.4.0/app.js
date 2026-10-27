@@ -485,7 +485,7 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
 }
 
 /* ═════════ 패널: 상세 ═════════ */
-const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S7t:'고등학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S7t:'통학 시간(가까운 일반고)',S7a:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.4.1 연구원: 초등 → 중학교 → 고등학교 → 학원   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
+const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S7t:'고등학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S7t:'통학 시간',S7a:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.4.1 연구원: 초등 → 중학교 → 고등학교 → 학원   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
 function rankOf(c){   // v1.1.3 연구원: 같은 권역 등급 단지(임대 제외) 안 순위 = 등급 → 점수 순
   const z=c.zn||'gj', L=CX.filter(x=>(x.zn||'gj')===z && gradeOf(x)!=null).sort((a,b)=>gradeOf(a)-gradeOf(b) || (scoreOf(b)??-1)-(scoreOf(a)??-1));
   const i=L.indexOf(c); return [i+1, L.length, 100*(i+.5)/L.length]; }

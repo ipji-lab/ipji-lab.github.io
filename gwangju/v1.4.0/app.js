@@ -105,13 +105,13 @@ function personalItems(c,m){   // 내 조건으로 바뀐 항목 점수와 설�
   const ks=kidsOf(m);
   const midFor=sex=>{ if(!c.ms||!c.ms.length) return null; const ok=c.ms.filter(r=>r[1]==='공'||!sex||r[1]===sex); if(!ok.length) return null; const lim=Math.max((M.midK||2)*ok[0][2],1000/60); let top=ok.filter(r=>r[2]<=lim).slice(0,3); if(!top.length) top=[ok[0]];
     const avg=top.reduce((a,r)=>a+r[2],0)/top.length, ach=top.filter(r=>r[3]!=null); return {S3:linC(avg,M.mcurve)*10, S4:ach.length?ach.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ach.length:null, names:top.map(r=>r[0]), avg, achp:ach.length?ach.reduce((a,r)=>a+r[3],0)/ach.length:null}; };
-  const highFor=sex=>{ if(!c.hs||!c.hs.length) return null; const ok=c.hs.filter(r=>sex==='남'?r[1]!=='여':true).slice(0,3); if(!ok.length) return null; const avg=ok.reduce((a,r)=>a+r[2],0)/ok.length; return {S7t:linC(avg,M.mcurve)*10, S7a:ok.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ok.length, names:ok.map(r=>r[0]), avg, achp:ok.reduce((a,r)=>a+r[3],0)/ok.length}; };
+  const highFor=sex=>{ if(!c.hs||!c.hs.length) return null; const ok=c.hs.filter(r=>sex==='남'?r[1]!=='여':sex==='여'?r[1]!=='남':true).slice(0,3); if(!ok.length) return null; const avg=ok.reduce((a,r)=>a+r[2],0)/ok.length; return {S7t:linC(avg,M.mcurve)*10, S7a:ok.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ok.length, names:ok.map(r=>r[0]), avg, achp:ok.reduce((a,r)=>a+r[3],0)/ok.length}; };
   const needMid=ks.filter(k=>k.st==='pre'||k.st==='elem'||k.st==='mid'), needHigh=ks.filter(k=>k.st!=='pre'&&k.sex);
   const avgOf=(arr,key)=>{ const v=arr.map(x=>x[key]).filter(x=>x!=null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; };
   if (needMid.length){ const rs=needMid.map(k=>({k,r:midFor(k.sex)})).filter(x=>x.r); if(rs.length){ out.S3=avgOf(rs.map(x=>x.r),'S3'); const s4=avgOf(rs.map(x=>x.r),'S4'); if(s4!=null) out.S4=s4;
     rs.forEach(x=>note.push(`중학교(${x.k.sex?(x.k.sex==='여'?'여학생: 여중·공학':'남학생: 남중·공학'):'성별 미정: 전체'}${needMid.length>1?` · ${x.k.by}년생`:''}): ${x.r.names.join('·')} 평균 도보 ${Math.round(x.r.avg)}분${x.r.achp!=null?` · 학업성취 상위 ${Math.round(x.r.achp)}%`:''}`)); } }
   if (needHigh.length){ const rs=needHigh.map(k=>({k,r:highFor(k.sex)})).filter(x=>x.r); if(rs.length){ out.S7t=avgOf(rs.map(x=>x.r),'S7t'); out.S7a=avgOf(rs.map(x=>x.r),'S7a');
-    rs.forEach(x=>note.push(`고등학교(${x.k.sex==='여'?'여학생 · 남고 여부 자료 없음':'남학생: 여고 제외'}${needHigh.length>1?` · ${x.k.by}년생`:''}): ${x.r.names.join('·')} 평균 도보 ${Math.round(x.r.avg)}분 · 학업성취 상위 ${Math.round(x.r.achp)}%`)); } }
+    rs.forEach(x=>note.push(`고등학교(${x.k.sex==='여'?'여학생: 남고 제외':'남학생: 여고 제외'}${needHigh.length>1?` · ${x.k.by}년생`:''}): ${x.r.names.join('·')} 평균 도보 ${Math.round(x.r.avg)}분 · 학업성취 상위 ${Math.round(x.r.achp)}%`)); } }
   // 학년에 안 맞는 항목 제외: 어느 자녀에게도 필요 없는 항목만 뺌
   const need=new Set(); ks.forEach(k=>{ ({pre:['S6','S1t','S1c','S2','S3','S4','S5a','S5b','S7t','S7a'],elem:['S1t','S1c','S2','S3','S4','S5a','S5b','S7t','S7a'],mid:['S3','S4','S5a','S5b','S7t','S7a'],high:['S5a','S5b','S7t','S7a']})[k.st].forEach(x=>need.add(x)); });
   const drop = ks.length ? Object.keys(IN.S).filter(k=>!need.has(k)) : [];
@@ -1009,7 +1009,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.4.1 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.4.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

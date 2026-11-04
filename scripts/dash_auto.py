@@ -1,4 +1,4 @@
-# 시세 흐름 자동 갱신(GitHub Actions용, v1.5.3 ’26.11.4) — 계산은 dash_core.py
+# 시세 흐름 자동 갱신(GitHub Actions용, v1.5.9 ’26.11.4: 단지 상세 개별 거래 rt/tx.json.gz 추가) — 계산은 dash_core.py
 # 국토교통부 아파트 매매 실거래가(RTMSDataSvcAptTrade)·분양권 전매(RTMSDataSvcSilvTrade) API를 광주 5개 구에 대해 호출 → dash.json.gz 다시 만듦
 # 기간: 2006년 1월(자료 제공 시작)부터 이번 달까지 전체. 받은 자료는 <출력 폴더>/rt/<연도>.json.gz 에 연도별로 보관하고,
 #   매일은 최근 4개월(신고·해제가 늦게 잡히는 기간)만 다시 받음. 보관 파일이 없는 달만 새로 받음(첫 실행 약 2,500회 호출, 이후 매일 50회)
@@ -78,5 +78,9 @@ print(f"호출 {calls}회 · 매매 {len(apt):,}건(직거래 {n_dir:,}) · 분�
 cxs = json.load(open(SRC, encoding="utf-8"))["cx"]
 out, n_all = DC.build(apt, cxs, today, f"국토교통부 아파트 매매 실거래가·분양권 전매(공공데이터포털, {today.isoformat()} 자동 조회, {M[0][:4]}년부터) · 해제 거래{'·직거래' if EXCL_DIRECT else ''} 제외 · 단지는 평형대별 실제 거래가 월 중위, 동네·구·광주는 전용 76~95㎡ 거래를 84.9㎡로 환산한 월 중위", silv=silv, start=START, excl_direct=EXCL_DIRECT, lead_floor=LEAD_FLOOR)
 if len(out["dongs"]) < 50 or n_all < 5000: raise SystemExit(f"자료가 너무 적음(동 {len(out['dongs'])}, 거래 {n_all}) — 갱신 중단")
+tx = out.pop("tx", None)   # v1.5.9 단지 상세 개별 거래(최근 3년) → rt/tx.json.gz
 with gzip.open(TREND, "wt", encoding="utf-8") as f: f.write(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
+if tx is not None:
+    with gzip.open(CACHE / "tx.json.gz", "wt", encoding="utf-8") as f: f.write(json.dumps(dict(v=1, asof=today.isoformat(), m0=M[0], tx=tx), ensure_ascii=False, separators=(",", ":")))
+    print("tx", len(tx), "단지 ·", os.path.getsize(CACHE / "tx.json.gz") // 1024, "KB")
 print("trend v4", len(out["dongs"]), "행정동 ·", len(out["px"]), "단지 ·", os.path.getsize(TREND) // 1024, "KB · 광주 최근 월", out["city"]["mc"][-3:], out["city"]["mo"][-3:])

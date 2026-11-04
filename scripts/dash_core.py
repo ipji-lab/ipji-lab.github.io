@@ -91,8 +91,8 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         if tb:
             vm = [(t[0], t[1]) for t in tb]
             p_now = recent(vm) or _med([t[1] for t in sorted(tb, key=lambda t: -t[3])[:3]])
-            y1 = [t[1] for t in tb if M[max(0, N - 15)] <= t[0] <= M[max(0, N - 12)]]; p12 = _med(y1) if len(y1) >= 2 else None
-            y3 = [t[1] for t in tb if M[max(0, N - 39)] <= t[0] <= M[max(0, N - 36)]]; p36 = _med(y3) if len(y3) >= 2 else None   # 3년 전 같은 분기 중위
+            y1 = [t[1] for t in tb if M[max(0, N - 17)] <= t[0] <= M[max(0, N - 12)]]; p12 = _med(y1) if len(y1) >= 2 else None   # 1년 전 6개월 중위(거래가 적은 단지도 비교되게 넓힘)
+            y3 = [t[1] for t in tb if M[max(0, N - 41)] <= t[0] <= M[max(0, N - 36)]]; p36 = _med(y3) if len(y3) >= 2 else None   # 3년 전 6개월 중위
             peak = max(tb, key=lambda t: t[1]); last = max(tb, key=lambda t: t[3])
             d.update(p=p_now, c12=(round((p_now / p12 - 1) * 100, 1) if p12 and p_now else None), c36=(round((p_now / p36 - 1) * 100, 1) if p36 and p_now else None),
                      peak=peak[1], pk=peak[0], vs=(round(p_now / peak[1] * 100) if p_now else None), last=[last[3], last[1], round(last[2], 1)])

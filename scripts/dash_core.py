@@ -1,6 +1,6 @@
-# v1.5.3 시세 흐름 공통 계산(’26.11.4, 연구원 대장 기준 반영). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.5.4 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 주요 단지 12곳 그래프). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
-# 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
+# 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·주요 단지 12곳 top) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
 import collections, statistics, datetime as dt
 BANDS = [(45, "39"), (54, "49"), (65, "59"), (79, "74"), (95, "84"), (110, "101"), (125, "114"), (150, "135"), (10**9, "160")]   # 전용 상한 → 평형대 이름(비슷한 평형 묶음)
@@ -127,12 +127,14 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     cm, cc = idx84(city_tr); out["city"] = dict(mo=cm, mc=cc)
     for g, trs in gu_tr.items():
         out["gu"][g] = dict(p=recent([(m, p / a * 84.9) for m, p, a, _, _ in trs if 76 <= a <= 95], need=5, back=(6, 12)))
+    leads = {}   # 동네 → 대장(구별 주요 단지 12곳 고를 때 씀)
     for hd, L in dong_cx.items():
         if len(L) < 2: continue
         cand = [d for d in L if d["lp"]]
         big = [d for d in cand if d["u"] >= lead_floor] or cand
         lead = max(big, key=lambda d: d["lp"][0]) if big else None   # 대장 = 전용 84㎡ 이상 ㎡당 최근 실거래가 1위(세대수 하한 이상 중). 84㎡ 이상 거래가 없는 동네는 대장 없음
         top = [lead] if lead else []
+        if lead: leads[hd] = lead
         sig = lambda d: frozenset(k for k, _ in KEYS[d["id"]] if k[0] != "#")   # 실거래 지번을 같이 쓰는 단지(예: 라인광장1차·2,3차)는 같은 거래라 한 번만
         for d in sorted(L, key=lambda d: -d["u"]):
             if d not in top and len(top) < 6 and all(sig(d) != sig(t) for t in top): top.append(d)
@@ -145,4 +147,19 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
                                 gavg=(round(statistics.mean(gs), 1) if gs else None), ng=len(gs),
                                 c36=(round(statistics.median(c36), 1) if len(c36) >= 3 else None), c12=(round(statistics.median(c12), 1) if len(c12) >= 3 else None),
                                 cx=[dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], rep=d["rep"], n24=d["n24"]) for d in top])
+    # v1.5.4 연구원(11.4): 시세 흐름 첫 화면 = 구별 주요 단지 12곳 그래프. 손으로 고르지 않음:
+    #   ① 이 구 동네별 대장(전용 84㎡ 이상 ㎡당 최근가 1위, 300세대 이상 우선)을 ㎡당 가격 높은 순 → ② 12곳이 안 되면 구 안의 나머지 단지(최근 2년 매매 8건 이상)를
+    #   300세대 이상 먼저, ㎡당 가격 높은 순으로 채움. 실거래 지번을 같이 쓰는 단지는 하나만
+    sigk = lambda i: frozenset(k for k, _ in KEYS[i] if k[0] != "#")
+    for g in out["gu"]:
+        L = [d for hd, L2 in dong_cx.items() if CX[L2[0]["id"]]["gu"] == g for d in L2 if d["lp"]]
+        hd_of = {d["id"]: CX[d["id"]]["hd"] for d in L}
+        lead_ids = {d["id"] for hd, d in leads.items() if CX[d["id"]]["gu"] == g}
+        order = sorted([d for d in L if d["id"] in lead_ids], key=lambda d: -d["lp"][0]) + \
+                sorted([d for d in L if d["id"] not in lead_ids], key=lambda d: (d["u"] < lead_floor, -d["lp"][0]))
+        sel = []
+        for d in order:
+            if len(sel) >= 12: break
+            if all(sigk(d["id"]) != sigk(t["id"]) for t in sel): sel.append(d)
+        out["gu"][g]["top"] = [dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], hd=hd_of[d["id"]], rep=d["rep"], ppm=d["lp"][0], lead=d["id"] in lead_ids) for d in sel]
     return out, n_all

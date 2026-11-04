@@ -1,4 +1,4 @@
-# v1.5.8 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.5.9 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -7,6 +7,7 @@ BANDS = [(45, "39"), (54, "49"), (65, "59"), (79, "74"), (95, "84"), (110, "101"
 def band(a):
     for hi, k in BANDS:
         if a <= hi: return k
+TX_MONTHS = 36   # v1.5.9 개별 거래 보관 기간(최근 3년)
 BAND_LABEL = {"39": "39㎡대", "49": "49㎡대", "59": "59㎡대", "74": "74㎡대", "84": "84㎡대", "101": "101㎡대", "114": "114㎡대", "135": "135㎡대", "160": "160㎡ 이상"}
 def months_until(today, n=36):   # 최근 n개월(예전 호환)
     y, m = today.year, today.month; M = []
@@ -122,6 +123,10 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         px[cid] = dict(rep=rep, ym=c.get("ym"), b=bands)
         lp = lead_ppm(tr)
         if n24 >= 8: dong_cx[c["hd"]].append(dict(id=cid, n=c["n"], u=c["u"], y=c["y"], g=c.get("g"), rep=rep, lp=lp, n24=n24))
+    tx = {}   # v1.5.9 연구원(11.4): 단지 상세 실거래 그래프의 개별 거래 점·거래 목록 = 최근 TX_MONTHS개월 매매·분양권 [달 번호, 일, 금액(만원), 전용㎡×100, 0 매매|1 분양권] 최신순(호출 쪽에서 따로 저장)
+    for cid in px:
+        rs = [(MI[m], d % 100, p, round(a * 100), 0) for m, p, a, d, _ in series(cid, BYK) if MI[m] >= N - TX_MONTHS] + [(MI[m], d % 100, p, round(a * 100), 1) for m, p, a, d, _ in series(cid, SVK) if MI[m] >= N - TX_MONTHS]
+        if rs: rs.sort(key=lambda t: (-t[0], -t[1], -t[2])); tx[cid] = [v for t in rs for v in t]
     out = dict(v=4, enc="d3", src=src_text, asof=today.isoformat(), months=M, bandLabel=BAND_LABEL, city={}, gu={}, dongs={}, px=px,
                lead=dict(area=LEAD_MIN_AREA, floor=lead_floor, direct=("제외" if excl_direct else "포함")), svName=sv_name, nDirect=n_direct)
     cm, cc = idx84(city_tr); out["city"] = dict(mo=cm, mc=cc)
@@ -203,4 +208,5 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             top.append(dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], hd=CX[d["id"]]["hd"], ym=CX[d["id"]].get("ym"), ppm=d["lp"][0], p84=round(pnow), pn=d["lp"][1], pm=b6,
                             c12=(round((pnow / y1 - 1) * 100, 1) if y1 else None), c36=(round((pnow / y3 - 1) * 100, 1) if y3 else None), e=e84(tr), ev=e84(sv), big=d["u"] >= lead_floor, bs=bs))
         out["gu"][g]["top"] = top
+    out["tx"] = tx   # 호출 쪽(dash_auto·dash_v15)에서 꺼내 rt/tx.json.gz 로 따로 씀(시세 흐름 파일 크기 그대로)
     return out, n_all

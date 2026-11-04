@@ -117,7 +117,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         for t in sv: bys[band(t[2])].append(t)
         bands = {k: bandinfo(byb.get(k, []), bys.get(k)) for k in set(byb) | set(bys) if len(byb.get(k, [])) >= 3 or len(bys.get(k, [])) >= 3}
         if not bands: continue
-        rep = max(bands, key=lambda k: (bands[k]["n24"], bands[k]["n"], bands[k].get("svn", 0)))   # 대표 평형대 = 최근 2년 매매 최다(동률이면 전체, 그다음 분양권)
+        rep = max(bands, key=lambda k: (round(bands[k]["n24"], 3), round(bands[k]["n"], 3), round(bands[k].get("svn", 0), 3), k))   # 대표 평형대 = 최근 2년 매매 최다(동률이면 전체, 그다음 분양권)
         n24 = round(sum(t[4] for t in tr if t[0] >= M[max(0, N - 24)]))
         px[cid] = dict(rep=rep, ym=c.get("ym"), b=bands)
         lp = lead_ppm(tr)
@@ -152,14 +152,20 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     #   대장 = 후보 중 300세대 이상을 84㎡ 환산가(㎡당 가격 × 84.9) 높은 순으로 8곳(300세대 이상이 8곳이 안 되면 나머지 후보로 채움). 지번 공유 단지는 하나만
     #   가격 흐름 = 전용 84㎡ 이상 매매(분양권 따로)의 ㎡당 가격 × 84.9, 앞뒤 1개월을 포함한 3개월 이동 중위 — 큰 평형만 있는 단지도 같은 잣대로 비교
     sigk = lambda i: frozenset(k for k, _ in KEYS[i] if k[0] != "#")
-    def clean(trs):   # v1.5.7 튀는 거래 걸러냄: 앞뒤 12개월 같은 단지 84㎡ 이상 거래(자기 빼고 2건 이상) 중위에서 25% 넘게 벗어난 거래는 그래프·변동률 계산에서 뺌
+    def clean(trs):   # v1.5.7 튀는 거래 걸러냄(84㎡ 이상, 84㎡ 환산가 기준): 앞 12개월·뒤 12개월(같은 달 포함, 자기 제외) 거래 중위와 각각 비교해
+        #   거래가 있는 쪽 모두보다 25% 넘게 높거나 모두보다 25% 넘게 낮으면 뺌(앞뒤 합쳐 2건 이상일 때만 판단). 한쪽과 맞거나 앞·뒤 사이면 급등·급락(실제 흐름)으로 보고 남김
         v = [(MI[m], p / a * 84.9) for m, p, a, _, _ in trs if a >= LEAD_MIN_AREA]
         keep = []
         for m, p, a, d, sh in trs:
             if a < LEAD_MIN_AREA: continue
             i, x = MI[m], p / a * 84.9
-            nb = [y for j, y in v if abs(j - i) <= 12]; nb.remove(x)
-            if len(nb) >= 2 and abs(x / statistics.median(nb) - 1) > 0.25: continue
+            bf = [y for j, y in v if i - 12 <= j <= i]; bf.remove(x)
+            af = [y for j, y in v if i <= j <= i + 12]; af.remove(x)
+            nn = sum(1 for j, _ in v if abs(j - i) <= 12) - 1   # 앞뒤 12개월 다른 거래 수
+            loc = [y for j, y in v if abs(j - i) <= 2]; loc.remove(x)   # 앞뒤 2개월 거래가 2건 이상이고 그 중위와 15% 안이면 그 시기 시세로 보고 남김
+            if len(loc) >= 2 and abs(x / statistics.median(loc) - 1) <= 0.15: keep.append((m, p, a, d, sh)); continue
+            r = [x / statistics.median(s) - 1 for s in (bf, af) if s]
+            if nn >= 2 and (all(q > 0.25 for q in r) or all(q < -0.25 for q in r)): continue   # 양쪽보다 모두 25% 넘게 높거나 모두 낮을 때만(앞·뒤 사이에 있으면 급등·급락 중인 실제 거래)
             keep.append((m, p, a, d, sh))
         return keep
     def e84(trs):   # [(m, p, a, d, sh)] → 3개월 이동 중위 1차원 배열 [간격, 값, 그 달 건수]

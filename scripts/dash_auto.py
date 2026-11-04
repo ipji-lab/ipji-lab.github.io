@@ -1,6 +1,8 @@
-# 시세 흐름 자동 갱신(GitHub Actions용, v1.5.1 ’26.11.4) — 계산은 dash_core.py
-# 국토교통부 아파트 매매 실거래가 API(RTMSDataSvcAptTrade)를 최근 36개월 × 광주 5개 구 호출 → dash.json.gz 다시 만듦
-# 인증키는 환경변수 MOLIT_KEY(GitHub Secrets)로만 받음. 등급 계산은 건드리지 않음
+# 시세 흐름 자동 갱신(GitHub Actions용, v1.5.2 ’26.11.4) — 계산은 dash_core.py
+# 국토교통부 아파트 매매 실거래가(RTMSDataSvcAptTrade)·분양권 전매(RTMSDataSvcSilvTrade) API를 광주 5개 구에 대해 호출 → dash.json.gz 다시 만듦
+# 기간: 2006년 1월(자료 제공 시작)부터 이번 달까지 전체. 받은 자료는 <출력 폴더>/rt/<연도>.json.gz 에 연도별로 보관하고,
+#   매일은 최근 4개월(신고·해제가 늦게 잡히는 기간)만 다시 받음. 보관 파일이 없는 달만 새로 받음(첫 실행 약 2,500회 호출, 이후 매일 50회)
+# 인증키는 환경변수 MOLIT_KEY(GitHub Secrets)로만 받음. 등급·환금성 점수는 건드리지 않음
 # 사용: MOLIT_KEY=... python3 scripts/dash_auto.py <dash_src.json> <출력 dash.json.gz>
 import os, sys, json, gzip, time, datetime as dt, urllib.request, urllib.parse, xml.etree.ElementTree as ET, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -8,40 +10,67 @@ import dash_core as DC
 KEY = os.environ.get("MOLIT_KEY", "").strip()
 if not KEY: sys.exit("MOLIT_KEY 없음")
 SRC, OUT = sys.argv[1], sys.argv[2]
+CACHE = pathlib.Path(os.path.dirname(OUT) or ".") / "rt"; CACHE.mkdir(parents=True, exist_ok=True)
 GU = {"12210": "동구", "12240": "서구", "12270": "남구", "12300": "북구", "12330": "광산구"}
-URL = "https://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade"
-today = dt.date.today(); M = DC.months_until(today)
-def fetch(lawd, ym):
-    rows = []; page = 1
+API = {"apt": "https://apis.data.go.kr/1613000/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade", "silv": "https://apis.data.go.kr/1613000/RTMSDataSvcSilvTrade/getRTMSDataSvcSilvTrade"}
+START = "2006-01"; REFRESH = 4   # 최근 4개월은 매일 다시 받음
+today = dt.date.today(); M = DC.months_from(START, today)
+calls = 0
+def fetch(kind, lawd, ym):
+    global calls; rows = []; page = 1
     while True:
         q = urllib.parse.urlencode(dict(serviceKey=KEY, LAWD_CD=lawd, DEAL_YMD=ym, numOfRows=1000, pageNo=page), safe="")
         for tr in range(4):
             try:
-                with urllib.request.urlopen(URL + "?" + q, timeout=60) as r: body = r.read()
+                with urllib.request.urlopen(API[kind] + "?" + q, timeout=60) as r: body = r.read()
                 break
             except Exception:
                 if tr == 3: raise
                 time.sleep(3 * (tr + 1))
+        calls += 1
         root = ET.fromstring(body)
         code = (root.findtext(".//resultCode") or "").strip()
-        if code not in ("000", "00"): raise SystemExit(f"API 오류 {lawd} {ym}: {root.findtext('.//resultMsg')}")
+        if code not in ("000", "00"): raise RuntimeError(f"API 오류 {kind} {lawd} {ym}: {root.findtext('.//resultMsg')}")
         items = root.findall(".//item")
         for it in items:
             g = lambda k: (it.findtext(k) or "").strip()
-            try: rows.append((g("umdNm"), g("jibun"), g("aptNm"), int(g("dealYear")), int(g("dealMonth")), int(g("dealDay")), int(g("dealAmount").replace(",", "")), float(g("excluUseAr") or 0), g("cdealType") == "O"))
+            try: rows.append([g("umdNm"), g("jibun"), g("aptNm"), int(g("dealYear")), int(g("dealMonth")), int(g("dealDay")), int(g("dealAmount").replace(",", "")), float(g("excluUseAr") or 0), g("cdealType") == "O"])
             except ValueError: pass
         total = int(root.findtext(".//totalCount") or 0)
         if page * 1000 >= total or not items: break
         page += 1
     return rows
-rows = []
-for lawd in GU:
-    for mm in M:
-        rows += fetch(lawd, mm.replace("-", "")); time.sleep(0.2)
-print("실거래", len(rows), "건")
+def load_year(y):
+    p = CACHE / f"{y}.json.gz"
+    return json.load(gzip.open(p, "rt", encoding="utf-8")) if p.exists() else {"apt": {}, "silv": {}}
+def save_year(y, d, before):
+    s = json.dumps(d, ensure_ascii=False, separators=(",", ":"))
+    if s == before: return False
+    with gzip.open(CACHE / f"{y}.json.gz", "wt", encoding="utf-8") as f: f.write(s)
+    return True
+silv_ok = True
+by_year = {}; changed = 0
+for mm in M:
+    y = mm[:4]
+    if y not in by_year: by_year[y] = (load_year(y), None); by_year[y] = (by_year[y][0], json.dumps(by_year[y][0], ensure_ascii=False, separators=(",", ":")))
+    d = by_year[y][0]; fresh = mm >= M[-REFRESH]
+    for kind in ("apt", "silv"):
+        if kind == "silv" and not silv_ok: continue
+        if not fresh and mm in d[kind]: continue
+        rows = []
+        try:
+            for lawd in GU: rows += fetch(kind, lawd, mm.replace("-", "")); time.sleep(0.15)
+        except RuntimeError as e:
+            if kind == "silv": print("분양권 API 건너뜀:", e); silv_ok = False; continue
+            raise
+        d[kind][mm] = rows
+for y, (d, before) in by_year.items():
+    if save_year(y, d, before): changed += 1
+apt = [tuple(r) for d, _ in by_year.values() for L in d["apt"].values() for r in L]
+silv = [tuple(r) for d, _ in by_year.values() for L in d["silv"].values() for r in L]
+print(f"호출 {calls}회 · 매매 {len(apt):,}건 · 분양권 {len(silv):,}건 · 연도 파일 변경 {changed}개 · 기간 {M[0]}~{M[-1]}")
 cxs = json.load(open(SRC, encoding="utf-8"))["cx"]
-out, n_all = DC.build(rows, cxs, today, f"국토교통부 아파트 매매 실거래가(공공데이터포털, {today.isoformat()} 자동 조회) · 해제 거래 제외 · 단지는 평형대별 실제 거래가 월 중위, 동네·구·광주는 전용 76~95㎡ 거래를 84.9㎡로 환산한 월 중위")
+out, n_all = DC.build(apt, cxs, today, f"국토교통부 아파트 매매 실거래가·분양권 전매(공공데이터포털, {today.isoformat()} 자동 조회, {M[0][:4]}년부터) · 해제 거래 제외 · 단지는 평형대별 실제 거래가 월 중위, 동네·구·광주는 전용 76~95㎡ 거래를 84.9㎡로 환산한 월 중위", silv=silv, start=START)
 if len(out["dongs"]) < 50 or n_all < 5000: raise SystemExit(f"자료가 너무 적음(동 {len(out['dongs'])}, 거래 {n_all}) — 갱신 중단")
-os.makedirs(os.path.dirname(OUT) or ".", exist_ok=True)
 with gzip.open(OUT, "wt", encoding="utf-8") as f: f.write(json.dumps(out, ensure_ascii=False, separators=(",", ":")))
-print("dash v2", len(out["dongs"]), "행정동 ·", len(out["px"]), "단지 · 광주 최근 월", out["city"]["mc"][-3:], out["city"]["mo"][-3:])
+print("dash v3", len(out["dongs"]), "행정동 ·", len(out["px"]), "단지 ·", os.path.getsize(OUT) // 1024, "KB · 광주 최근 월", out["city"]["mc"][-3:], out["city"]["mo"][-3:])

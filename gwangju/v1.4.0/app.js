@@ -941,7 +941,7 @@ const tPct=v=>v==null?'<span class="sm">–</span>':`<span class="${v>0?'up':v<0
 const tDate=d=>String(d).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1.$2.$3');
 const tYM=ym=>ym?`’${String(ym).slice(2,4)}.${+String(ym).slice(4,6)}`:'';
 function loadDash(){ if(TD) return Promise.resolve(TD); if(TDP) return TDP; if(!(window.__loadGz&&window.__DASH)) return Promise.reject(new Error('자료 없음')); TDP=window.__loadGz(window.__DASH).then(d=>{ if(d.enc==='d3') tDecode(d); TD=d; return d; }); return TDP; }
-function tDecode(d){ const un=a=>{ const o=[]; let i=0; for(let k=0;k<a.length;k+=3){ i+=a[k]; o.push([i,a[k+1],a[k+2]]); } return o; }; for(const p of Object.values(d.px)) for(const b of Object.values(p.b)){ b.s=un(b.s||[]); if(b.sv) b.sv=un(b.sv); } d.enc=null; }   // v1.5.3 [간격,가격,건수] 1차원 배열 → [달,가격,건수]
+function tDecode(d){ const un=a=>{ const o=[]; let i=0; for(let k=0;k<a.length;k+=3){ i+=a[k]; o.push([i,a[k+1],a[k+2]]); } return o; }; for(const p of Object.values(d.px)) for(const b of Object.values(p.b)){ b.s=un(b.s||[]); if(b.sv) b.sv=un(b.sv); } for(const g of Object.values(d.gu)) for(const c of (g.top||[])){ c.e=un(c.e||[]); c.ev=un(c.ev||[]); } d.enc=null; }   // v1.5.3 [간격,가격,건수] 1차원 배열 → [달,가격,건수]
 function rngHTML(){ return `<span class="rsel" role="group" aria-label="기간"><button data-rng="24" class="${TS.rng===24?'on':''}">최근 2년</button><button data-rng="0" class="${TS.rng===0?'on':''}">전체</button></span>`; }
 function rngBind(root, cb){ root.querySelectorAll('.rsel button[data-rng]').forEach(b=>b.onclick=()=>{ TS.rng=+b.dataset.rng; cb(); }); }
 function tSpan(M){ const N=M.length; return N>=24?M.length-24:0; }
@@ -954,47 +954,67 @@ function openTrend(){
 }
 const tMan=v=>v==null?'–':Math.round(v).toLocaleString()+'만';
 function tLastGood(mo,mc,min){ for(let i=mo.length-1;i>=0;i--) if(mo[i]!=null&&mc[i]>=min) return i; return null; }
-function tKV2(b){   // v1.5.4 카드용 한 줄 요약(자세한 값은 그래프에 손가락·마우스를 올리면)
-  if(b.p==null) return `분양권 <b>${tEok(b.svl&&b.svl[1])}</b>`;
-  return `<b>${tEok(b.p)}</b> <span title="1년 변동">1년 ${tPct(b.c12)}</span> <span title="3년 변동">3년 ${tPct(b.c36)}</span>`;
-}
+// v1.5.6 연구원(11.4): 시세 흐름 = 구별 대장 아파트 8곳을 가격 순서대로, 단지별 가격 흐름만(2열, 단지마다 다른 색, 점 없는 매끄러운 선)
+const TPAL=['--t1','--t2','--t3','--t4','--t5','--t6','--t7','--t8'];   // 순위 자리별 색(구를 바꿔도 같은 자리 = 같은 색)
 function tCard(c, i){
-  const px=TD.px[c.id]; if(!px) return '';
-  const bands=Object.keys(px.b).sort((a,b)=>+a-+b), cur=px.b[TS.band[c.id]]?TS.band[c.id]:px.rep, b=px.b[cur];
-  return `<div class="tcard" data-id="${c.id}"><div class="th"><span class="rk">${i+1}</span><span class="cname" data-id="${c.id}" title="${c.n} — 단지 상세 보기">${c.n}</span><span class="kv1">${tKV2(b)}</span></div>
-    <div class="meta">${c.hd}${c.lead?' <b class="lead">대장</b>':''} · ${c.u.toLocaleString()}세대 · ${px.ym?'입주 '+tYM(px.ym):c.y+'년'} · ${c.g?c.g+'등급':'–'} · ㎡당 ${tMan(c.ppm)}</div>
-    <div class="bands">${bands.map(k=>`<button class="${k===cur?'on':''}" data-band="${k}">${TD.bandLabel[k]}${k===px.rep?' <small>대표</small>':''}</button>`).join('')}</div>
-    <div class="bchart" id="bc_${c.id}"></div></div>`;
+  const col=`var(${TPAL[i%8]})`;
+  return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${c.n} — 단지 상세 보기">${c.n}</span><span class="meta">${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
+    <div class="tp"><b>${tEok(c.p84)}</b><span>1년 ${tPct(c.c12)} · 3년 ${tPct(c.c36)}</span></div></div>
+    <div class="bchart"></div></div>`;
 }
-function tDrawCard(card){
-  const id=card.dataset.id, px=TD.px[id], cur=px.b[TS.band[id]]?TS.band[id]:px.rep;
-  bandChart(card.querySelector('.bchart'), px.b[cur], TD.months, px, {h: TS.ch||168});
+function tTicksY(y, max){ let tk=y.ticks(max); while(tk.length>max) tk=tk.filter((_,i)=>i%2===0); return tk; }
+function tLine(el, c, M, col){   // 84㎡ 환산 가격(3개월 이동 중위) 한 줄 + 옅은 면, 분양권은 같은 색 점선, 입주는 옅은 세로선
+  const N=M.length, ym=c.ym?M.indexOf(`${String(c.ym).slice(0,4)}-${String(c.ym).slice(4,6)}`):-1;
+  let i0=TS.rng?Math.max(0,N-TS.rng):Math.min(c.e.length?c.e[0][0]:N-1, c.ev.length?c.ev[0][0]:N-1); const i1=N-1, span=i1-i0+1;
+  const pts=c.e.filter(q=>q[0]>=i0).map(([i,v,n])=>({i,v,n})), svp=c.ev.filter(q=>q[0]>=i0).map(([i,v,n])=>({i,v,n}));
+  if(!pts.length&&!svp.length){ el.innerHTML=`<p class="note" style="padding:30px 0;text-align:center">이 기간에는 전용 84㎡ 이상 거래가 없습니다.${TS.rng?" '전체'를 눌러 보세요.":''}</p>`; return; }
+  const W=Math.max(280, el.clientWidth||520), H=Math.round(Math.min(250, Math.max(180, W*0.40))), m={l:42,r:14,t:14,b:26};
+  const x=d3.scaleLinear().domain([i0,i1]).range([m.l,W-m.r]);
+  const ys=pts.map(p=>p.v).concat(svp.map(p=>p.v)); let [lo,hi]=d3.extent(ys); const pad=Math.max((hi-lo)*0.12, hi*0.03); lo-=pad; hi+=pad;
+  const y=d3.scaleLinear().domain([Math.max(0,lo),hi]).nice(4).range([H-m.b,m.t]);
+  const id='g'+Math.random().toString(36).slice(2,8);
+  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} 84㎡ 환산 실거래가 흐름`);
+  const gr=svg.append('defs').append('linearGradient').attr('id',id).attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
+  gr.append('stop').attr('offset','0%').attr('stop-color',col).attr('stop-opacity',.22); gr.append('stop').attr('offset','100%').attr('stop-color',col).attr('stop-opacity',0);
+  const fmtY=t=>(t/10000).toFixed(t%10000===0?0:1)+'억';
+  svg.append('g').attr('class','ax').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(tTicksY(y,4)).tickFormat(fmtY).tickSize(-(W-m.l-m.r)).tickPadding(6)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-opacity',.7));
+  const step=span<=30?6:span<=72?12:span<=150?24:48, tv=d3.range(i1-(i1%1),i0-1,-step).reverse();
+  svg.append('g').attr('class','ax').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tv).tickSize(0).tickPadding(8).tickFormat(i=>step>=12?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)'));
+  if(ym>=i0&&ym<=i1){ svg.append('line').attr('x1',x(ym)).attr('x2',x(ym)).attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-opacity',.5).attr('stroke-dasharray','2 4'); svg.append('text').attr('class','tin').attr('x',x(ym)+4).attr('y',m.t+9).text('입주'); }
+  const line=d3.line().x(p=>x(p.i)).y(p=>y(p.v)).curve(d3.curveMonotoneX);
+  if(pts.length>1) svg.append('path').attr('d',d3.area().x(p=>x(p.i)).y0(H-m.b).y1(p=>y(p.v)).curve(d3.curveMonotoneX)(pts)).attr('fill',`url(#${id})`);
+  if(svp.length>1) svg.append('path').attr('d',line(svp)).attr('fill','none').attr('stroke',col).attr('stroke-width',1.6).attr('stroke-dasharray','5 4').attr('stroke-opacity',.75);
+  if(pts.length) svg.append('path').attr('d',line(pts)).attr('fill','none').attr('stroke',col).attr('stroke-width',2.4).attr('stroke-linejoin','round').attr('stroke-linecap','round');
+  const last=pts[pts.length-1]; if(last) svg.append('circle').attr('cx',x(last.i)).attr('cy',y(last.v)).attr('r',3.5).attr('fill',col).attr('stroke','var(--surface)').attr('stroke-width',1.5);
+  // 손가락·마우스: 세로 안내선 + 점 + 말풍선
+  const guide=svg.append('line').attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-opacity',.6).attr('opacity',0);
+  const dot=svg.append('circle').attr('r',4.5).attr('fill',col).attr('stroke','var(--surface)').attr('stroke-width',2).attr('opacity',0);
+  el.style.position='relative'; const tip=document.createElement('div'); tip.className='ttip'; tip.style.display='none'; el.append(tip);
+  const all=pts.concat(svp.map(p=>({...p,sv:1}))).sort((a,b)=>a.i-b.i);
+  const show=ev=>{ const r=svg.node().getBoundingClientRect(), k=W/r.width, px=(ev.clientX-r.left)*k; let best=all[0]; for(const q of all) if(Math.abs(x(q.i)-px)<Math.abs(x(best.i)-px)) best=q;
+    const a=pts.find(q=>q.i===best.i), b=svp.find(q=>q.i===best.i), q=a||b;
+    guide.attr('x1',x(best.i)).attr('x2',x(best.i)).attr('opacity',1); dot.attr('cx',x(best.i)).attr('cy',y(q.v)).attr('opacity',1);
+    tip.innerHTML=`<div class="sm">${M[best.i].slice(0,4)}년 ${+M[best.i].slice(5)}월</div>${a?`<b>${tEok(a.v)}</b> <span class="sm">${a.n?a.n+'건':'앞뒤 달 거래'}</span>`:''}${b?`<div class="sm">분양권 ${tEok(b.v)}</div>`:''}`; tip.style.display='block';
+    const er=el.getBoundingClientRect(), sx=r.left-er.left+x(best.i)/k, tw=tip.offsetWidth; tip.style.left=Math.max(0,Math.min(er.width-tw, sx-tw/2))+'px'; tip.style.top='0px'; };
+  const hide=()=>{ tip.style.display='none'; guide.attr('opacity',0); dot.attr('opacity',0); };
+  svg.on('mousemove',show).on('mouseleave',hide).on('touchstart',e=>show(e.touches[0]),{passive:true}).on('touchmove',e=>show(e.touches[0]),{passive:true}).on('touchend',hide);
 }
-function tFitH(B){   // PC(3열)에서는 12개(4줄)가 한 화면에 들어오게 그래프 높이를 화면 높이에 맞춤
-  const g=B.querySelector('.tgrid'), c=g&&g.querySelector('.tcard'); if(!c) return 168;
-  if(getComputedStyle(g).gridTemplateColumns.split(' ').length<3) return 168;
-  const avail=B.getBoundingClientRect().bottom-g.getBoundingClientRect().top-6, gap=8, non=c.offsetHeight-c.querySelector('.bchart').offsetHeight;
-  return Math.max(78, Math.min(210, Math.floor((avail-3*gap)/4-non)));
-}
-function renderTrend(){   // v1.5.4 연구원: 구 탭 아래에 동네 목록 없이 주요 단지 12곳 그래프를 바로(PC 3×4)
+function renderTrend(){   // v1.5.6 구 탭 → 구별 대장 아파트 8곳(84㎡ 환산가 높은 순) 가격 흐름, PC 2열
   const B=$('tBody'), M=TD.months, GU=['동구','서구','남구','북구','광산구'].filter(g=>TD.gu[g]);
-  const cm=TD.city.mo, cc=TD.city.mc, li=tLastGood(cm,cc,30);
+  const cm=TD.city.mo.slice(0,-1), cc=TD.city.mc.slice(0,-1), li=tLastGood(cm,cc,30);   // v1.5.5 이번 달(진행 중·신고 전)은 빼고 끝난 달 기준
   const yi=li!=null?li-12:null, cityY=(yi!=null&&yi>=0&&cm[yi])?((cm[li]/cm[yi]-1)*100).toFixed(1):null;
-  const n3=cc.slice(-3).reduce((a,b)=>a+b,0);
   const gu=TD.gu[TS.gu]||{}, list=gu.top||[], yrs=Math.round(M.length/12);
   B.innerHTML=`
-    <div class="rbar"><div class="gusel">${GU.map(g=>`<button class="${g===TS.gu?'on':''}" data-gu="${g}">${g}</button>`).join('')}</div><span class="sm tcity">광주 84㎡대 중위 <b>${li!=null?tEok(cm[li]):'–'}</b>${li!=null?`(’${M[li].slice(2,4)}.${+M[li].slice(5)})`:''} · 1년 전 같은 달 대비 ${cityY==null?'–':`<b class="${cityY>0?'up':cityY<0?'dn':''}">${cityY>0?'+':''}${cityY}%</b>`} · 최근 3개월 매매 ${n3.toLocaleString()}건</span></div>
-    <div class="rbar"><span class="sm">${TS.gu} 84㎡대 최근 중위가 <b>${tEok(gu.p)}</b> · 주요 단지 ${list.length}곳(동네별 대장 먼저, ㎡당 가격 높은 순)</span><span class="rbar"><span class="lgd"><span><i></i>매매 월 중위가</span><span><i class="vol"></i>월 거래 건수</span><span><i class="sv"></i>분양권</span><span><i class="in"></i>입주</span></span>${rngHTML()}</span></div>
+    <div class="rbar"><div class="gusel">${GU.map(g=>`<button class="${g===TS.gu?'on':''}" data-gu="${g}">${g}</button>`).join('')}</div>${rngHTML()}</div>
+    <p class="sm tsub"><b>${TS.gu} 대장 아파트 ${list.length}곳</b> · 84㎡ 환산 실거래가 높은 순 <span class="tcity">· 광주 84㎡대 중위 ${li!=null?`${tEok(cm[li])}(’${M[li].slice(2,4)}.${+M[li].slice(5)}`:'–('}, 1년 전 대비 ${cityY==null?'–':`<b class="${cityY>0?'up':cityY<0?'dn':''}">${cityY>0?'+':''}${cityY}%</b>`})</span></p>
     <div class="tgrid">${list.map(tCard).join('')}</div>
-    <p class="note">주요 단지 12곳은 손으로 고르지 않습니다: 이 구 동네별 <b>대장</b>(최근 2년 매매 8건 이상 단지 중 전용 84㎡ 이상 매매의 ㎡당 가격이 가장 높은 단지${TD.lead&&TD.lead.floor?`, ${TD.lead.floor}세대 이상 우선`:''})을 ㎡당 가격 높은 순으로 놓고, 12곳이 안 되면 구 안의 다른 단지(${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 먼저, `:''}㎡당 가격 높은 순)로 채웁니다. ㎡당 = 전용 84㎡ 이상 매매의 최근 6개월 중위(3건 미만이면 12개월). 단지 이름을 누르면 상세로, 평형 버튼을 누르면 그 평형 그래프로 바뀝니다. 1년·3년 = 최근 시세(최근 3개월 중위)를 1년 전·3년 전 6개월 중위와 비교.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 시세 흐름에서 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능, 등급 계산은 그대로).':''}<br>그래프 = 평형대별 실제 거래가(월 중위, 억) · 연한 막대 = 월 거래 건수 · 주황 점선 = 분양권 전매 · 세로 점선 = 입주(사용승인). '전체'는 자료가 있는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 거래가 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다(자료 기준일 고정).<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
+    <p class="note">대장 아파트는 손으로 고르지 않습니다: 이 구에서 최근 2년 매매 8건 이상이고 전용 84㎡ 이상 거래가 있는 단지 중 ${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 단지를 `:''}84㎡ 환산가가 높은 순으로 8곳${TD.lead&&TD.lead.floor?`(${TD.lead.floor}세대 이상이 8곳이 안 되면 나머지로 채움)`:''}. <b>84㎡ 환산가</b> = 전용 84㎡ 이상 매매의 ㎡당 가격 × 84.9㎡ — 큰 평형만 있는 단지도 같은 잣대로 비교합니다. 큰 숫자 = 최근 6개월 중위(3건 미만이면 12개월), 1년·3년 = 1년 전·3년 전 같은 기간과 비교. 선 = 3개월 이동 중위(앞뒤 달 포함), 점선 = 분양권 전매, 세로 점선 = 입주(사용승인). 평형별 그래프는 단지 이름을 눌러 상세에서 보세요.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능).':''} '전체'는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
   B.querySelectorAll('.gusel button').forEach(b=>b.onclick=()=>{ TS.gu=b.dataset.gu; renderTrend(); B.scrollTop=0; });
   rngBind(B, renderTrend);
-  const bindCard=card=>{
-    card.querySelectorAll('.bands button').forEach(bt=>bt.onclick=()=>{ const id=card.dataset.id; TS.band[id]=bt.dataset.band; const i=list.findIndex(x=>x.id===id); const tmp=document.createElement('div'); tmp.innerHTML=tCard(list[i],i); const nc=tmp.firstElementChild; card.replaceWith(nc); bindCard(nc); tDrawCard(nc); });
+  B.querySelectorAll('.tcard').forEach((card,i)=>{
     card.querySelectorAll('.cname').forEach(e=>e.onclick=()=>{ if(CX.find(x=>x.id===e.dataset.id)){ $('ovTrend').hidden=true; select(e.dataset.id); } });
-  };
-  TS.ch=tFitH(B);
-  B.querySelectorAll('.tcard').forEach(card=>{ bindCard(card); tDrawCard(card); });
+    tLine(card.querySelector('.bchart'), list[i], M, getComputedStyle(card).getPropertyValue('--tc').trim()||'#2a78d6');
+  });
 }
 function tRange(b, M, px){   // 보이는 구간: 최근 2년 또는 전체(첫 거래·분양권·입주 6개월 전 중 가장 이른 달부터)
   const N=M.length; if(TS.rng) return [Math.max(0,N-TS.rng), N-1];
@@ -1014,7 +1034,7 @@ function bandChart(el, b, M, px, opt){
   const ys=pts.map(p=>p.v).concat(svp.map(p=>p.v)); let [lo,hi]=d3.extent(ys); const sp=(hi-lo)||hi*0.1; lo-=sp*0.15; hi+=sp*0.15;
   const y=d3.scaleLinear().domain([Math.max(0,lo),hi]).nice(4).range([H-m.b-bh-6,m.t]);
   const yb=d3.scaleLinear().domain([0,Math.max(1,d3.max(pts,p=>p.n)||1)]).range([H-m.b,H-m.b-bh]);
-  svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(H<130?3:4).tickFormat(t=>(t/10000).toFixed(1)+'억').tickSize(-(W-m.l-m.r))).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-dasharray','2 3')).call(g=>g.select('.domain').remove()).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
+  svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues((()=>{ let tk=y.ticks(H<130?3:4); const mx=H<130?3:5; while(tk.length>mx) tk=tk.filter((_,i)=>i%2===0); return tk; })()).tickFormat(t=>(t/10000).toFixed(t>=100000||t%10000===0?0:1)+'억').tickSize(-(W-m.l-m.r))).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-dasharray','2 3')).call(g=>g.select('.domain').remove()).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
   const step=span<=30?3:span<=66?6:span<=150?12:24, tv=d3.range(i1,i0-1,-step).reverse();
   svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tv).tickFormat(i=>step>=12?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
   const bw=Math.max(1,(W-m.l-m.r)/span-(span>80?0:2));
@@ -1158,7 +1178,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.6 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

@@ -1,4 +1,4 @@
-# v1.5.6 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.5.7 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -152,9 +152,19 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     #   대장 = 후보 중 300세대 이상을 84㎡ 환산가(㎡당 가격 × 84.9) 높은 순으로 8곳(300세대 이상이 8곳이 안 되면 나머지 후보로 채움). 지번 공유 단지는 하나만
     #   가격 흐름 = 전용 84㎡ 이상 매매(분양권 따로)의 ㎡당 가격 × 84.9, 앞뒤 1개월을 포함한 3개월 이동 중위 — 큰 평형만 있는 단지도 같은 잣대로 비교
     sigk = lambda i: frozenset(k for k, _ in KEYS[i] if k[0] != "#")
+    def clean(trs):   # v1.5.7 튀는 거래 걸러냄: 앞뒤 12개월 같은 단지 84㎡ 이상 거래(자기 빼고 2건 이상) 중위에서 25% 넘게 벗어난 거래는 그래프·변동률 계산에서 뺌
+        v = [(MI[m], p / a * 84.9) for m, p, a, _, _ in trs if a >= LEAD_MIN_AREA]
+        keep = []
+        for m, p, a, d, sh in trs:
+            if a < LEAD_MIN_AREA: continue
+            i, x = MI[m], p / a * 84.9
+            nb = [y for j, y in v if abs(j - i) <= 12]; nb.remove(x)
+            if len(nb) >= 2 and abs(x / statistics.median(nb) - 1) > 0.25: continue
+            keep.append((m, p, a, d, sh))
+        return keep
     def e84(trs):   # [(m, p, a, d, sh)] → 3개월 이동 중위 1차원 배열 [간격, 값, 그 달 건수]
         by = collections.defaultdict(list)
-        for m, p, a, _, sh in trs:
+        for m, p, a, _, sh in trs:   # trs는 clean() 거친 것
             if a >= LEAD_MIN_AREA: by[MI[m]].append((p / a * 84.9, sh))
         if not by: return []
         flat = []; prev = 0
@@ -165,7 +175,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             flat += [i - prev, round(statistics.median(xs)), int(n) if n == int(n) else n]; prev = i
         return flat
     def win(trs, a0, a1):   # 달 번호 a0~a1 사이 84㎡ 이상 매매 84㎡ 환산 중위(2건 이상)
-        xs = [p / a * 84.9 for m, p, a, _, _ in trs if a >= LEAD_MIN_AREA and M[max(0, a0)] <= m <= M[max(0, a1)]]
+        xs = [p / a * 84.9 for m, p, a, _, _ in trs if M[max(0, a0)] <= m <= M[max(0, a1)]]   # trs는 clean() 거친 것
         return statistics.median(xs) if len(xs) >= 2 else None
     for g in out["gu"]:
         L = [d for L2 in dong_cx.values() for d in L2 if d["lp"] and CX[d["id"]]["gu"] == g]
@@ -177,7 +187,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         sel.sort(key=lambda d: -d["lp"][0])   # 화면 순서 = 84㎡ 환산가 높은 순
         top = []
         for d in sel:
-            tr = series(d["id"], BYK); sv = series(d["id"], SVK)
+            tr = clean(series(d["id"], BYK)); sv = clean(series(d["id"], SVK))
             pnow = d["lp"][0] * 84.9; b6 = d["lp"][2]
             y1 = win(tr, N - 12 - b6, N - 13); y3 = win(tr, N - 36 - b6, N - 37)
             top.append(dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], hd=CX[d["id"]]["hd"], ym=CX[d["id"]].get("ym"), ppm=d["lp"][0], p84=round(pnow), pn=d["lp"][1], pm=b6,

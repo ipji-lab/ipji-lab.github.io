@@ -963,6 +963,11 @@ function tCard(c, i){
     <div class="bchart"></div></div>`;
 }
 function tTicksY(y, max){ let tk=y.ticks(max); while(tk.length>max) tk=tk.filter((_,i)=>i%2===0); return tk; }
+function tTicksX(M,i0,i1,k){   // v1.5.7 x축 눈금을 달력에 맞춤: ’24 = 2024년 1월, ’24.7 = 7월(예전엔 마지막 달부터 거꾸로 세어 ’24 자리가 실제로는 ’24.11이었음)
+  const tv=[]; for(let i=Math.max(0,Math.ceil(i0));i<=i1;i++){ const yy=+M[i].slice(0,4), mm=+M[i].slice(5); if(k<12?(mm-1)%k===0:(mm===1&&yy%(k/12)===0)) tv.push(i); }
+  const f=i=>+M[i].slice(5)===1?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`;
+  return tv.length>=2?{tv,f}:{tv:[...new Set([Math.max(0,Math.ceil(i0)),i1])],f:i=>`’${M[i].slice(2,4)}.${+M[i].slice(5)}`};
+}
 function tLine(el, c, M, col){   // 84㎡ 환산 가격(3개월 이동 중위) 한 줄 + 옅은 면, 분양권은 같은 색 점선, 입주는 옅은 세로선
   const N=M.length, ym=c.ym?M.indexOf(`${String(c.ym).slice(0,4)}-${String(c.ym).slice(4,6)}`):-1;
   let i0=TS.rng?Math.max(0,N-TS.rng):Math.min(c.e.length?c.e[0][0]:N-1, c.ev.length?c.ev[0][0]:N-1); const i1=N-1, span=i1-i0+1;
@@ -978,13 +983,14 @@ function tLine(el, c, M, col){   // 84㎡ 환산 가격(3개월 이동 중위) �
   gr.append('stop').attr('offset','0%').attr('stop-color',col).attr('stop-opacity',.22); gr.append('stop').attr('offset','100%').attr('stop-color',col).attr('stop-opacity',0);
   const fmtY=t=>(t/10000).toFixed(t%10000===0?0:1)+'억';
   svg.append('g').attr('class','ax').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(tTicksY(y,4)).tickFormat(fmtY).tickSize(-(W-m.l-m.r)).tickPadding(6)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-opacity',.7));
-  const step=span<=30?6:span<=72?12:span<=150?24:48, tv=d3.range(i1-(i1%1),i0-1,-step).reverse();
-  svg.append('g').attr('class','ax').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tv).tickSize(0).tickPadding(8).tickFormat(i=>step>=12?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)'));
+  const tx=tTicksX(M,i0,i1,span<=30?6:span<=72?12:span<=150?24:48);
+  svg.append('g').attr('class','ax').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tx.tv).tickSize(0).tickPadding(8).tickFormat(tx.f)).call(g=>g.select('.domain').attr('stroke','var(--line)'));
   if(ym>=i0&&ym<=i1){ svg.append('line').attr('x1',x(ym)).attr('x2',x(ym)).attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-opacity',.5).attr('stroke-dasharray','2 4'); svg.append('text').attr('class','tin').attr('x',x(ym)+4).attr('y',m.t+9).text('입주'); }
-  const line=d3.line().x(p=>x(p.i)).y(p=>y(p.v)).curve(d3.curveMonotoneX);
-  if(pts.length>1) svg.append('path').attr('d',d3.area().x(p=>x(p.i)).y0(H-m.b).y1(p=>y(p.v)).curve(d3.curveMonotoneX)(pts)).attr('fill',`url(#${id})`);
-  if(svp.length>1) svg.append('path').attr('d',line(svp)).attr('fill','none').attr('stroke',col).attr('stroke-width',1.6).attr('stroke-dasharray','5 4').attr('stroke-opacity',.75);
-  if(pts.length) svg.append('path').attr('d',line(pts)).attr('fill','none').attr('stroke',col).attr('stroke-width',2.4).attr('stroke-linejoin','round').attr('stroke-linecap','round');
+  const line=d3.line().x(p=>x(p.i)).y(p=>y(p.v)).curve(d3.curveMonotoneX), area=d3.area().x(p=>x(p.i)).y0(H-m.b).y1(p=>y(p.v)).curve(d3.curveMonotoneX);
+  const segs=a=>{ const o=[]; let cur=[]; a.forEach((p,k)=>{ if(k&&p.i-a[k-1].i>6){ o.push(cur); cur=[]; } cur.push(p); }); if(cur.length) o.push(cur); return o; };   // v1.5.7 거래가 6개월 넘게 끊기면 선을 잇지 않음(없는 흐름을 지어내지 않게)
+  segs(pts).forEach(sg=>{ if(sg.length>1) svg.append('path').attr('d',area(sg)).attr('fill',`url(#${id})`); });
+  segs(svp).forEach(sg=>{ if(sg.length>1) svg.append('path').attr('d',line(sg)).attr('fill','none').attr('stroke',col).attr('stroke-width',1.6).attr('stroke-dasharray','5 4').attr('stroke-opacity',.75); else svg.append('circle').attr('cx',x(sg[0].i)).attr('cy',y(sg[0].v)).attr('r',2).attr('fill','none').attr('stroke',col).attr('stroke-opacity',.75); });
+  segs(pts).forEach(sg=>{ if(sg.length>1) svg.append('path').attr('d',line(sg)).attr('fill','none').attr('stroke',col).attr('stroke-width',2.4).attr('stroke-linejoin','round').attr('stroke-linecap','round'); else svg.append('circle').attr('cx',x(sg[0].i)).attr('cy',y(sg[0].v)).attr('r',2.2).attr('fill',col); });
   const last=pts[pts.length-1]; if(last) svg.append('circle').attr('cx',x(last.i)).attr('cy',y(last.v)).attr('r',3.5).attr('fill',col).attr('stroke','var(--surface)').attr('stroke-width',1.5);
   // 손가락·마우스: 세로 안내선 + 점 + 말풍선
   const guide=svg.append('line').attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-opacity',.6).attr('opacity',0);
@@ -1008,7 +1014,7 @@ function renderTrend(){   // v1.5.6 구 탭 → 구별 대장 아파트 8곳(84�
     <div class="rbar"><div class="gusel">${GU.map(g=>`<button class="${g===TS.gu?'on':''}" data-gu="${g}">${g}</button>`).join('')}</div>${rngHTML()}</div>
     <p class="sm tsub"><b>${TS.gu} 대장 아파트 ${list.length}곳</b> · 84㎡ 환산 실거래가 높은 순 <span class="tcity">· 광주 84㎡대 중위 ${li!=null?`${tEok(cm[li])}(’${M[li].slice(2,4)}.${+M[li].slice(5)}`:'–('}, 1년 전 대비 ${cityY==null?'–':`<b class="${cityY>0?'up':cityY<0?'dn':''}">${cityY>0?'+':''}${cityY}%</b>`})</span></p>
     <div class="tgrid">${list.map(tCard).join('')}</div>
-    <p class="note">대장 아파트는 손으로 고르지 않습니다: 이 구에서 최근 2년 매매 8건 이상이고 전용 84㎡ 이상 거래가 있는 단지 중 ${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 단지를 `:''}84㎡ 환산가가 높은 순으로 8곳${TD.lead&&TD.lead.floor?`(${TD.lead.floor}세대 이상이 8곳이 안 되면 나머지로 채움)`:''}. <b>84㎡ 환산가</b> = 전용 84㎡ 이상 매매의 ㎡당 가격 × 84.9㎡ — 큰 평형만 있는 단지도 같은 잣대로 비교합니다. 큰 숫자 = 최근 6개월 중위(3건 미만이면 12개월), 1년·3년 = 1년 전·3년 전 같은 기간과 비교. 선 = 3개월 이동 중위(앞뒤 달 포함), 점선 = 분양권 전매, 세로 점선 = 입주(사용승인). 평형별 그래프는 단지 이름을 눌러 상세에서 보세요.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능).':''} '전체'는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
+    <p class="note">대장 아파트는 손으로 고르지 않습니다: 이 구에서 최근 2년 매매 8건 이상이고 전용 84㎡ 이상 거래가 있는 단지 중 ${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 단지를 `:''}84㎡ 환산가가 높은 순으로 8곳${TD.lead&&TD.lead.floor?`(${TD.lead.floor}세대 이상이 8곳이 안 되면 나머지로 채움)`:''}. <b>84㎡ 환산가</b> = 전용 84㎡ 이상 매매의 ㎡당 가격 × 84.9㎡ — 큰 평형만 있는 단지도 같은 잣대로 비교합니다. 큰 숫자 = 최근 6개월 중위(3건 미만이면 12개월), 1년·3년 = 1년 전·3년 전 같은 기간과 비교. 선 = 3개월 이동 중위(앞뒤 달 포함, 앞 1년·뒤 1년 시세보다 모두 25% 넘게 높거나 낮은 튀는 거래는 뺌, 6개월 넘게 거래가 없으면 선을 끊음), 점선 = 분양권 전매, 세로 점선 = 입주(사용승인). 평형별 그래프는 단지 이름을 눌러 상세에서 보세요.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능).':''} '전체'는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
   B.querySelectorAll('.gusel button').forEach(b=>b.onclick=()=>{ TS.gu=b.dataset.gu; renderTrend(); B.scrollTop=0; });
   rngBind(B, renderTrend);
   B.querySelectorAll('.tcard').forEach((card,i)=>{
@@ -1035,8 +1041,8 @@ function bandChart(el, b, M, px, opt){
   const y=d3.scaleLinear().domain([Math.max(0,lo),hi]).nice(4).range([H-m.b-bh-6,m.t]);
   const yb=d3.scaleLinear().domain([0,Math.max(1,d3.max(pts,p=>p.n)||1)]).range([H-m.b,H-m.b-bh]);
   svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues((()=>{ let tk=y.ticks(H<130?3:4); const mx=H<130?3:5; while(tk.length>mx) tk=tk.filter((_,i)=>i%2===0); return tk; })()).tickFormat(t=>(t/10000).toFixed(t>=100000||t%10000===0?0:1)+'억').tickSize(-(W-m.l-m.r))).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-dasharray','2 3')).call(g=>g.select('.domain').remove()).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
-  const step=span<=30?3:span<=66?6:span<=150?12:24, tv=d3.range(i1,i0-1,-step).reverse();
-  svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tv).tickFormat(i=>step>=12?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
+  const tx=tTicksX(M,i0,i1,span<=30?3:span<=66?6:span<=150?12:24);
+  svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tx.tv).tickFormat(tx.f)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
   const bw=Math.max(1,(W-m.l-m.r)/span-(span>80?0:2));
   svg.append('g').selectAll('rect').data(pts).enter().append('rect').attr('x',d=>x(d.i)-bw/2).attr('y',d=>yb(d.n)).attr('width',bw).attr('height',d=>H-m.b-yb(d.n)).attr('fill',TCOL).attr('opacity',.18);
   if(px&&px.ym){ const k=M.indexOf(`${String(px.ym).slice(0,4)}-${String(px.ym).slice(4,6)}`); if(k>=i0&&k<=i1){ svg.append('line').attr('x1',x(k)).attr('x2',x(k)).attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-dasharray','2 3'); svg.append('text').attr('x',x(k)+3).attr('y',m.t+10).attr('font-size',10.5).attr('fill','var(--muted)').text('입주 '+tYM(px.ym)); } }
@@ -1065,8 +1071,8 @@ function cmpChart(el, L){   // v1.5.3 단지 비교: 84㎡대(없으면 대표 �
     let [lo,hi]=d3.extent(all); const sp=(hi-lo)||hi*0.1; lo-=sp*0.12; hi+=sp*0.12;
     const x=d3.scaleLinear().domain([i0-0.5,i1+0.5]).range([m.l,W-m.r]), y=d3.scaleLinear().domain([Math.max(0,lo),hi]).nice(4).range([H-m.b,m.t]);
     svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(t=>(t/10000).toFixed(1)+'억').tickSize(-(W-m.l-m.r))).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-dasharray','2 3')).call(g=>g.select('.domain').remove()).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
-    const step=span<=30?3:span<=66?6:span<=150?12:24, tv=d3.range(i1,i0-1,-step).reverse();
-    svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tv).tickFormat(i=>step>=12?`’${M[i].slice(2,4)}`:`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
+    const tx=tTicksX(M,i0,i1,span<=30?3:span<=66?6:span<=150?12:24);
+    svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tx.tv).tickFormat(tx.f)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
     const guide=svg.append('line').attr('y1',m.t).attr('y2',H-m.b).attr('stroke','var(--muted)').attr('stroke-dasharray','3 3').attr('opacity',0);
     const dots=S.map(s=>{ svg.append('path').attr('d',d3.line().x(p=>x(p.i)).y(p=>y(p.v)).curve(d3.curveMonotoneX)(s.pts)).attr('fill','none').attr('stroke',s.col).attr('stroke-width',2.2); return svg.append('g').selectAll('circle').data(s.pts).enter().append('circle').attr('cx',p=>x(p.i)).attr('cy',p=>y(p.v)).attr('r',span>80?1.6:2.4).attr('fill',s.col); });
     const idx=[...new Set(S.flatMap(s=>s.pts.map(p=>p.i)))].sort((a,b)=>a-b);
@@ -1178,7 +1184,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.6 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.7 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

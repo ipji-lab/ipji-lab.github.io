@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.5.0">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.5.1">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.5.0</title>
+<title>우리동네 입지분석(광주) v1.5.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -503,7 +503,9 @@ table.calc td.n{text-align:right;white-space:nowrap;font-weight:700}
 table.t.pt{table-layout:fixed;width:100%}
 table.t.pt th,table.t.pt td{white-space:normal;padding:7px 4px;position:static;word-break:keep-all}
 table.t.pt th:first-child,table.t.pt td:first-child{width:34%}
-table.t.pt tr.tyr{cursor:pointer} table.t.pt tr.tyr:hover td{background:var(--surface2)}
+table.t.pt tr.tyr td{vertical-align:middle} table.t.pt td.tyb{white-space:nowrap;text-align:right} table.t.pt .px{color:var(--accent);font-size:14px}
+.mini{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:3px 8px;font-size:12px;cursor:pointer;margin-left:4px;font:inherit;font-size:12px} .mini.pri{border-color:var(--accent);color:var(--accent)} .mini[aria-expanded="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tyx .bchart svg{width:100%;height:auto;display:block} .tyx{position:relative}
 table.t.pt .dgi{font-size:11px;color:var(--accent);white-space:nowrap}
 table.t.pt tr.tyd td{text-align:left;background:var(--surface2)}
 .dongs{display:flex;flex-wrap:wrap;gap:4px}
@@ -603,23 +605,27 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 .mth2 .warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:12px;padding:12px 14px} .mth2 .warn h3{font-size:14px;margin-bottom:6px} .mth2 .warn ul{color:var(--warn-ink)}
 .mth2 .by{text-align:center} .mth2 .by a{color:var(--accent)}
 .db details.src{font-size:12.5px;color:var(--muted)} .db details.src summary{cursor:pointer}
-/* v1.5.0 시세 흐름 */
+/* v1.5.1 시세 흐름 */
 .db.trend{gap:14px;word-break:keep-all}
 .db.trend .tsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .db.trend .tsum div{background:var(--surface2);border-radius:12px;padding:10px 12px}
 .db.trend .tsum b{display:block;font-size:18px;font-weight:800} .db.trend .tsum span{font-size:12px;color:var(--muted)}
-.db.trend .dsel{display:flex;flex-wrap:wrap;gap:6px}
-.db.trend .dsel button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;cursor:pointer}
-.db.trend .dsel button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.db.trend .gusel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:2px}
-.db.trend .gusel button{border:none;background:transparent;font-weight:700;color:var(--muted);padding:4px 6px;cursor:pointer;font-size:13.5px} .db.trend .gusel button.on{color:var(--ink);border-bottom:2px solid var(--ink)}
-.db.trend .tchart svg{width:100%;height:auto;display:block}
-.db.trend .tleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px} .db.trend .tleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-.db.trend table.calc td.n{text-align:right;white-space:nowrap} .db.trend table.calc td{vertical-align:top}
-.db.trend .up{color:#c0392b;font-weight:700} .db.trend .dn{color:#2a6fdb;font-weight:700}
+.db.trend .gusel{display:flex;gap:4px;flex-wrap:wrap}
+.db.trend .gusel button{border:none;background:transparent;font-weight:700;color:var(--muted);padding:6px 8px;cursor:pointer;font-size:14px;border-bottom:2px solid transparent} .db.trend .gusel button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.db.trend .dlist{display:grid;gap:6px}
+.db.trend .drow{border:1px solid var(--line);border-radius:12px;overflow:hidden} .db.trend .drow.on{border-color:var(--ink)}
+.db.trend .dbtn{width:100%;display:grid;grid-template-columns:22px 1fr auto auto auto auto 16px;gap:8px;align-items:center;padding:10px 12px;border:none;background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:var(--ink)}
+.db.trend .dbtn .rk{font-size:12px;color:var(--muted);font-weight:700} .db.trend .dbtn .nm{font-weight:800;font-size:15px} .db.trend .dbtn .pr{font-weight:800;font-variant-numeric:tabular-nums} .db.trend .dbtn .ch{font-size:12.5px;color:var(--muted)} .db.trend .dbtn .nn{font-size:12px;color:var(--muted)} .db.trend .dbtn .car{color:var(--muted);text-align:right} .db.trend .drow.on .car{transform:rotate(180deg)}
+.db.trend .dbody{display:grid;gap:12px;padding:10px 12px 12px;background:var(--surface2);border-top:1px solid var(--line)}
+.db.trend .tcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.db.trend .th{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline} .db.trend .th .cname{font-weight:800;font-size:15px;cursor:pointer;text-decoration:underline dotted}
+.db.trend .bands{display:flex;flex-wrap:wrap;gap:6px} .db.trend .bands button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--ink)} .db.trend .bands button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)} .db.trend .bands small{opacity:.75;font-size:11px}
+.db.trend .kv{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--muted)} .db.trend .kv b{color:var(--ink);font-size:14px}
+.db.trend .bchart svg{width:100%;height:auto;display:block}
+.ttip{position:absolute;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;line-height:1.4;box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;z-index:2}
+.up{color:#c0392b;font-weight:700} .dn{color:#2a6fdb;font-weight:700}
 .db.trend .note{font-size:12.5px;color:var(--muted);margin:0}
-.db.trend .cname{cursor:pointer;text-decoration:underline dotted}
-@media (max-width:480px){.db.trend .tsum{grid-template-columns:1fr 1fr}.db.trend .tsum b{font-size:16px}.db.trend table.calc{font-size:12.5px}}
+@media (max-width:560px){.db.trend .tsum b{font-size:15px}.db.trend .dbtn{display:flex;flex-wrap:wrap;gap:3px 8px}.db.trend .dbtn .nm{flex:1}.db.trend .dbtn .car{order:1}.db.trend .dbtn .ch,.db.trend .dbtn .nn{order:2}.db.trend .dbtn .nn{flex-basis:100%}}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -630,7 +636,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.0</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.1</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -691,7 +697,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
     <ul class="gate-note">
       <li>※ 공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li>※ 등급과 점수는 단지의 가치나 앞으로의 가격을 보장하지 않습니다.</li>
-      <li>※ 자료 기준일은 2026년 10월 21일입니다.</li>
+      <li>※ 등급·점수 자료 기준일은 2026년 10월 21일, 시세 흐름의 실거래는 매일 새벽 자동 갱신됩니다.</li>
       <li>※ 무료로 쓰실 수 있습니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처를 밝혀 주세요.</li>
     </ul>
     <button class="gate-ok" id="gateOk">확인했습니다</button>
@@ -718,7 +724,7 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=b6d15b5f", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=5126313f", DASHF="data/dash.json.gz?v=5d0bdd22";
+  var CORE="data/core.json.gz?v=6e18d161", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=006e5b62", DASHF="data/dash.json.gz?v=3b4cbc41";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

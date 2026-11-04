@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.5.3">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.5.4">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.5.3</title>
+<title>우리동네 입지분석(광주) v1.5.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -636,6 +636,25 @@ dl.kv.trk dd small{font-size:11.5px;color:var(--muted)}
 .db.trend .tag.lead{background:var(--ink);color:var(--surface);font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;margin-right:2px}
 table.t.pt td .pdt{display:inline-block;line-height:1.2}
 .mini.off{opacity:.45}
+/* v1.5.4 시세 흐름: 구 탭 아래 주요 단지 12곳 그래프(PC 3×4, 태블릿 2열, 휴대폰 1열) */
+.drawer.wide.full{width:min(1480px,100%)}
+.db.trend{gap:10px}
+.db.trend .tsum div{padding:8px 12px} .db.trend .tsum b{font-size:16px}
+.db.trend .tgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:1000px){.db.trend .tgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.db.trend .tgrid{grid-template-columns:1fr}}
+.db.trend .tgrid .tcard{padding:9px 10px 6px;gap:4px;min-width:0}
+.db.trend .tgrid .th{flex-wrap:nowrap;gap:6px;align-items:center;min-width:0}
+.db.trend .tgrid .th .rk{flex:none;width:20px;height:20px;border-radius:999px;background:var(--surface2);color:var(--muted);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.db.trend .tgrid .th .cname{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.db.trend .tgrid .meta{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .db.trend .tgrid .meta b.lead{color:var(--surface);background:var(--ink);border-radius:999px;padding:0 6px;font-size:10.5px}
+.db.trend .tgrid .bands{flex-wrap:nowrap;overflow-x:auto;gap:4px;scrollbar-width:none} .db.trend .tgrid .bands::-webkit-scrollbar{display:none}
+.db.trend .tgrid .bands button{padding:2px 8px;font-size:11.5px;white-space:nowrap;flex:none}
+.db.trend .tgrid .kv1{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .db.trend .tgrid .kv1 b{color:var(--ink);font-size:13.5px}
+.db.trend .rbar .lgd{justify-content:flex-end}
+.db.trend .tgrid .th{display:flex} .db.trend .tgrid .th .cname{flex:1 1 auto} .db.trend .tgrid .th .kv1{flex:none;font-size:12px;color:var(--muted)} .db.trend .tgrid .th .kv1 span{margin-left:4px}
+.db.trend .tcity{text-align:right} .db.trend .rbar .rbar{gap:10px}
+@media (max-width:640px){.db.trend .tcity{text-align:left} .db.trend .rbar .lgd{justify-content:flex-start}}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -646,7 +665,7 @@ table.t.pt td .pdt{display:inline-block;line-height:1.2}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.3</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.4</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -734,7 +753,7 @@ table.t.pt td .pdt{display:inline-block;line-height:1.2}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=4ce96725", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=eb2bf02d", DASHF="data/rt/trend.json.gz?v=f065ea62";
+  var CORE="data/core.json.gz?v=2036daa2", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=cb96ebee", DASHF="data/rt/trend.json.gz?v=f8836810";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

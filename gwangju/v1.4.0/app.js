@@ -912,7 +912,59 @@ function openMine(){
   $('mApply').onclick=()=>{ const m=upd(); S.mine=m; S.mineDraft=m; try{localStorage.setItem('dn10-mine',JSON.stringify(m));}catch(e){} applyMine(); S.sort='score'; S.view='list'; S.sel=null; ov.hidden=true; refresh(); sheetTo('half'); };
   upd();
 }
-$('btnMine').onclick=openMine;   // v1.3.0 광주 최종판: 내 조건으로 찾기 공개(보유 자금·대출 → 살 수 있는 집값, 찾는 면적, 내 가중치로 다시 매긴 순위)   // (v1.7~v1.2.8: 준비중 알림)
+$('btnMine').onclick=openMine;
+// ───── v1.5.0 시세 흐름(연구원 ’26.11.3): 동네별 주요 아파트 6곳 추이. 자료 data/dash.json.gz(pipeline/dash_v15.py) ─────
+let TD=null, TS={gu:null, hd:null};
+const TCOL=['#1f6feb','#d1495b','#2a9d8f','#e9a23b','#7b4fbf','#5c6b73'];
+function tEok(man){ return man==null?'–':(man/10000).toFixed(man>=100000?1:2).replace(/\.?0+$/,'')+'억'; }
+function openTrend(){
+  const ov=$('ovTrend'); ov.hidden=false;
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="dh"><h2 id="trT">시세 흐름</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db trend" id="tBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
+  $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
+  const go=()=>{ if(!TS.hd){ const first=tDongs()[0]; TS.gu=first.gu; TS.hd=first.hd; } renderTrend(); };
+  if(TD) go(); else if(window.__loadGz&&window.__DASH) window.__loadGz(window.__DASH).then(d=>{TD=d;go();}).catch(e=>{ $('tBody').innerHTML=`<p class="note">시세 자료를 불러오지 못했습니다. (${e.message})</p>`; });
+  else $('tBody').innerHTML='<p class="note">이 판에는 시세 자료가 없습니다.</p>';
+}
+function tDongs(){ const GU=['동구','서구','남구','북구','광산구']; return Object.entries(TD.dongs).map(([hd,v])=>({hd,gu:v.gu,n:v.n,n24:v.n24,chg:v.chg})).sort((a,b)=>GU.indexOf(a.gu)-GU.indexOf(b.gu)||b.n24-a.n24); }
+function renderTrend(){
+  const B=$('tBody'), M=TD.months, D=tDongs(), GU=[...new Set(D.map(d=>d.gu))];
+  const cm=TD.city.mo, cc=TD.city.mc; const last=(a)=>{ for(let i=a.length-1;i>=0;i--) if(a[i]!=null) return a[i]; };
+  const c6=cm.slice(0,6).filter(v=>v), cN=cm.slice(-3).filter(v=>v); const med=a=>{const s=[...a].sort((x,y)=>x-y); return s.length?s[Math.floor(s.length/2)]:null;};
+  const cityChg=(c6.length&&cN.length)?((med(cN)/med(c6)-1)*100).toFixed(1):null;
+  const up=D.filter(d=>d.chg!=null&&d.n24>=60).sort((a,b)=>b.chg-a.chg); 
+  const v=TD.dongs[TS.hd];
+  const row=(d)=>`<button class="${d.hd===TS.hd?'on':''}" data-hd="${d.hd}">${d.hd}</button>`;
+  B.innerHTML=`
+    <div class="tsum"><div><b>${tEok(last(cm))}</b><span>광주 84㎡ 최근 월 중위가</span></div><div><b class="${cityChg>0?'up':cityChg<0?'dn':''}">${cityChg==null?'–':(cityChg>0?'+':'')+cityChg+'%'}</b><span>2년 전(’24.11~’25.4) 대비</span></div><div><b>${cc.slice(-4,-1).reduce((a,b)=>a+b,0)}건</b><span>최근 3개월 매매(84㎡대)</span></div></div>
+    <p class="note">${up.length?`주요 단지 기준 2년 변동 상위 동네: ${up.slice(0,3).map(d=>`${d.hd} <span class="up">+${d.chg}%</span>`).join(' · ')} / 하위: ${up.slice(-3).reverse().map(d=>`${d.hd} <span class="dn">${d.chg}%</span>`).join(' · ')}`:''}</p>
+    <div class="gusel">${GU.map(g=>`<button class="${g===TS.gu?'on':''}" data-gu="${g}">${g}</button>`).join('')}</div>
+    <div class="dsel">${D.filter(d=>d.gu===TS.gu).map(row).join('')}</div>
+    <h3 style="margin:4px 0 0;font-size:16px">${TS.hd} <small style="font-weight:500;color:var(--muted)">단지 ${v.n}곳 · 2년 매매 ${v.n24}건 · 주요 단지 2년 변동(중위) <b class="${v.chg>0?'up':v.chg<0?'dn':''}">${v.chg==null?'–':(v.chg>0?'+':'')+v.chg+'%'}</b></small></h3>
+    <div class="tchart" id="tChart"></div><div class="tleg" id="tLeg"></div>
+    <table class="calc"><thead><tr><th>단지</th><th>평형</th><th>최근 시세</th><th>2년 변동</th><th>고점 대비</th><th>2년 거래</th></tr></thead><tbody>
+    ${v.cx.map((c,i)=>`<tr><td><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${TCOL[i]};margin-right:5px"></i><span class="cname" data-id="${c.id}">${c.n}</span><br><span class="sm">${c.u}세대 · ${c.y}년 · ${c.g?c.g+'등급':'–'}</span></td><td class="n">전용 ${c.rep}㎡</td><td class="n"><b>${tEok(c.p)}</b><br><span class="sm">${String(c.last[0]).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1.$2.$3')} ${tEok(c.last[1])}</span></td><td class="n ${c.chg>0?'up':c.chg<0?'dn':''}">${c.chg==null?'–':(c.chg>0?'+':'')+c.chg+'%'}</td><td class="n">${c.vs}%</td><td class="n">${c.n24}건</td></tr>`).join('')}
+    </tbody></table>
+    <p class="note">주요 아파트 6곳은 손으로 고르지 않습니다: 최근 2년 매매 8건 이상 단지 중 ㎡당 최근가 1위(대장) + 세대수 많은 순. 평형은 2년 거래가 가장 많은 전용면적이고 그 평형의 실제 거래가(월 중위, 거래 없는 달은 앞뒤 달로 메움)입니다. 최근 시세 = 최근 3개월 중위. 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 거래가 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다.<br>${TD.src} · 기준 ${TD.asof}</p>`;
+  B.querySelectorAll('.gusel button').forEach(b=>b.onclick=()=>{ TS.gu=b.dataset.gu; TS.hd=D.filter(d=>d.gu===TS.gu)[0].hd; renderTrend(); });
+  B.querySelectorAll('.dsel button').forEach(b=>b.onclick=()=>{ TS.hd=b.dataset.hd; renderTrend(); });
+  B.querySelectorAll('.cname').forEach(e=>e.onclick=()=>{ if(CX.find(x=>x.id===e.dataset.id)){ $('ovTrend').hidden=true; select(e.dataset.id); } });
+  drawTrend(v, M);
+}
+function drawTrend(v, M){
+  const el=$('tChart'); const W=Math.max(320, el.clientWidth||600), H=Math.round(W*0.52), m={l:46,r:12,t:10,b:26};
+  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`);
+  const series=v.cx.map((c,i)=>({c,i,pts:c.mo.map((y,k)=>[k,y]).filter(p=>p[1]!=null)}));
+  const ys=series.flatMap(s=>s.pts.map(p=>p[1])); if(!ys.length){ el.innerHTML='<p class="note">그릴 거래가 없습니다.</p>'; return; }
+  const x=d3.scaleLinear().domain([0,M.length-1]).range([m.l,W-m.r]), y=d3.scaleLinear().domain([d3.min(ys)*0.92, d3.max(ys)*1.05]).nice().range([H-m.b,m.t]);
+  svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(t=>(t/10000).toFixed(1)+'억').tickSize(-(W-m.l-m.r))).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)').attr('stroke-dasharray','2 3')).call(g=>g.select('.domain').remove()).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
+  svg.append('g').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(d3.range(0,M.length,3)).tickFormat(i=>`’${M[i].slice(2,4)}.${+M[i].slice(5)}`)).call(g=>g.select('.domain').attr('stroke','var(--line)')).selectAll('text').attr('font-size',11).attr('fill','var(--muted)');
+  const line=d3.line().x(p=>x(p[0])).y(p=>y(p[1])).curve(d3.curveMonotoneX);
+  series.forEach(s=>{ svg.append('path').attr('d',line(s.pts)).attr('fill','none').attr('stroke',TCOL[s.i]).attr('stroke-width',2.2).attr('stroke-linejoin','round');
+    svg.selectAll(null).data(s.pts.filter(p=>s.c.mc[p[0]]>0)).enter().append('circle').attr('cx',p=>x(p[0])).attr('cy',p=>y(p[1])).attr('r',2.6).attr('fill',TCOL[s.i]); });
+  $('tLeg').innerHTML=series.map(s=>`<span><i style="background:${TCOL[s.i]}"></i>${s.c.n.length>14?s.c.n.slice(0,14)+'…':s.c.n} ${s.c.rep}㎡</span>`).join('');
+}
+$('btnTrend').onclick=openTrend;
+   // v1.3.0 광주 최종판: 내 조건으로 찾기 공개(보유 자금·대출 → 살 수 있는 집값, 찾는 면적, 내 가중치로 다시 매긴 순위)   // (v1.7~v1.2.8: 준비중 알림)
 
 /* ═════════ 비교함 ═════════ */
 function toggleCmp(id){
@@ -1009,7 +1061,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.4.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }
@@ -1031,7 +1083,7 @@ $('btnMethod').onclick=openMethod;
 })();
 /* v1.1 연구원: 왼쪽 위 '우리동네 입지분석'을 누르면 첫 화면으로(비교함은 유지) */
 function goHome(e){ if(e) e.preventDefault();
-  ['ovMine','ovCmp','ovMethod','ovPrice'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
+  ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
   document.querySelectorAll('.ov,[role="dialog"]').forEach(o=>{ const w=o.closest('[id^="ov"]'); if(w) w.hidden=true; });
   const q=$('q'); if(q) q.value=''; const sg=$('sugg'); if(sg) sg.hidden=true;
   Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false});
@@ -1040,7 +1092,7 @@ function goHome(e){ if(e) e.preventDefault();
   renderMacro(); refresh(); $('pbody').scrollTop=0; sheetTo('peek'); $('zfit').click();
 }
 document.querySelectorAll('.brand').forEach(b=>{ b.addEventListener('click',goHome); b.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') goHome(e); }); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') ['ovMine','ovCmp','ovMethod','ovPrice'].forEach(id=>$(id).hidden=true); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; }); });
 
 /* ═════════ 네이버 지도(공개 사이트용). 불러오지 못하면 내장 지도 ═════════ */
 let NV=null, NVOL=null, NVL=null; const NVM=new Map(), NVLINES=[];

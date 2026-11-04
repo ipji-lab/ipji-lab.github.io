@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.5.8">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.5.9">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.5.8</title>
+<title>우리동네 입지분석(광주) v1.5.9</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -683,6 +683,38 @@ table.t.pt td .pdt{display:inline-block;line-height:1.2}
 .db.trend .tgrid .tctl{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
 .db.trend .tgrid .tbsel{min-width:0;max-width:64%;font:inherit;font-size:12.5px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;text-overflow:ellipsis}
 .db.trend .tgrid .tctl .rsel{flex:none}
+/* v1.5.9 단지 상세 실거래(호갱노노 참고): 평형 선택·큰 가격 → 기간 탭 → 큰 그래프 → 거래 목록 */
+.hx{margin:12px 0 6px}
+.hxh{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.hxp{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hxp .sm{color:var(--muted);font-size:12.5px}
+.hxbig{font-size:27px;font-weight:800;color:var(--accent);letter-spacing:-.5px;line-height:1.15;font-variant-numeric:tabular-nums}
+.hxsel{flex:none;max-width:55%;font:inherit;font-size:14px;font-weight:700;padding:8px 10px;border:1.5px solid var(--accent);border-radius:10px;background:var(--surface);color:var(--accent);cursor:pointer}
+.hxtabs{display:flex;border-bottom:1px solid var(--line);margin:14px 0 4px}
+.hxtabs button{flex:1;border:0;background:none;padding:11px 0 10px;font:inherit;font-size:15px;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px}
+.hxtabs button.on{color:var(--ink);font-weight:800;border-bottom-color:var(--ink)}
+.hxc{position:relative;touch-action:pan-y}
+.hxc svg{width:100%;height:auto;display:block;overflow:visible}
+.hxc .ax text{font-size:12px;fill:var(--muted)}
+.hxc .vlab,.hxc .tin{font-size:11px;fill:var(--muted)}
+.hxc .mk{font-size:11.5px;font-weight:800}
+.hxbub{position:absolute;top:2px;transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;line-height:1.35;padding:6px 10px;border-radius:8px;white-space:nowrap;max-width:100%;text-align:center;pointer-events:none;box-shadow:0 2px 8px #0002}
+.hxbub small{font-weight:500;opacity:.9}
+.hxlg{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:12px;color:var(--muted);margin:8px 0 12px}
+.hxlg i{display:inline-block;vertical-align:middle;margin:0 4px 0 6px}
+.hxlg i:first-child{margin-left:0}
+.hxlg i.ln{width:16px;height:3px;border-radius:2px;background:var(--accent)}
+.hxlg i.dt{width:7px;height:7px;border-radius:50%;background:var(--muted);opacity:.6}
+.hxlg i.sv{width:16px;border-top:2px dashed #e8590c}
+.hxlg i.in{height:12px;border-left:2px dotted var(--muted)}
+table.hxt{width:100%;border-collapse:collapse;font-size:14px}
+table.hxt th{font-weight:500;color:var(--muted);font-size:12.5px;text-align:left;padding:8px 2px;border-bottom:1px solid var(--line)}
+table.hxt td{padding:11px 2px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+table.hxt th:last-child,table.hxt td:last-child{text-align:right}
+table.hxt td b{font-size:15px}
+.hxtag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:999px;background:#fff1e8;color:#c2410c;vertical-align:1px}
+.hxmore{width:100%;margin:10px 0 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+.hx3{font-size:13px;margin:14px 0 4px;font-weight:700}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -693,7 +725,7 @@ table.t.pt td .pdt{display:inline-block;line-height:1.2}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.8</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.9</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -781,14 +813,14 @@ table.t.pt td .pdt{display:inline-block;line-height:1.2}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=5c1d9c7f", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=9814d700", DASHF="data/rt/trend.json.gz?v=afa5ce1b";
+  var CORE="data/core.json.gz?v=3e70c96f", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=ad8449af", DASHF="data/rt/trend.json.gz?v=f44757f4", TXF="data/rt/tx.json.gz?v=a538df55";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return ff().then(function(f){ return f.strFromU8(f.gunzipSync(new Uint8Array(buf))); });
   }
   function load(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error(u+' '+r.status); return r.arrayBuffer(); }).then(gunzip).then(JSON.parse); }
-  window.__loadGz=load; window.__DASH=DASHF;
+  window.__loadGz=load; window.__DASH=DASHF; window.__TX=TXF;
   var cache={};
   window.__ensureDetail=function(c){
     if (c.raw) return Promise.resolve();   // v1.4.0: it는 core로 옮겨 raw로 판단

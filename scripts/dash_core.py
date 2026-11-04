@@ -1,4 +1,4 @@
-# v1.5.7 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.5.8 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -152,12 +152,12 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     #   대장 = 후보 중 300세대 이상을 84㎡ 환산가(㎡당 가격 × 84.9) 높은 순으로 8곳(300세대 이상이 8곳이 안 되면 나머지 후보로 채움). 지번 공유 단지는 하나만
     #   가격 흐름 = 전용 84㎡ 이상 매매(분양권 따로)의 ㎡당 가격 × 84.9, 앞뒤 1개월을 포함한 3개월 이동 중위 — 큰 평형만 있는 단지도 같은 잣대로 비교
     sigk = lambda i: frozenset(k for k, _ in KEYS[i] if k[0] != "#")
-    def clean(trs):   # v1.5.7 튀는 거래 걸러냄(84㎡ 이상, 84㎡ 환산가 기준): 앞 12개월·뒤 12개월(같은 달 포함, 자기 제외) 거래 중위와 각각 비교해
+    def clean(trs, amin=LEAD_MIN_AREA):   # v1.5.7 튀는 거래 걸러냄(amin㎡ 이상, 84㎡ 환산가 = ㎡당 가격 기준. v1.5.8 평형대별은 amin=0): 앞 12개월·뒤 12개월(같은 달 포함, 자기 제외) 거래 중위와 각각 비교해
         #   거래가 있는 쪽 모두보다 25% 넘게 높거나 모두보다 25% 넘게 낮으면 뺌(앞뒤 합쳐 2건 이상일 때만 판단). 한쪽과 맞거나 앞·뒤 사이면 급등·급락(실제 흐름)으로 보고 남김
-        v = [(MI[m], p / a * 84.9) for m, p, a, _, _ in trs if a >= LEAD_MIN_AREA]
+        v = [(MI[m], p / a * 84.9) for m, p, a, _, _ in trs if a >= amin]
         keep = []
         for m, p, a, d, sh in trs:
-            if a < LEAD_MIN_AREA: continue
+            if a < amin: continue
             i, x = MI[m], p / a * 84.9
             bf = [y for j, y in v if i - 12 <= j <= i]; bf.remove(x)
             af = [y for j, y in v if i <= j <= i + 12]; af.remove(x)
@@ -168,10 +168,10 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             if nn >= 2 and (all(q > 0.25 for q in r) or all(q < -0.25 for q in r)): continue   # 양쪽보다 모두 25% 넘게 높거나 모두 낮을 때만(앞·뒤 사이에 있으면 급등·급락 중인 실제 거래)
             keep.append((m, p, a, d, sh))
         return keep
-    def e84(trs):   # [(m, p, a, d, sh)] → 3개월 이동 중위 1차원 배열 [간격, 값, 그 달 건수]
+    def e84(trs, amin=LEAD_MIN_AREA, conv=True):   # [(m, p, a, d, sh)] → 3개월 이동 중위 1차원 배열 [간격, 값, 그 달 건수]. conv=False면 84㎡ 환산 없이 실제 거래가(v1.5.8 평형대별)
         by = collections.defaultdict(list)
         for m, p, a, _, sh in trs:   # trs는 clean() 거친 것
-            if a >= LEAD_MIN_AREA: by[MI[m]].append((p / a * 84.9, sh))
+            if a >= amin: by[MI[m]].append((p / a * 84.9 if conv else p, sh))
         if not by: return []
         flat = []; prev = 0
         for i in range(min(by), N):
@@ -196,7 +196,11 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             tr = clean(series(d["id"], BYK)); sv = clean(series(d["id"], SVK))
             pnow = d["lp"][0] * 84.9; b6 = d["lp"][2]
             y1 = win(tr, N - 12 - b6, N - 13); y3 = win(tr, N - 36 - b6, N - 37)
+            bs = {}   # v1.5.8 연구원(11.4): 카드마다 평형 선택 → 평형대별 실제 거래가 3개월 이동 중위(같은 튀는 거래 규칙)
+            for k in px[d["id"]]["b"]:
+                tk = clean([t for t in series(d["id"], BYK) if band(t[2]) == k], 0); sk = clean([t for t in series(d["id"], SVK) if band(t[2]) == k], 0)
+                bs[k] = dict(e=e84(tk, 0, False), ev=e84(sk, 0, False))
             top.append(dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], hd=CX[d["id"]]["hd"], ym=CX[d["id"]].get("ym"), ppm=d["lp"][0], p84=round(pnow), pn=d["lp"][1], pm=b6,
-                            c12=(round((pnow / y1 - 1) * 100, 1) if y1 else None), c36=(round((pnow / y3 - 1) * 100, 1) if y3 else None), e=e84(tr), ev=e84(sv), big=d["u"] >= lead_floor))
+                            c12=(round((pnow / y1 - 1) * 100, 1) if y1 else None), c36=(round((pnow / y3 - 1) * 100, 1) if y3 else None), e=e84(tr), ev=e84(sv), big=d["u"] >= lead_floor, bs=bs))
         out["gu"][g]["top"] = top
     return out, n_all

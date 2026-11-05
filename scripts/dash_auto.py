@@ -1,4 +1,4 @@
-# 시세 흐름 자동 갱신(GitHub Actions용, v1.7.0 ’26.11.5: 거래에 층 추가(보관 형식 3, 전체 다시 받음) · 전월세(RTMSDataSvcAptRent, 2021년부터) 추가) — 계산은 dash_core.py
+# 시세 흐름 자동 갱신(GitHub Actions용, v1.7.2: 끝에 OSM 동 위치(osm_bld.py, 30일마다) · v1.7.0 ’26.11.5: 거래에 층 추가(보관 형식 3, 전체 다시 받음) · 전월세(RTMSDataSvcAptRent, 2021년부터) 추가) — 계산은 dash_core.py
 # 국토교통부 아파트 매매 실거래가(RTMSDataSvcAptTrade)·분양권 전매(RTMSDataSvcSilvTrade) API를 광주 5개 구에 대해 호출 → dash.json.gz 다시 만듦
 # 기간: 2006년 1월(자료 제공 시작)부터 이번 달까지 전체. 받은 자료는 <출력 폴더>/rt/<연도>.json.gz 에 연도별로 보관하고,
 #   매일은 최근 4개월(신고·해제가 늦게 잡히는 기간)만 다시 받음. 보관 파일이 없는 달만 새로 받음(첫 실행 약 2,500회 호출, 이후 매일 50회)
@@ -90,3 +90,7 @@ if tx is not None:
     with gzip.open(CACHE / "tx.json.gz", "wt", encoding="utf-8") as f: f.write(json.dumps(dict(v=2, asof=today.isoformat(), m0=M[0], tx=tx, rtx=rtx or {}), ensure_ascii=False, separators=(",", ":")))
     print("tx", len(tx), "단지 ·", os.path.getsize(CACHE / "tx.json.gz") // 1024, "KB")
 print("trend v4", len(out["dongs"]), "행정동 ·", len(out["px"]), "단지 ·", os.path.getsize(TREND) // 1024, "KB · 광주 최근 월", out["city"]["mc"][-3:], out["city"]["mo"][-3:])
+# v1.7.2 OSM 아파트 동(건물) 위치 → rt/bld_osm.json.gz(30일마다). 위 시세 갱신이 끝난 뒤라 실패해도 영향 없음
+try:
+    import subprocess; subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve().parent / "osm_bld.py"), str(CACHE)], timeout=900)
+except Exception as e: print("osm_bld 건너뜀:", e)

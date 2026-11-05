@@ -1,4 +1,4 @@
-# v1.5.9 시세 흐름 공통 계산(’26.11.4, 연구원: 구별 대장 아파트 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.6.0 시세 흐름 공통 계산(’26.11.5, 연구원: 광주 통합 대장 아파트 20곳(㎡당 실거래가 순)·구별 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -8,6 +8,7 @@ def band(a):
     for hi, k in BANDS:
         if a <= hi: return k
 TX_MONTHS = 36   # v1.5.9 개별 거래 보관 기간(최근 3년)
+TOP_N = 20       # v1.6.0 광주 통합 대장 아파트 수
 BAND_LABEL = {"39": "39㎡대", "49": "49㎡대", "59": "59㎡대", "74": "74㎡대", "84": "84㎡대", "101": "101㎡대", "114": "114㎡대", "135": "135㎡대", "160": "160㎡ 이상"}
 def months_until(today, n=36):   # 최근 n개월(예전 호환)
     y, m = today.year, today.month; M = []
@@ -188,25 +189,25 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     def win(trs, a0, a1):   # 달 번호 a0~a1 사이 84㎡ 이상 매매 84㎡ 환산 중위(2건 이상)
         xs = [p / a * 84.9 for m, p, a, _, _ in trs if M[max(0, a0)] <= m <= M[max(0, a1)]]   # trs는 clean() 거친 것
         return statistics.median(xs) if len(xs) >= 2 else None
-    for g in out["gu"]:
-        L = [d for L2 in dong_cx.values() for d in L2 if d["lp"] and CX[d["id"]]["gu"] == g]
-        order = sorted(L, key=lambda d: (d["u"] < lead_floor, -d["lp"][0]))
-        sel = []
+    def pick(L, n):   # 300세대 이상을 ㎡당 가격 높은 순으로 n곳(모자라면 나머지 후보로), 지번 공유 단지는 하나만 → 화면 순서 = ㎡당 가격 높은 순
+        order = sorted(L, key=lambda d: (d["u"] < lead_floor, -d["lp"][0])); sel = []
         for d in order:
-            if len(sel) >= 8: break
+            if len(sel) >= n: break
             if all(sigk(d["id"]) != sigk(t["id"]) for t in sel): sel.append(d)
-        sel.sort(key=lambda d: -d["lp"][0])   # 화면 순서 = 84㎡ 환산가 높은 순
-        top = []
-        for d in sel:
-            tr = clean(series(d["id"], BYK)); sv = clean(series(d["id"], SVK))
-            pnow = d["lp"][0] * 84.9; b6 = d["lp"][2]
-            y1 = win(tr, N - 12 - b6, N - 13); y3 = win(tr, N - 36 - b6, N - 37)
-            bs = {}   # v1.5.8 연구원(11.4): 카드마다 평형 선택 → 평형대별 실제 거래가 3개월 이동 중위(같은 튀는 거래 규칙)
-            for k in px[d["id"]]["b"]:
-                tk = clean([t for t in series(d["id"], BYK) if band(t[2]) == k], 0); sk = clean([t for t in series(d["id"], SVK) if band(t[2]) == k], 0)
-                bs[k] = dict(e=e84(tk, 0, False), ev=e84(sk, 0, False))
-            top.append(dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], hd=CX[d["id"]]["hd"], ym=CX[d["id"]].get("ym"), ppm=d["lp"][0], p84=round(pnow), pn=d["lp"][1], pm=b6,
-                            c12=(round((pnow / y1 - 1) * 100, 1) if y1 else None), c36=(round((pnow / y3 - 1) * 100, 1) if y3 else None), e=e84(tr), ev=e84(sv), big=d["u"] >= lead_floor, bs=bs))
-        out["gu"][g]["top"] = top
+        return sorted(sel, key=lambda d: -d["lp"][0])
+    def card(d):   # 대장 카드 1곳: 84㎡ 이상 환산 흐름(e·ev, 예전 화면용) + 평형대별 흐름(bs)
+        tr = clean(series(d["id"], BYK)); sv = clean(series(d["id"], SVK))
+        pnow = d["lp"][0] * 84.9; b6 = d["lp"][2]
+        y1 = win(tr, N - 12 - b6, N - 13); y3 = win(tr, N - 36 - b6, N - 37)
+        bs = {}   # v1.5.8 연구원(11.4): 카드마다 평형 선택 → 평형대별 실제 거래가 3개월 이동 중위(같은 튀는 거래 규칙)
+        for k in px[d["id"]]["b"]:
+            tk = clean([t for t in series(d["id"], BYK) if band(t[2]) == k], 0); sk = clean([t for t in series(d["id"], SVK) if band(t[2]) == k], 0)
+            bs[k] = dict(e=e84(tk, 0, False), ev=e84(sk, 0, False))
+        return dict(id=d["id"], n=d["n"], u=d["u"], y=d["y"], g=d["g"], gu=CX[d["id"]]["gu"], hd=CX[d["id"]]["hd"], ym=CX[d["id"]].get("ym"), ppm=d["lp"][0], p84=round(pnow), pn=d["lp"][1], pm=b6,
+                    c12=(round((pnow / y1 - 1) * 100, 1) if y1 else None), c36=(round((pnow / y3 - 1) * 100, 1) if y3 else None), e=e84(tr), ev=e84(sv), big=d["u"] >= lead_floor, bs=bs)
+    CAND = [d for L2 in dong_cx.values() for d in L2 if d["lp"]]
+    for g in out["gu"]:   # 구별 8곳(v1.5.6~v1.5.9 화면용, 그대로 둠)
+        out["gu"][g]["top"] = [card(d) for d in pick([d for d in CAND if CX[d["id"]]["gu"] == g], 8)]
+    out["top"] = [card(d) for d in pick(CAND, TOP_N)]   # v1.6.0 연구원(11.5): 광주 통합 대장 아파트 = ㎡당 실거래가 높은 순 20곳
     out["tx"] = tx   # 호출 쪽(dash_auto·dash_v15)에서 꺼내 rt/tx.json.gz 로 따로 씀(시세 흐름 파일 크기 그대로)
     return out, n_all

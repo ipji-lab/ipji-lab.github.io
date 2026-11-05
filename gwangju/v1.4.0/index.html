@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.5.9">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.6.0">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.5.9</title>
+<title>우리동네 입지분석(광주) v1.6.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -725,14 +725,14 @@ table.hxt td b{font-size:15px}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.5.9</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.6.0</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
         <div class="sugg" id="sugg" hidden></div>
       </div>
       <button class="btn primary" id="btnMine">내 조건<span class="lbl-long">으로 찾기</span></button>
-      <button class="btn" id="btnTrend"><span class="lbl-long">시세 </span>흐름</button>
+      <button class="btn" id="btnTrend">대장<span class="lbl-long"> 아파트</span></button>
       <button class="btn" id="btnCmp">비교<span class="badge-n num" id="cmpN">0</span></button>
       <button class="btn" id="btnMethod" aria-label="평가기준"><span class="lbl-long">평가</span>기준</button>
     </header>
@@ -786,7 +786,7 @@ table.hxt td b{font-size:15px}
     <ul class="gate-note">
       <li>※ 공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li>※ 등급과 점수는 단지의 가치나 앞으로의 가격을 보장하지 않습니다.</li>
-      <li>※ 등급·점수(환금성 포함)는 2026년 10월 21일 자료로 고정되어 있고, 시세 흐름의 실거래 그래프만 매일 새벽 자동 갱신됩니다.</li>
+      <li>※ 등급·점수(환금성 포함)는 2026년 10월 21일 자료로 고정되어 있고, 대장 아파트·단지 상세의 실거래 그래프와 거래 목록만 매일 새벽 자동 갱신됩니다.</li>
       <li>※ 무료로 쓰실 수 있습니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처를 밝혀 주세요.</li>
     </ul>
     <button class="gate-ok" id="gateOk">확인했습니다</button>
@@ -813,7 +813,7 @@ table.hxt td b{font-size:15px}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=3e70c96f", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=ad8449af", DASHF="data/rt/trend.json.gz?v=f44757f4", TXF="data/rt/tx.json.gz?v=a538df55";
+  var CORE="data/core.json.gz?v=550c0d90", DET=["data/d00.json.gz?v=0859097d", "data/d01.json.gz?v=43bde866", "data/d02.json.gz?v=2670031c", "data/d03.json.gz?v=93298c18", "data/d04.json.gz?v=cd3dee31", "data/d05.json.gz?v=6f7aee59", "data/d06.json.gz?v=3b61c347", "data/d07.json.gz?v=a8d5dd79", "data/d08.json.gz?v=fa2400b7", "data/d09.json.gz?v=eed85818", "data/d10.json.gz?v=d1d70bab", "data/d11.json.gz?v=da945b8c", "data/d12.json.gz?v=e8413ae4", "data/d13.json.gz?v=f4450bfc", "data/d14.json.gz?v=466544c6", "data/d15.json.gz?v=75d3c559"], APP="app.js?v=36a1d2ad", DASHF="data/rt/trend.json.gz?v=4fdbcf8f", TXF="data/rt/tx.json.gz?v=275684e8";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

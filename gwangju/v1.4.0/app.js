@@ -557,7 +557,7 @@ function hxRender(c){
   const tr=hxTrades(c,bk), sale=tr.filter(t=>!t.k);
   const N=TD.months.length, sl=sale.map(t=>t.i), lab=!TX?'최근 실거래 중위':sl.filter(i=>i>=N-3).length>=2?'최근 3개월 실거래 중위':sl.filter(i=>i>=N-6).length>=2?'최근 6개월 실거래 중위':(sl.length?`최근 거래 ${Math.min(3,sl.length)}건 중위 · 마지막 ${tYMd(sl[0])}`:'최근 실거래 중위');   // dash_core recent()와 같은 기준
   el.innerHTML=`<div class="hxh"><div class="hxp"><span class="sm">${lab}</span>${b.p!=null?`<b class="hxbig">${tEokKo(b.p)}</b><span class="sm">1년 ${tPct(b.c12)} · 3년 ${tPct(b.c36)}</span>`:`<b class="hxbig">–</b><span class="sm">매매 거래 없음${b.svn?` · 분양권 ${b.svn}건`:''}</span>`}</div>
-      <select class="hxsel" aria-label="평형 선택">${ks.map(k=>`<option value="${k}"${k===bk?' selected':''}>${pyOf(k)}${TD.bandLabel[k]}</option>`).join('')}</select></div>
+      <select class="hxsel" aria-label="평형 선택">${ks.map(k=>`<option value="${k}"${k===bk?' selected':''}>${tBandName(c.id,k)}</option>`).join('')}</select></div>
     <div class="hxtabs" role="tablist"><button role="tab" data-r="24" class="${HX.r===24?'on':''}" aria-selected="${HX.r===24}">최근 2년</button><button role="tab" data-r="0" class="${HX.r===0?'on':''}" aria-selected="${HX.r===0}">전체 기간</button></div>
     <div class="hxc"></div>
     <div class="hxlg"><span class="hxlk"></span><span>국토교통부 실거래가 · ${TD.asof} 기준</span></div>
@@ -583,7 +583,7 @@ function hxChart(el, c, b, M, r, tr, px){
   const x=d3.scaleLinear().domain([i0-0.5,i1+0.5]).range([m.l,W-m.r]);
   const vals=pts.map(p=>p.v).concat(svp.map(p=>p.v), dots.map(p=>p.v)); let [lo,hi]=d3.extent(vals); const pad=Math.max((hi-lo)*0.1, hi*0.04); 
   const y=d3.scaleLinear().domain([Math.max(0,lo-pad),hi+pad]).nice(4).range([yB,m.t]);
-  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} ${TD.bandLabel[HX.b]} 실거래가 흐름`);
+  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} ${tBandName(c.id,HX.b)} 실거래가 흐름`);
   const fmtY=t=>(t/10000).toFixed(t%10000===0?0:1).replace(/\.0$/,'')+'억';
   svg.append('g').attr('class','ax').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(tTicksY(y,5)).tickFormat(fmtY).tickSize(-(W-m.l-m.r)).tickPadding(8)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)'));
   if(ym>=i0&&ym<=i1){ svg.append('line').attr('x1',x(ym)).attr('x2',x(ym)).attr('y1',m.t).attr('y2',vBot).attr('stroke','var(--muted)').attr('stroke-opacity',.6).attr('stroke-dasharray','2 4'); svg.append('text').attr('class','tin').attr('x',x(ym)+4).attr('y',m.t+11).text('입주'); }
@@ -1021,16 +1021,17 @@ const tPct=v=>v==null?'<span class="sm">–</span>':`<span class="${v>0?'up':v<0
 const tDate=d=>String(d).replace(/^(\d{4})(\d{2})(\d{2})$/,'$1.$2.$3');
 const tYM=ym=>ym?`’${String(ym).slice(2,4)}.${+String(ym).slice(4,6)}`:'';
 function loadDash(){ if(TD) return Promise.resolve(TD); if(TDP) return TDP; if(!(window.__loadGz&&window.__DASH)) return Promise.reject(new Error('자료 없음')); TDP=window.__loadGz(window.__DASH).then(d=>{ if(d.enc==='d3') tDecode(d); TD=d; return d; }); return TDP; }
-function tDecode(d){ const un=a=>{ const o=[]; let i=0; for(let k=0;k<a.length;k+=3){ i+=a[k]; o.push([i,a[k+1],a[k+2]]); } return o; }; for(const p of Object.values(d.px)) for(const b of Object.values(p.b)){ b.s=un(b.s||[]); if(b.sv) b.sv=un(b.sv); } for(const g of Object.values(d.gu)) for(const c of (g.top||[])){ c.e=un(c.e||[]); c.ev=un(c.ev||[]); if(c.bs) for(const v of Object.values(c.bs)){ v.e=un(v.e||[]); v.ev=un(v.ev||[]); } } d.enc=null; }   // v1.5.3 [간격,가격,건수] 1차원 배열 → [달,가격,건수]
+function tDecode(d){   // v1.6.0 광주 통합 top도 풀어 씀
+  const un=a=>{ const o=[]; let i=0; for(let k=0;k<a.length;k+=3){ i+=a[k]; o.push([i,a[k+1],a[k+2]]); } return o; }; for(const p of Object.values(d.px)) for(const b of Object.values(p.b)){ b.s=un(b.s||[]); if(b.sv) b.sv=un(b.sv); } for(const c of Object.values(d.gu).flatMap(g=>g.top||[]).concat(d.top||[])){ c.e=un(c.e||[]); c.ev=un(c.ev||[]); if(c.bs) for(const v of Object.values(c.bs)){ v.e=un(v.e||[]); v.ev=un(v.ev||[]); } } d.enc=null; }   // v1.5.3 [간격,가격,건수] 1차원 배열 → [달,가격,건수]
 function rngHTML(){ return `<span class="rsel" role="group" aria-label="기간"><button data-rng="24" class="${TS.rng===24?'on':''}">최근 2년</button><button data-rng="0" class="${TS.rng===0?'on':''}">전체</button></span>`; }
 function rngBind(root, cb){ root.querySelectorAll('.rsel button[data-rng]').forEach(b=>b.onclick=()=>{ TS.rng=+b.dataset.rng; cb(); }); }
 function tSpan(M){ const N=M.length; return N>=24?M.length-24:0; }
 function lgdHTML(b, px){ return `<div class="lgd"><span><i></i>매매 월 중위가</span><span><i class="vol"></i>월 거래 건수</span>${b.sv?`<span><i class="sv"></i>분양권 전매</span>`:''}${px&&px.ym?`<span><i class="in"></i>입주 ${tYM(px.ym)}</span>`:''}</div>`; }
 function openTrend(){
   const ov=$('ovTrend'); ov.hidden=false;
-  ov.innerHTML=`<div class="drawer wide full" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="dh"><h2 id="trT">시세 흐름</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db trend" id="tBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
+  ov.innerHTML=`<div class="drawer wide full" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="dh"><h2 id="trT">대장 아파트</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db trend" id="tBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
-  loadDash().then(()=>{ if(!TS.gu||!TD.gu[TS.gu]) TS.gu='동구'; renderTrend(); }).catch(e=>{ $('tBody').innerHTML=`<p class="note">시세 자료를 불러오지 못했습니다. (${e.message})</p>`; });
+  Promise.all([loadDash(), loadTx().catch(()=>null)]).then(()=>renderTrend()).catch(e=>{ $('tBody').innerHTML=`<p class="note">시세 자료를 불러오지 못했습니다. (${e.message})</p>`; });
 }
 const tMan=v=>v==null?'–':Math.round(v).toLocaleString()+'만';
 function tLastGood(mo,mc,min){ for(let i=mo.length-1;i>=0;i--) if(mo[i]!=null&&mc[i]>=min) return i; return null; }
@@ -1038,6 +1039,16 @@ function tLastGood(mo,mc,min){ for(let i=mo.length-1;i>=0;i--) if(mo[i]!=null&&m
 const TPAL=['--t1','--t2','--t3','--t4','--t5','--t6','--t7','--t8'];   // 순위 자리별 색(구를 바꿔도 같은 자리 = 같은 색)
 const TBR={'39':'45 이하','49':'46~54','59':'55~65','74':'66~79','84':'80~95','101':'96~110','114':'111~125','135':'126~150','160':'151 이상'};   // v1.5.8 평형대 = 전용면적 묶음
 const tBandOf=a=>{ for(const [hi,k] of [[45,'39'],[54,'49'],[65,'59'],[79,'74'],[95,'84'],[110,'101'],[125,'114'],[150,'135']]) if(a<=hi) return k; return '160'; };
+function tBandName(id, k){   // v1.6.0 연구원(11.5): '84㎡대(전용 80~95㎡)' 대신 그 단지의 실제 전용면적(예: 34평 · 전용 84㎡). 세대가 가장 많은 면적 기준, 2㎡ 넘게 다른 면적이 같이 묶이면 '외'
+  const x=CX.find(z=>z.id===id), W=new Map(), add=(a,w)=>{ const f=Math.floor(a); W.set(f,(W.get(f)||0)+w); };
+  if(x){ (x.ut||[]).forEach(u=>{ if(tBandOf(u[0])===k) add(u[0], (u[1]||1)*1000); }); (x.types||[]).forEach(t=>{ if(tBandOf(t.ex)===k) add(t.ex, t.n||1); }); }
+  if(typeof TX!=='undefined'&&TX&&TX.tx[id]){ const f=TX.tx[id]; for(let q=0;q<f.length;q+=5){ const a=f[q+3]/100; if(tBandOf(a)===k) add(a, 0.001); } }
+  if(!W.size){ const b=((TD.px[id]||{}).b||{})[k]; [b&&b.last, b&&b.svl].forEach(l=>{ if(l&&l[2]) add(l[2],1); }); }   // 오래된 거래·분양권만 있는 평형은 마지막 거래 면적
+  if(!W.size) return TD.bandLabel[k]||k+'㎡';
+  const main=[...W.entries()].sort((a,b)=>b[1]-a[1])[0][0], other=[...W.keys()].some(f=>Math.abs(f-main)>2);
+  const t=x&&(x.types||[]).filter(t=>tBandOf(t.ex)===k&&Math.abs(Math.floor(t.ex)-main)<=2).sort((p,q)=>q.n-p.n)[0];
+  return `${t&&t.py?t.py+'평 · ':''}전용 ${main}㎡${other?' 외':''}`;
+}
 function tDefBand(c, ks){   // v1.5.9 연구원: 처음엔 그 단지 대표 평형(세대가 가장 많은 평형 = 목록 카드와 같은 기준). 그 평형 거래가 없으면 최근 2년 거래가 가장 많은 평형
   const x=CX.find(z=>z.id===c.id), t=x&&mainType(x), ex=t?t.ex:(x?topEx(x):null), k=ex!=null?tBandOf(ex):null;
   if(k&&ks.includes(k)) return k; const rep=(TD.px[c.id]||{}).rep; return rep&&ks.includes(rep)?rep:(ks[0]||'e'); }
@@ -1051,9 +1062,9 @@ function tPrice(c, st){   // 큰 숫자 + 1년·3년 = 고른 평형 최근 3개
 }
 function tCard(c, i){
   const col=`var(${TPAL[i%8]})`, st=tSt(c), ks=tBands(c); if(!ks.includes(st.b)) st.b=tDefBand(c, ks);
-  return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${c.n} — 단지 상세 보기">${c.n}</span><span class="meta">${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
+  return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${c.n} — 단지 상세 보기">${c.n}</span><span class="meta">${c.ppm?`㎡당 ${Math.round(c.ppm).toLocaleString()}만 · `:''}${c.gu||((CX.find(x=>x.id===c.id)||{}).gu||'')} ${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
     <div class="tp">${tPrice(c, st)}</div></div>
-    <div class="tctl">${ks.length?`<select class="tbsel" aria-label="${c.n} 평형 선택">${ks.map(k=>`<option value="${k}"${st.b===k?' selected':''}>${TD.bandLabel[k]} (전용 ${TBR[k]||''}㎡)</option>`).join('')}</select>`:'<span></span>'}<span class="rsel" role="group" aria-label="${c.n} 기간 선택"><button data-cr="24" class="${st.r===24?'on':''}">최근 2년</button><button data-cr="0" class="${st.r===0?'on':''}">전체</button></span></div>
+    <div class="tctl">${ks.length?`<select class="tbsel" aria-label="${c.n} 평형 선택">${ks.map(k=>`<option value="${k}"${st.b===k?' selected':''}>${tBandName(c.id,k)}</option>`).join('')}</select>`:'<span></span>'}<span class="rsel" role="group" aria-label="${c.n} 기간 선택"><button data-cr="24" class="${st.r===24?'on':''}">최근 2년</button><button data-cr="0" class="${st.r===0?'on':''}">전체</button></span></div>
     <div class="bchart"></div></div>`;
 }
 function tMount(card, c){   // 카드 하나: 평형·기간 바꾸면 그 카드만 다시 그림
@@ -1072,7 +1083,7 @@ function tTicksX(M,i0,i1,k,pw){   // v1.5.9 연구원: x축은 연월(2025.01)�
   return {tv:[...new Set([lo,i1])],f};
 }
 function tLine(el, c, M, col, st){   // 3개월 이동 중위 한 줄 + 옅은 면, 분양권은 같은 색 점선, 입주는 옅은 세로선. v1.5.8 st = 카드별 {r: 기간, b: 'e'(84㎡ 이상 환산) | 평형대}
-  st=st||{r:24,b:'e'}; const S=st.b==='e'?{e:c.e,ev:c.ev}:((c.bs||{})[st.b]||{e:[],ev:[]}), lab=st.b==='e'?'전용 84㎡ 이상':TD.bandLabel[st.b];
+  st=st||{r:24,b:'e'}; const S=st.b==='e'?{e:c.e,ev:c.ev}:((c.bs||{})[st.b]||{e:[],ev:[]}), lab=st.b==='e'?'전용 84㎡ 이상':tBandName(c.id,st.b);
   const N=M.length, ym=c.ym?M.indexOf(`${String(c.ym).slice(0,4)}-${String(c.ym).slice(4,6)}`):-1;
   let i0=st.r?Math.max(0,N-st.r):Math.min(S.e.length?S.e[0][0]:N-1, S.ev.length?S.ev[0][0]:N-1); const i1=N-1, span=i1-i0+1;
   const pts=S.e.filter(q=>q[0]>=i0).map(([i,v,n])=>({i,v,n})), svp=S.ev.filter(q=>q[0]>=i0).map(([i,v,n])=>({i,v,n}));
@@ -1109,17 +1120,15 @@ function tLine(el, c, M, col, st){   // 3개월 이동 중위 한 줄 + 옅은 �
   const hide=()=>{ tip.style.display='none'; guide.attr('opacity',0); dot.attr('opacity',0); };
   svg.on('mousemove',show).on('mouseleave',hide).on('touchstart',e=>show(e.touches[0]),{passive:true}).on('touchmove',e=>show(e.touches[0]),{passive:true}).on('touchend',hide);
 }
-function renderTrend(){   // v1.5.6 구 탭 → 구별 대장 아파트 8곳(84㎡ 환산가 높은 순) 가격 흐름, PC 2열. v1.5.8 카드마다 평형·기간 선택
-  const B=$('tBody'), M=TD.months, GU=['동구','서구','남구','북구','광산구'].filter(g=>TD.gu[g]);
+function renderTrend(){   // v1.6.0 연구원(11.5): '대장 아파트' = 광주 전체에서 ㎡당 실거래가 높은 순 20곳(구 탭 없음), PC 2열, 카드마다 평형·기간 선택
+  const B=$('tBody'), M=TD.months;
   const cm=TD.city.mo.slice(0,-1), cc=TD.city.mc.slice(0,-1), li=tLastGood(cm,cc,30);   // v1.5.5 이번 달(진행 중·신고 전)은 빼고 끝난 달 기준
   const yi=li!=null?li-12:null, cityY=(yi!=null&&yi>=0&&cm[yi])?((cm[li]/cm[yi]-1)*100).toFixed(1):null;
-  const gu=TD.gu[TS.gu]||{}, list=gu.top||[], yrs=Math.round(M.length/12);
+  const list=TD.top&&TD.top.length?TD.top:Object.values(TD.gu).flatMap(g=>g.top||[]).sort((a,b)=>b.ppm-a.ppm).slice(0,20), yrs=Math.round(M.length/12);   // 예전 자료(top 없음)면 구별 대장을 합쳐 씀
   B.innerHTML=`
-    <div class="rbar"><div class="gusel">${GU.map(g=>`<button class="${g===TS.gu?'on':''}" data-gu="${g}">${g}</button>`).join('')}</div></div>
-    <p class="sm tsub"><b>${TS.gu} 대장 아파트 ${list.length}곳</b> · ㎡당 실거래가 높은 순 <span class="tcity">· 광주 84㎡대 중위 ${li!=null?`${tEok(cm[li])}(’${M[li].slice(2,4)}.${+M[li].slice(5)}`:'–('}, 1년 전 대비 ${cityY==null?'–':`<b class="${cityY>0?'up':cityY<0?'dn':''}">${cityY>0?'+':''}${cityY}%</b>`})</span></p>
+    <p class="sm tsub"><b>광주 대장 아파트 ${list.length}곳</b> · ㎡당 실거래가 높은 순 <span class="tcity">· 광주 전용 84㎡ 중위 ${li!=null?`${tEok(cm[li])}(’${M[li].slice(2,4)}.${+M[li].slice(5)}`:'–('}, 1년 전 대비 ${cityY==null?'–':`<b class="${cityY>0?'up':cityY<0?'dn':''}">${cityY>0?'+':''}${cityY}%</b>`})</span></p>
     <div class="tgrid">${list.map(tCard).join('')}</div>
-    <p class="note">대장 아파트는 손으로 고르지 않습니다: 이 구에서 최근 2년 매매 8건 이상이고 전용 84㎡ 이상 거래가 있는 단지 중 ${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 단지를 `:''}전용 84㎡ 이상 매매의 ㎡당 가격이 높은 순으로 8곳${TD.lead&&TD.lead.floor?`(${TD.lead.floor}세대 이상이 8곳이 안 되면 나머지로 채움)`:''}. 카드마다 평형과 기간을 고를 수 있고, 처음에는 그 단지에서 세대가 가장 많은 평형(목록의 대표 평형)을 보여 줍니다. 평형대는 비슷한 전용면적을 묶은 것입니다(예: 84㎡대 = 전용 80~95㎡). 큰 숫자 = 그 평형 최근 3개월 실거래 중위(거래가 적으면 6개월), 1년·3년 = 1년 전·3년 전 같은 기간과 비교. 선 = 3개월 이동 중위(앞뒤 달 포함, 앞 1년·뒤 1년 시세보다 모두 25% 넘게 높거나 낮은 튀는 거래는 뺌, 6개월 넘게 거래가 없으면 선을 끊음), 점선 = 분양권 전매, 세로 점선 = 입주(사용승인). 말풍선의 건수는 그 달 거래 수이고, 0건인 달은 앞뒤 달 거래로 이은 값입니다.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능).':''} '전체'는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
-  B.querySelectorAll('.gusel button').forEach(b=>b.onclick=()=>{ TS.gu=b.dataset.gu; renderTrend(); B.scrollTop=0; });
+    <p class="note">대장 아파트는 손으로 고르지 않습니다: 광주 전체에서 최근 2년 매매 8건 이상이고 전용 84㎡ 이상 거래가 있는 단지 중 ${TD.lead&&TD.lead.floor?`${TD.lead.floor}세대 이상 단지를 `:''}전용 84㎡ 이상 매매의 ㎡당 가격(최근 6개월 중위, 3건 미만이면 12개월)이 높은 순으로 ${list.length}곳${TD.lead&&TD.lead.floor?`(${TD.lead.floor}세대 이상이 모자라면 나머지로 채움)`:''}. 카드 위 '㎡당'이 순서 기준입니다. 카드마다 평형과 기간을 고를 수 있고, 처음에는 그 단지에서 세대가 가장 많은 평형(목록의 대표 평형)을 보여 줍니다. 평형은 그 단지의 전용면적으로 표시합니다(비슷한 전용면적은 하나로 묶어 그림). 큰 숫자 = 그 평형 최근 3개월 실거래 중위(거래가 적으면 6개월), 1년·3년 = 1년 전·3년 전 같은 기간과 비교. 선 = 3개월 이동 중위(앞뒤 달 포함, 앞 1년·뒤 1년 시세보다 모두 25% 넘게 높거나 낮은 튀는 거래는 뺌, 6개월 넘게 거래가 없으면 선을 끊음), 점선 = 분양권 전매, 세로 점선 = 입주(사용승인). 말풍선의 건수는 그 달 거래 수이고, 0건인 달은 앞뒤 달 거래로 이은 값입니다. 위의 '광주 전용 84㎡ 중위'는 전용 76~95㎡ 거래를 84㎡ 기준으로 맞춘 광주 전체 월 중위입니다.${TD.lead&&TD.lead.direct==='제외'?' 직거래는 뺐습니다(국토교통부가 거래 유형을 공개한 ’21.11 이후 거래만 구분 가능).':''} '전체'는 ${M[0].slice(0,4)}년부터(약 ${yrs}년). 최근 1~2개월은 신고(계약 뒤 30일 안) 전이라 덜 잡힙니다. 호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.<br>${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p>`;
   B.querySelectorAll('.tcard').forEach((card,i)=>tMount(card, list[i]));
 }
 function tRange(b, M, px){   // 보이는 구간: 최근 2년 또는 전체(첫 거래·분양권·입주 6개월 전 중 가장 이른 달부터)
@@ -1284,7 +1293,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.5.9 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.6.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

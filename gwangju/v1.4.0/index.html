@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.7.1">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.7.2">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.7.1</title>
+<title>우리동네 입지분석(광주) v1.7.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -746,6 +746,17 @@ table.t.pt .mini{padding:6px 7px;margin-left:3px}
 .hxrc .ax text{font-size:11.5px;fill:var(--muted)} .hxrc .mk{font-size:12px;font-weight:800}
 .hxlg i.cl{width:16px;border-top:2px dashed var(--muted)}
 @media (max-width:420px){.sc3 .sbx .l{white-space:normal;overflow:visible;text-overflow:clip;word-break:keep-all;line-height:1.25;letter-spacing:-.02em}}   /* v1.7.1 '거래활발도 점수'가 390px에서 2px 넘쳐 말줄임 → 줄바꿈 허용 */
+/* v1.7.2 전용면적별 표: 전용 옆 작은 '동' 버튼, 최근가 칸 넓게, 지도 동 표시 */
+table.t.pt.ty th:first-child,table.t.pt.ty td:first-child{width:32%}
+table.t.pt.ty th:last-child,table.t.pt.ty td:last-child{width:36%;text-align:right}
+table.t.pt.ty td.tya{white-space:nowrap}
+table.t.pt.ty .tyt{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.tydb{margin-left:6px;font:inherit;font-size:12px;font-weight:700;line-height:1;padding:7px 9px;min-height:30px;border:1px solid var(--accent);border-radius:999px;background:var(--surface);color:var(--accent);cursor:pointer;vertical-align:1px}
+.tydb[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink,#fff)}
+.osmc{color:var(--muted);font-size:11px;margin-left:2px;white-space:nowrap}
+.blon{fill:#1b64da;fill-opacity:.85;stroke:#0b3fa8} .bloff{fill:#ffffff;fill-opacity:.5;stroke:#3182f6}
+.blab{background:#0b3fa8;color:#fff;font-size:11.5px;font-weight:800;padding:2px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 4px #0005;pointer-events:none}
+.hxbig small{font-size:.6em;font-weight:700;margin-left:1px}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -756,7 +767,7 @@ table.t.pt .mini{padding:6px 7px;margin-left:3px}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.1</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.2</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -844,7 +855,7 @@ table.t.pt .mini{padding:6px 7px;margin-left:3px}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=1a69befc", DET=["data/d00.json.gz?v=b684831c", "data/d01.json.gz?v=ca45cf5b", "data/d02.json.gz?v=d78c6d5d", "data/d03.json.gz?v=daa71fdd", "data/d04.json.gz?v=679944ee", "data/d05.json.gz?v=52b5b2b2", "data/d06.json.gz?v=95c83d73", "data/d07.json.gz?v=be24d585", "data/d08.json.gz?v=12b061da", "data/d09.json.gz?v=087ec00a", "data/d10.json.gz?v=bb439e9c", "data/d11.json.gz?v=6eea34ba", "data/d12.json.gz?v=6567d2f5", "data/d13.json.gz?v=0c1df69b", "data/d14.json.gz?v=bef92ad5", "data/d15.json.gz?v=3f7d59ab"], APP="app.js?v=7897e8d2", DASHF="data/rt/trend.json.gz?v=7e1b1b4e", TXF="data/rt/tx.json.gz?v=20d4aa4d";
+  var CORE="data/core.json.gz?v=6ec1661b", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=142cc6c4", DASHF="data/rt/trend.json.gz?v=e59fa430", TXF="data/rt/tx.json.gz?v=99259881";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

@@ -1,4 +1,4 @@
-# v1.7.0 시세 흐름 공통 계산(’26.11.5, 연구원: 광주 통합 대장 아파트 20곳(㎡당 실거래가 순)·구별 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래(층 포함)·전월세). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.7.1 시세 흐름 공통 계산(’26.11.5 v1.7.1: 전세 시세는 갱신 계약 제외(5% 상한이라 시세보다 낮음) · 광주 전체 전세 월 중위(city.ro) 추가. 연구원: 광주 통합 대장 아파트 20곳(㎡당 실거래가 순)·구별 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래(층 포함)·전월세). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -145,7 +145,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         # 전세(월세 0) 평형대별 월 중위 보증금 → px[cid]["r"][평형대] = {s:[간격, 중위, 건수], n, p(최근 3개월 중위, 부족하면 6개월), pk(그 달 수)}
         byr = collections.defaultdict(list)
         for m, dep, mon, a, d, fl, ct in raw(cid, RNK):
-            if mon == 0: byr[band(a)].append((m, dep, a, d, 1))
+            if mon == 0 and ct != 1: byr[band(a)].append((m, dep, a, d, 1))   # v1.7.1 전세(월세 0) 중 신규·미상만. 갱신(계약갱신청구권, 5% 상한)은 목록에만
         rb = {}
         for k, L in byr.items():
             if len(L) < 3: continue
@@ -155,6 +155,18 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     out = dict(v=4, enc="d3", src=src_text, asof=today.isoformat(), months=M, bandLabel=BAND_LABEL, city={}, gu={}, dongs={}, px=px,
                lead=dict(area=LEAD_MIN_AREA, floor=lead_floor, direct=("제외" if excl_direct else "포함")), svName=sv_name, nDirect=n_direct)
     cm, cc = idx84(city_tr); out["city"] = dict(mo=cm, mc=cc)
+    # v1.7.1 광주 전체 전세 = 연결된 단지의 전세(월세 0, 신규·미상 계약) 중 전용 76~95㎡ 보증금을 84.9㎡로 환산한 월 중위(3건 이상인 달만) + 월 건수.
+    #   대장 아파트 윗줄의 '광주 전세 중위·전세가율', 단지 상세 전세가율 추이의 광주 비교선에 씀. 전월세 자료가 없는 달(2021년 이전)은 None
+    ro = [None] * N; rc = [0] * N; byc = collections.defaultdict(list)
+    for k, L in RNK.items():
+        if k not in RTG: continue
+        for m, dep, mon, a, d, fl, ct in L:
+            if mon or ct == 1: continue
+            i = MI[m]; rc[i] += 1
+            if 76 <= a <= 95: byc[i].append(dep / a * 84.9)
+    for i, xs in byc.items():
+        if len(xs) >= 3: ro[i] = round(statistics.median(xs))
+    out["city"]["ro"] = ro; out["city"]["rc"] = rc
     for g, trs in gu_tr.items():
         out["gu"][g] = dict(p=recent([(m, p / a * 84.9) for m, p, a, _, _ in trs if 76 <= a <= 95], need=5, back=(6, 12)))
     leads = {}   # 동네 → 대장(구별 주요 단지 12곳 고를 때 씀)

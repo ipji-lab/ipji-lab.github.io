@@ -1,4 +1,4 @@
-# v1.6.0 시세 흐름 공통 계산(’26.11.5, 연구원: 광주 통합 대장 아파트 20곳(㎡당 실거래가 순)·구별 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
+# v1.7.0 시세 흐름 공통 계산(’26.11.5, 연구원: 광주 통합 대장 아파트 20곳(㎡당 실거래가 순)·구별 8곳 가격 흐름, 튀는 거래 걸러냄, 카드별 평형 선택, 단지 상세 개별 거래(층 포함)·전월세). dash_v15.py(로컬 자료)·dash_auto.py(GitHub Actions, API)가 같이 씀
 # 입력: 매매 실거래 행 (umd, jibun, aptNm, 연, 월, 일, 금액(만원), 전용㎡, 해제여부[, 직거래여부]), 분양권 전매 행(같은 모양), 단지 목록 [{id,n,u,y,ym,g,hd,gu,rtk,al}], 기준일
 # 출력(v4): months(자료 첫 달~이번 달) · city(84㎡대 월 지수) · gu(최근 중위·대장 아파트 8곳 top: 84㎡ 환산 가격 흐름) · dongs(대장 ㎡당 가격·평균 등급·주요 단지 6곳) · px(모든 단지 평형대별 월 시세, [간격, 중위가, 건수]를 이어 붙인 1차원 배열 — enc "d3")
 # 등급·환금성 점수는 여기서 계산하지 않음(빌드 때 고정). 이 파일은 시세 흐름 화면 자료만 만듦
@@ -29,7 +29,7 @@ def _med(xs): return round(statistics.median(xs)) if xs else None
 import re
 def _norm(s): return re.sub(r"[\s()\[\]·.,\-]|아파트|APT", "", str(s)).lower()
 LEAD_MIN_AREA = 84.0   # 연구원(11.4): 대장은 전용 84㎡ 이상 매매의 ㎡당 가격으로(39~74㎡는 ㎡당 가격이 높게 나와 제외)
-def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, lead_floor=0):
+def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, lead_floor=0, rent=None):   # v1.7.0 rent = 전월세 행 (umd, jibun, aptNm, 연, 월, 일, 보증금(만원), 월세(만원), 전용㎡, 층, 신규/갱신)
     """lead_floor: 대장 후보 세대수 하한(그 이상 단지가 없는 동네는 전체에서). excl_direct: 직거래 제외(행에 직거래 여부가 있을 때만)"""
     if start is None: start = min(f"{r[3]}-{r[4]:02d}" for r in rows)
     M = months_from(start, today); MI = {m: i for i, m in enumerate(M)}; N = len(M)
@@ -59,15 +59,24 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             if by_name and k not in RTG:
                 ids = NM.get((umd, _norm(nm)))
                 if ids and len(ids) == 1: k = ("#", next(iter(ids))); nm_hit += 1
-            B[k].append((key, amt, ar, yy * 10000 + mo * 100 + dd))
+            B[k].append((key, amt, ar, yy * 10000 + mo * 100 + dd, (r[10] if len(r) > 10 else 0) or 0))   # v1.7.0 끝에 층(보관 형식 3 이전 자료는 0)
         return B, n, nm_hit
-    BYK, n_all, _ = bucket(rows); SVK, _, sv_name = bucket(silv or [], by_name=True)
+    def bucket_rent(rs):   # v1.7.0 전월세: (달, 보증금, 월세, 전용, 연월일, 층, 0 신규|1 갱신|2 미상)
+        B = collections.defaultdict(list); n = 0
+        for r in rs:
+            umd, jb, nm, yy, mo, dd, dep, mon, ar, fl, ct = (list(r) + ["", ""])[:11]
+            if not (30 <= (ar or 0) <= 250) or not dep: continue
+            key = f"{yy}-{mo:02d}"
+            if key not in MI: continue
+            n += 1; B[rtkey(umd, jb, nm)].append((key, int(dep), int(mon or 0), ar, yy * 10000 + mo * 100 + dd, int(fl or 0), 0 if ct == "신규" else 1 if ct == "갱신" else 2))
+        return B, n
+    BYK, n_all, _ = bucket(rows); SVK, _, sv_name = bucket(silv or [], by_name=True); RNK, n_rent = bucket_rent(rent or [])
     for cid in CX: RTG[("#", cid)].append(cid)
     KEYS = collections.defaultdict(list)
     for k, ids in RTG.items():
         for i in set(ids): KEYS[i].append((k, CX[i]["u"] / sum(CX[j]["u"] for j in set(ids) if j in CX)))
     def series(cid, src):
-        return [(m, p, a, d, sh) for k, sh in KEYS[cid] for m, p, a, d in src.get(k, [])]
+        return [(m, p, a, d, sh) for k, sh in KEYS[cid] for m, p, a, d, *_ in src.get(k, [])]
     def idx84(trs):   # 84㎡대(전용 76~95) 거래를 84.9㎡로 환산한 월 중위 + 월 거래 건수(세대수 비례 배분 합)
         mo = [None] * N; mc = [0] * N; by = collections.defaultdict(list)
         for mm, p, a, _, s in trs:
@@ -124,10 +133,25 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         px[cid] = dict(rep=rep, ym=c.get("ym"), b=bands)
         lp = lead_ppm(tr)
         if n24 >= 8: dong_cx[c["hd"]].append(dict(id=cid, n=c["n"], u=c["u"], y=c["y"], g=c.get("g"), rep=rep, lp=lp, n24=n24))
-    tx = {}   # v1.5.9 연구원(11.4): 단지 상세 실거래 그래프의 개별 거래 점·거래 목록 = 최근 TX_MONTHS개월 매매·분양권 [달 번호, 일, 금액(만원), 전용㎡×100, 0 매매|1 분양권] 최신순(호출 쪽에서 따로 저장)
+    tx = {}   # v1.5.9 연구원(11.4): 단지 상세 실거래 그래프의 개별 거래 점·거래 목록 = 최근 TX_MONTHS개월 매매·분양권 [달 번호, 일, 금액(만원), 전용㎡×100, 0 매매|1 분양권, 층] 최신순(호출 쪽에서 따로 저장). v1.7.0 층 추가(6칸)
+    rtx = {}  # v1.7.0 전월세 개별 거래(최근 TX_MONTHS개월) [달 번호, 일, 보증금(만원), 월세(만원), 전용㎡×100, 층, 0 신규|1 갱신|2 미상]
+    def raw(cid, src):
+        return [t for k, _ in KEYS[cid] for t in src.get(k, [])]
     for cid in px:
-        rs = [(MI[m], d % 100, p, round(a * 100), 0) for m, p, a, d, _ in series(cid, BYK) if MI[m] >= N - TX_MONTHS] + [(MI[m], d % 100, p, round(a * 100), 1) for m, p, a, d, _ in series(cid, SVK) if MI[m] >= N - TX_MONTHS]
+        rs = [(MI[m], d % 100, p, round(a * 100), 0, fl) for m, p, a, d, fl in raw(cid, BYK) if MI[m] >= N - TX_MONTHS] + [(MI[m], d % 100, p, round(a * 100), 1, fl) for m, p, a, d, fl in raw(cid, SVK) if MI[m] >= N - TX_MONTHS]
         if rs: rs.sort(key=lambda t: (-t[0], -t[1], -t[2])); tx[cid] = [v for t in rs for v in t]
+        rr = [(MI[m], d % 100, dep, mon, round(a * 100), fl, ct) for m, dep, mon, a, d, fl, ct in raw(cid, RNK) if MI[m] >= N - TX_MONTHS]
+        if rr: rr.sort(key=lambda t: (-t[0], -t[1], -t[2])); rtx[cid] = [v for t in rr for v in t]
+        # 전세(월세 0) 평형대별 월 중위 보증금 → px[cid]["r"][평형대] = {s:[간격, 중위, 건수], n, p(최근 3개월 중위, 부족하면 6개월), pk(그 달 수)}
+        byr = collections.defaultdict(list)
+        for m, dep, mon, a, d, fl, ct in raw(cid, RNK):
+            if mon == 0: byr[band(a)].append((m, dep, a, d, 1))
+        rb = {}
+        for k, L in byr.items():
+            if len(L) < 3: continue
+            vm = [(t[0], t[1]) for t in L]; pr = recent(vm)
+            rb[k] = dict(s=sparse(L), n=len(L), p=pr)
+        if rb: px[cid]["r"] = rb
     out = dict(v=4, enc="d3", src=src_text, asof=today.isoformat(), months=M, bandLabel=BAND_LABEL, city={}, gu={}, dongs={}, px=px,
                lead=dict(area=LEAD_MIN_AREA, floor=lead_floor, direct=("제외" if excl_direct else "포함")), svName=sv_name, nDirect=n_direct)
     cm, cc = idx84(city_tr); out["city"] = dict(mo=cm, mc=cc)
@@ -209,5 +233,5 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     for g in out["gu"]:   # 구별 8곳(v1.5.6~v1.5.9 화면용, 그대로 둠)
         out["gu"][g]["top"] = [card(d) for d in pick([d for d in CAND if CX[d["id"]]["gu"] == g], 8)]
     out["top"] = [card(d) for d in pick(CAND, TOP_N)]   # v1.6.0 연구원(11.5): 광주 통합 대장 아파트 = ㎡당 실거래가 높은 순 20곳
-    out["tx"] = tx   # 호출 쪽(dash_auto·dash_v15)에서 꺼내 rt/tx.json.gz 로 따로 씀(시세 흐름 파일 크기 그대로)
+    out["tx"] = tx; out["rtx"] = rtx; out["nRent"] = n_rent   # 호출 쪽(dash_auto·dash_v15)에서 꺼내 rt/tx.json.gz 로 따로 씀(시세 흐름 파일 크기 그대로)
     return out, n_all

@@ -17,7 +17,12 @@ const DN=(()=>{ const rows=CX.map(c=>{ const d=String(c.dong||'').replace(/\(.*\
 const dnParts=c=>DN.get(c.id)||[String(c.dong||'').replace(/\(.*\)$/,''), String(c.n||'')];
 const dn=c=>{ const [d,m]=dnParts(c); return d?`${d} ${m}`:m; };
 const lwOf=(c,n)=>dn(c).split(/\s+/).some(w=>w.length>=n);
-function glueDom(root){ const tw=document.createTreeWalker(root, NodeFilter.SHOW_TEXT); for(let n=tw.nextNode(); n; n=tw.nextNode()){ const p=n.parentElement; if(!p||p.closest('select,option,script,style')) continue; if(/\d㎡/.test(n.nodeValue)) n.nodeValue=n.nodeValue.replace(/(\d)㎡/g,'$1\u2060㎡'); } }   // v1.7.4 '84㎡'가 줄 끝에서 '84 / ㎡'로 갈라지지 않게(보이지 않는 단어 이음 문자)   // 띄어쓰기 없는 긴 낱말(n자 이상)이 있는 이름 → 글자 단위로 고르게 줄바꿈(.lw)
+const GLUE_RE=/\d㎡|㎡[가-힣]| [·:\/~] | …|(^|[^\s\u2060])·(\S|$)|[^\s\u2060]~[^\s\u2060]|[)\]%’”…][가-힣]|[가-힣] [가-힣]{1,2}[)\].,!?」』’”]*$/;
+const glueTxt=s=>s.replace(/(\d)㎡/g,'$1\u2060㎡').replace(/㎡(?=[가-힣])/g,'㎡\u2060').replace(/ ([·:\/~])(?= )/g,'\u00A0$1').replace(/ …/g,'\u00A0…').replace(/(^|[^\s\u2060])·(?=\S|$)/g,'$1\u2060·').replace(/([^\s\u2060])~(?=[^\s\u2060])/g,'$1\u2060~\u2060').replace(/([)\]%’”…])(?=[가-힣])/g,'$1\u2060').replace(/([가-힣]) ([가-힣]{1,2}[)\].,!?」』’”]*)$/,'$1\u00A0$2');
+function glueNode(n){ const v=n.nodeValue; if(!v||!GLUE_RE.test(v)) return; const p=n.parentElement; if(!p||p.closest('select,option,script,style,textarea,svg,#nmap')) return; const w=glueTxt(v); if(w!==v) n.nodeValue=w; }
+function glueDom(root){ if(!root) return; if(root.nodeType===3) return glueNode(root); if(root.nodeType!==1) return; const tw=document.createTreeWalker(root, NodeFilter.SHOW_TEXT); for(let n=tw.nextNode(); n; n=tw.nextNode()) glueNode(n); }
+(function glueWatch(){ const go=()=>{ glueDom(document.body); new MutationObserver(ms=>{ for(const m of ms){ const t=m.type==='characterData'?m.target.parentElement:m.target; if(t&&t.closest&&t.closest('#nmap')) continue; if(m.type==='characterData') glueNode(m.target); else m.addedNodes.forEach(x=>glueDom(x)); } }).observe(document.body,{childList:true,subtree:true,characterData:true}); }; if(document.body) go(); else document.addEventListener('DOMContentLoaded',go); })();
+// v1.7.5 연구원(11.6 실제 글꼴 점검): 줄 첫머리에 '·'·'~'·'…'이 오지 않게(구분점은 앞 낱말 끝에 붙임), '84㎡'·'㎡당'·'(…)로'·'40%로'는 한 덩어리, 문단 끝 짧은 두 낱말('안 함)')은 붙여 끝줄에 한두 글자만 남지 않게 — 새로 그려지는 글자에도 자동 적용(MutationObserver). 이전 v1.7.4: // v1.7.4 '84㎡'가 줄 끝에서 '84 / ㎡'로 갈라지지 않게(보이지 않는 단어 이음 문자)   // 띄어쓰기 없는 긴 낱말(n자 이상)이 있는 이름 → 글자 단위로 고르게 줄바꿈(.lw)
 /* v1.2.2 연구원: 등급 표시는 단지 외곽선 가운데(외곽선 중심이 대표점에서 250m 안일 때). 점수 계산 좌표는 그대로 */
 CX.forEach(c=>{ c.mla=c.mla??c.lat; c.mlo=c.mlo??c.lon; const r=c.ol; if(!r||r.length<3) return; let A=0,X=0,Y=0;
   for(let i=0;i<r.length;i++){ const [a,b]=r[i],[d,e]=r[(i+1)%r.length], k=a*e-d*b; A+=k; X+=(a+d)*k; Y+=(b+e)*k; }
@@ -793,7 +798,7 @@ function renderDetail(){
       <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
     <section class="hero">
-      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점</span>`; })()}</span></div>
+      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="sc3">${subsc}</div>
     </section>
@@ -1161,9 +1166,10 @@ function tPrice(c, st){   // 큰 숫자 + 1년·3년 = 고른 평형 최근 3개
 }
 const tNameParts=dnParts;   // v1.7.3 비교 표 머리글도 같이 씀 → v1.7.4 화면 이름 정리(dnParts)와 하나로
 const tName=dn;   // v1.7.2 연구원(11.5): 대장 카드 = 법정동 + 단지명(봉선동 한국아델리움1단지) → v1.7.4 dn
+function tMeta(c){ return [c.ppm?`㎡당 ${Math.round(c.ppm).toLocaleString()}만`:'', `${c.gu||((CX.find(x=>x.id===c.id)||{}).gu||'')} ${c.hd}`, `${c.u.toLocaleString()}세대`, c.ym?'입주 '+tYM(c.ym):c.y+'년', c.g?c.g+'등급':''].map(x=>String(x).trim()).filter(Boolean).map(x=>x.replace(/ /g,'\u00A0')).join(' · '); }   // v1.7.5 대장 카드 둘째 줄: 휴대폰에서 '… 입주 ’04.12 / · 1등급'처럼 줄 첫머리에 '·'가 오던 것 → 항목('입주 ’04.12')은 한 덩어리, 줄바꿈은 항목 사이에서만(줄 길이는 고르게)
 function tCard(c, i){
   const col=`var(${TPAL[i%8]})`, st=tSt(c), ks=tBands(c); if(!ks.includes(st.b)) st.b=tDefBand(c, ks);
-  return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${tName(c)} — 단지 상세 보기">${tName(c)}</span><span class="meta">${c.ppm?`㎡당 ${Math.round(c.ppm).toLocaleString()}만 · `:''}${c.gu||((CX.find(x=>x.id===c.id)||{}).gu||'')} ${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
+  return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${tName(c)} — 단지 상세 보기">${tName(c)}</span><span class="meta">${tMeta(c)}</span></div>
     <div class="tp">${tPrice(c, st)}</div></div>
     <div class="tctl">${ks.length?`<select class="tbsel" aria-label="${dn(c)} 평형 선택">${ks.map(k=>`<option value="${k}"${st.b===k?' selected':''}>${tBandName(c.id,k)}</option>`).join('')}</select>`:'<span></span>'}<span class="rsel" role="group" aria-label="${dn(c)} 기간 선택"><button data-cr="24" class="${st.r===24?'on':''}">최근 2년</button><button data-cr="0" class="${st.r===0?'on':''}">전체</button></span></div>
     <div class="bchart"></div></div>`;
@@ -1356,7 +1362,7 @@ function validStats(){   // v1.3.0: 등급 ↔ 실거래가 검증(화면에서 
 }
 function openMethod(){
   const ov=$('ovMethod'); ov.hidden=false;
-  const itemsT = AREAS.map(a=>Object.keys(IN[a]).map((k,i)=>`<tr>${i===0?`<td rowspan="${Object.keys(IN[a]).length}"><b>${AN[a]}</b><br><span class="ver">${Math.round(M.areaW[a]*100)}%</span>${(M.basis&&M.basis.area[a])?`<br><span class="sm">${M.basis.area[a]}</span>`:''}</td>`:''}<td>${NAMES[k]}<br><span class="ver">${(()=>{const t=Object.values(IN[a]).reduce((x,y)=>x+y,0); return t>1?IN[a][k]+'점':'100점';})()}</span></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">배점 근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')).join('');
+  const itemsT = AREAS.map(a=>Object.keys(IN[a]).map((k,i)=>`<tr>${i===0?`<td rowspan="${Object.keys(IN[a]).length}"><b>${AN[a]}</b><br><span class="ver">${Math.round(M.areaW[a]*100)}%</span>${(M.basis&&M.basis.area[a])?`<span class="sm sb">${M.basis.area[a]}</span>`:''}</td>`:''}<td>${NAMES[k]}<br><span class="ver">${(()=>{const t=Object.values(IN[a]).reduce((x,y)=>x+y,0); return t>1?IN[a][k]+'점':'100점';})()}</span></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<span class="sm sb">배점 근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')).join('');
   const sens = M.sens.map(s=>`<tr><td>${AN[s.area]} ${s.f<1?'−20%':'+20%'}</td><td class="n">${s.changed}곳 (${s.changedPct}%)</td><td class="n">${s.top1Keep}/${s.top1N}</td></tr>`).join('');
   const AD={L:'프랜차이즈·편의시설·병원·마트·동네마트·공원·도서관',S:'초등 통학·중학교·학원가·고등학교(낮은 비중)',J:'주요 업무지구 출퇴근(자가용)',T:'KTX(광주송정역)·공항·유스퀘어',D:'반경 2km 새 아파트 입주 물량',C:'연식·세대수·시공사·주차·커뮤니티',Q:'최근 2년 월 거래율'};
   const GRP={L:'loc',S:'loc',J:'loc',T:'loc',D:'loc',C:'prd',Q:'liq'}, GN={loc:'입지',prd:'단지 상품성',liq:'환금성'}, AC=a=>`var(--a${a})`, AK={T:1,J:1,D:1};   // v1.1.3 연구원: 영역마다 다른 색(색약 검증 팔레트)
@@ -1380,7 +1386,7 @@ function openMethod(){
   const ctab=`<table class="calc ct3"><thead><tr><th>조건</th><th>기준</th><th>결과</th></tr></thead><tbody>${cond.map(r=>`<tr><td class="ck"><b>${r[0]}</b></td><td class="cv">${r[1]}</td><td class="cr">${r[2]}</td></tr>`).join('')}</tbody></table>`;   // v1.7.4 휴대폰에서는 표 대신 조건 → 기준 → 결과를 위아래로(좁은 칸에서 3~4줄로 꺾이던 것)
   const pen=[['복도 유형','복도식 · 혼합식','2 · 1'],['나홀로아파트','동 1개 단지(세대수는 상품성에서 이미 반영)','1~2(2 × (1 − 세대÷600))'],['용적률','250% 초과부터 100%p마다(주상복합은 면제)','0.5~3'],['평형 구성','전 세대 84㎡ 미만 · 59㎡ 미만','1 · 2'],['소음','큰 도로 200m · 지상 철도 100m · 공항 3km 안','최대 2'],['악취','산업단지 · 축사 · 퇴비 사업장','최대 2'],['청소년 유해업소','단지 경계 200m 안 유흥·숙박·노래방·PC방 등','최대 3'],['기피시설','하수·소각·매립·화장·교정시설','최대 2'],['노후 빌라·원룸촌','단지 둘레의 노후 다세대·다가구 비율','최대 2'],['주상복합','상가 위 주거(용적률 감점 대신)','1']];
   const ptab=`<table class="calc ct3 pen"><thead><tr><th>항목</th><th>기준</th><th>감점</th></tr></thead><tbody>${pen.map(r=>`<tr><td class="ck"><b>${r[0]}</b></td><td class="cv">${r[1]}</td><td class="n cr">${r[2]}</td></tr>`).join('')}</tbody></table>`;
-  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span> <span class="sm">${AD[a]}</span></summary><table class="calc it3"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S7t:'고등학교',S7a:'고등학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">영역 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
+  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span> <span class="sm">${AD[a]}</span></summary><table class="calc it3"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S7t:'고등학교',S7a:'고등학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<span class="sm sb">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">영역 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
   const basisL = M.basis?`<ul class="sm">${Object.entries({grade:'등급 비율',price:'실거래가 조건',unsold:'미분양',small:'소단지',unit:'전 세대 59㎡ 미만',old:'구축',walk:'도보 시간',harm:'청소년 유해업소',far:'용적률',noise:'소음',nimby:'기피시설',villa:'노후 빌라·원룸촌',rent:'임대 단지',weight:'영역 비중',penalty:'보정 합계'}).filter(([k])=>M.basis.rule[k]).map(([k,n])=>`<li><b>${n}</b>: ${M.basis.rule[k]}</li>`).join('')}</ul>`:'';
   // 검증: 등급과 실제 시장(국토부 실거래)의 관계 — 화면에서 자료로 바로 계산(사람이 적어 넣는 값 없음)
   const V=validStats();
@@ -1412,7 +1418,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.5 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

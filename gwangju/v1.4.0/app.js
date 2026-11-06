@@ -10,6 +10,14 @@ const pct = v => `${v>0?'+':v<0?'−':''}${Math.abs(Math.round(v*100))}%`;
 const pct1 = v => `${v>0?'+':v<0?'−':''}${Math.abs(v*100).toFixed(1)}%`;
 const f1 = v => v==null?'–':(Math.round(v*10)/10).toFixed(1);
 const M = DATA.meta, CX = DATA.cx, NOWY = 2026, N = CX.length, NF = M.Nfinal;
+/* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
+   같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
+const DN=(()=>{ const rows=CX.map(c=>{ const d=String(c.dong||'').replace(/\(.*\)$/,''); let m=String(c.n||'').replace(/^광주(광역시)?\s*/,'').trim(); if(d&&m.startsWith(d)&&m.length>d.length+1) m=m.slice(d.length).trim(); let t=m.replace(/\s*아파트$/,''); if(t.replace(/\s/g,'').length<3) t=m;   /* '삼성아파트'·'현대아파트'처럼 두 글자 이름은 '아파트'를 남김 */ return [c.id,d,m,t]; });
+  const k=new Map(); rows.forEach(r=>k.set(r[1]+'|'+r[3],(k.get(r[1]+'|'+r[3])||0)+1)); return new Map(rows.map(r=>[r[0],[r[1], k.get(r[1]+'|'+r[3])>1?r[2]:r[3]]])); })();
+const dnParts=c=>DN.get(c.id)||[String(c.dong||'').replace(/\(.*\)$/,''), String(c.n||'')];
+const dn=c=>{ const [d,m]=dnParts(c); return d?`${d} ${m}`:m; };
+const lwOf=(c,n)=>dn(c).split(/\s+/).some(w=>w.length>=n);
+function glueDom(root){ const tw=document.createTreeWalker(root, NodeFilter.SHOW_TEXT); for(let n=tw.nextNode(); n; n=tw.nextNode()){ const p=n.parentElement; if(!p||p.closest('select,option,script,style')) continue; if(/\d㎡/.test(n.nodeValue)) n.nodeValue=n.nodeValue.replace(/(\d)㎡/g,'$1\u2060㎡'); } }   // v1.7.4 '84㎡'가 줄 끝에서 '84 / ㎡'로 갈라지지 않게(보이지 않는 단어 이음 문자)   // 띄어쓰기 없는 긴 낱말(n자 이상)이 있는 이름 → 글자 단위로 고르게 줄바꿈(.lw)
 /* v1.2.2 연구원: 등급 표시는 단지 외곽선 가운데(외곽선 중심이 대표점에서 250m 안일 때). 점수 계산 좌표는 그대로 */
 CX.forEach(c=>{ c.mla=c.mla??c.lat; c.mlo=c.mlo??c.lon; const r=c.ol; if(!r||r.length<3) return; let A=0,X=0,Y=0;
   for(let i=0;i<r.length;i++){ const [a,b]=r[i],[d,e]=r[(i+1)%r.length], k=a*e-d*b; A+=k; X+=(a+d)*k; Y+=(b+e)*k; }
@@ -317,7 +325,7 @@ function dongAgg(lv){
 const GUC = {}; DATA.geo.sgg.features.forEach(f=>{ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates; let A=0,X=0,Y=0;
   polys.forEach(poly=>{ const r=poly[0]; for(let i=0;i<r.length-1;i++){ const k=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1]; A+=k; X+=(r[i][0]+r[i+1][0])*k; Y+=(r[i][1]+r[i+1][1])*k; } });
   if (A) GUC[f.properties.g]=[Y/(3*A), X/(3*A)]; });   // 시군구 경계 중심(위도, 경도)
-const aggLab = d => S.mine ? `내 점수 평균 ${d.s.toFixed(1)}점 · ${d.n}곳` : d.lv==='gu' ? `평균 ${d.s.toFixed(1)}점 · ${d.g.toFixed(1)}등급 · ${d.n}곳` : `평균 ${d.g.toFixed(1)}등급 · ${d.n}곳`;
+const aggLab = d => S.mine ? `내 점수 평균 ${d.s.toFixed(1)}점 · ${d.n}곳` : (d.lv==='gu'&&!matchMedia('(max-width:480px)').matches) ? `평균 ${d.s.toFixed(1)}점 · ${d.g.toFixed(1)}등급 · ${d.n}곳` : `평균 ${d.g.toFixed(1)}등급 · ${d.n}곳`;   // v1.7.4 연구원(11.6): 휴대폰에서는 구 알약도 동네처럼 '평균 등급 · 단지 수'만(폭을 줄여 광산구·동구가 화면 밖으로 잘리지 않게)
 let CURLV = null;
 function drawDong(lv){
   lv = lv || (K<GZ?'gu':'dong'); CURLV = lv;
@@ -368,8 +376,8 @@ function drawMarkers(){
   });
   mk.each(function(c){
     const g=d3.select(this), gr=mapG(c);
-    g.attr('aria-label',`${c.dong} ${c.n}, ${gLab(c)}, 종합 ${f1(scoreOf(c))}점`);
-    g.select('title').text(`${c.dong} ${c.n} · ${gLab(c)} · 종합 ${f1(scoreOf(c))}점${c.final?'':'(잠정)'} · ${BAND[c.band]}`);
+    g.attr('aria-label',`${dn(c)}, ${gLab(c)}, 종합 ${f1(scoreOf(c))}점`);
+    g.select('title').text(`${dn(c)} · ${gLab(c)} · 종합 ${f1(scoreOf(c))}점${c.final?'':'(잠정)'} · ${BAND[c.band]}`);
     g.select('.pill').style('fill', gr==null?'var(--surface)':gCol(gr)).style('stroke', gr==null?'var(--muted)':null).attr('stroke-dasharray', gr==null?'3 2':null);
     g.select('.sc').text(mLab(c)).style('fill', gInk(gr));
     const pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : repPrice(c);
@@ -480,7 +488,7 @@ function itemHTML(c){
   const ri=repInfo(c), pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : ri.pt, r=ri.t||ri.b, sc=scoreOf(c);
   return `<li class="row"><button class="item" data-id="${c.id}">
     ${gradeChip(c)}
-    <span style="min-width:0"><span class="nm">${c.dong} ${c.n}</span><br><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span>
+    <span style="min-width:0"><span class="nm${lwOf(c,10)?' lw':''}">${dn(c)}</span><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span>
       <span class="tags">${tagsShow(c)}</span></span>
     <span class="rt"><span class="score num">${S.mine&&c.pr?`<small class="prk">${c.pr}위</small> `:''}${f1(sc)}<small>점</small></span><span class="price">${r?`${typeLabel(r)} `:''}${(!(S.mine && S.mine.size!=='all')&&ri.src==='bp')?'분양 ':''}${eok(pt)}</span></span>
   </button>${bandBtn(c)}</li>`;
@@ -638,7 +646,7 @@ function hxChart(el, c, b, M, r, tr, px, opt){   // 월 중위 선 + 개별 거�
   const x=d3.scaleLinear().domain([i0-0.5,i1+0.5]).range([m.l,W-m.r]);
   const vals=pts.map(p=>p.v).concat(svp.map(p=>p.v), dots.map(p=>p.v), ref.map(p=>p.v)); let [lo,hi]=d3.extent(vals); const pad=Math.max((hi-lo)*0.1, hi*0.04);
   const y=d3.scaleLinear().domain([Math.max(0,lo-pad),hi+pad]).nice(4).range([yB,m.t]);
-  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} ${tBandName(c.id,HX.b)} ${opt.rent?'전세':'실거래가'} 흐름`);
+  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${dn(c)} ${tBandName(c.id,HX.b)} ${opt.rent?'전세':'실거래가'} 흐름`);
   const fmtY=t=>(t/10000).toFixed(t%10000===0?0:1).replace(/\.0$/,'')+'억';
   svg.append('g').attr('class','ax').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues(tTicksY(y,5)).tickFormat(fmtY).tickSize(-(W-m.l-m.r)).tickPadding(8)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)'));
   if(ym>=i0&&ym<=i1){ svg.append('line').attr('x1',x(ym)).attr('x2',x(ym)).attr('y1',m.t).attr('y2',vBot).attr('stroke','var(--muted)').attr('stroke-opacity',.6).attr('stroke-dasharray','2 4'); svg.append('text').attr('class','tin').attr('x',x(ym)+4).attr('y',m.t+11).text('입주'); }
@@ -688,7 +696,7 @@ function hxRatio(el, c, rs, ss, M, r){   // v1.7.1 전세가율 추이 = 전세 
   const box=el.querySelector('.hxrc'), W=Math.max(300, box.clientWidth||360), H=150, m={l:46,r:42,t:10,b:24};
   const vals=me.map(p=>p.v).concat(city.map(p=>p.v)); let [lo,hi]=d3.extent(vals); lo=Math.max(0,Math.floor((lo-4)/10)*10); hi=Math.min(130,Math.ceil((hi+4)/10)*10); if(hi-lo<20){ hi=Math.min(130,lo+20); }
   const x=d3.scaleLinear().domain([i0-0.5,i1+0.5]).range([m.l,W-m.r]), y=d3.scaleLinear().domain([lo,hi]).range([H-m.b,m.t]);
-  const svg=d3.select(box).append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} 전세가율 추이`);
+  const svg=d3.select(box).append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${dn(c)} 전세가율 추이`);
   svg.append('g').attr('class','ax').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(t=>t+'%').tickSize(-(W-m.l-m.r)).tickPadding(8)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)'));
   const tx=tTicksX(M,i0,i1,span<=30?6:span<=72?12:span<=150?24:48,W-m.l-m.r);
   svg.append('g').attr('class','ax').attr('transform',`translate(0,${H-m.b})`).call(d3.axisBottom(x).tickValues(tx.tv).tickSize(4).tickPadding(6).tickFormat(tx.f)).call(g=>g.select('.domain').remove()).call(g=>g.selectAll('.tick line').attr('stroke','var(--line)'));
@@ -780,12 +788,12 @@ function renderDetail(){
     : c.band==='under' ? '인근 비슷한 조건 단지의 시세보다 실거래가가 낮습니다.'
     : '인근 비슷한 조건 단지의 시세와 실거래가가 비슷합니다.';
   $('pbody').innerHTML = `<div class="detail">
-    <div><div class="dtitle"><h1>${c.dong} ${c.n}</h1><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
+    <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
       <div class="dmeta">${c.gu} ${c.addr||''} · ${c.u.toLocaleString()}세대 · ${c.ym?String(c.ym).slice(0,4)+'.'+String(c.ym).slice(4):c.y} 사용승인 · ${c.b||''}</div>
       <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
     <section class="hero">
-      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} 아파트 ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위${pp<1?'':` (상위 ${Math.round(pp)}%)`}<span class="gtot">종합점수 ${f1(tot)}점</span>`; })()}</span></div>
+      <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ const [rk,nn,pp]=rankOf(c); return `${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="sc3">${subsc}</div>
     </section>
@@ -840,7 +848,7 @@ function priceChart(el, list){
     const i=idx.reduce((b,j)=>Math.abs(x(j)-px)<Math.abs(x(b)-px)?j:b, idx[0]);
     guide.attr('x1',x(i)).attr('x2',x(i)).attr('opacity',1);
     dots.forEach(d=>d.attr('stroke',p=>p.i===i?'var(--surface)':null).attr('stroke-width',p=>p.i===i?2:null).attr('opacity',p=>p.i===i?1:.85));
-    const rows=ser.map((sr,j)=>{ const p=sr.pts.find(q=>q.i===i); return p?`<div>${list.length>1?`<span style="color:${cols[j]}">●</span> ${sr.c.n} `:''}<b>${eok(p.v)}</b> <span style="color:var(--muted)">${p.n}건</span></div>`:''; }).join('');
+    const rows=ser.map((sr,j)=>{ const p=sr.pts.find(q=>q.i===i); return p?`<div>${list.length>1?`<span style="color:${cols[j]}">●</span> ${dn(sr.c)} `:''}<b>${eok(p.v)}</b> <span style="color:var(--muted)">${p.n}건</span></div>`:''; }).join('');
     tip.innerHTML=`<div style="color:var(--muted)">${months[i].slice(0,4)}년 ${+months[i].slice(5,7)}월</div>${rows}`;
     tip.style.display='block';
     const er=el.getBoundingClientRect(), sx=r.left-er.left+x(i)/k, tw=tip.offsetWidth;
@@ -849,7 +857,7 @@ function priceChart(el, list){
   const hide=()=>{ tip.style.display='none'; guide.attr('opacity',0); dots.forEach(d=>d.attr('stroke',null).attr('opacity',.85)); };
   s.append('rect').attr('x',m.l).attr('y',m.t).attr('width',W-m.l-m.r).attr('height',H-m.t-m.b).attr('fill','transparent').style('cursor','crosshair')
     .on('pointermove',show).on('pointerdown',show).on('pointerleave',hide);
-  if (list.length>1){ const cap=document.createElement('p'); cap.className='note'; cap.innerHTML=list.map((c,k)=>`<span style="color:${cols[k]}">■</span> ${c.n}`).join(' · '); el.append(cap); }
+  if (list.length>1){ const cap=document.createElement('p'); cap.className='note'; cap.innerHTML=list.map((c,k)=>`<span style="color:${cols[k]}">■</span> ${dn(c)}`).join(' · '); el.append(cap); }
 }
 
 /* ═════════ 가격 판정 근거 ═════════ */
@@ -865,11 +873,11 @@ async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await wi
   const verdict2 = c.band==='hold' ? '최근 거래가 적거나 반경 500m 비교 단지가 부족해 판정을 보류합니다.'
     : `최근 거래가 ㎡당 <b>${fmtMan(c.p.med)}</b>(84㎡ 환산 ${eok(c.p84)})로, 반경 500m·비슷한 조건 추정값 <b>${fmtMan(pm.fair)}</b>보다 <b>${pct(c.gap)}</b> ${c.gap<0?'낮습니다':'높습니다'}.`;
   ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="prT"><div class="dh"><h2 id="prT">가격 판정 근거</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
-    <div><div style="font-weight:700">${c.dong} ${c.n}</div><span class="vpill ${c.band}" style="font-size:12.5px;padding:3px 10px">${BAND[c.band]}${c.gap!=null?' '+pct(c.gap):''}</span></div>
+    <div><div style="font-weight:700">${dn(c)}</div><span class="vpill ${c.band}" style="font-size:12.5px;padding:3px 10px">${BAND[c.band]}${c.gap!=null?' '+pct(c.gap):''}</span></div>
     <div class="callout">${verdict2}</div>
     <section class="sec"><h2>추정값을 만든 과정 (만원/㎡)</h2><div class="wf">${wf}</div></section>
     <section class="sec"><h2>가격에 크게 작용한 요인</h2><dl class="kv">${(pm.top||[]).map(([n,v])=>`<dt>${n}</dt><dd class="${v>=0?'up':'dn'}">${pct(v)}</dd>`).join('')}</dl></section>
-    <section class="sec"><h2>비슷한 조건의 단지</h2><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>연식</th><th>세대</th><th>84㎡</th><th>판정</th></tr></thead><tbody>${peers.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${p.dong} ${p.n}</button></td><td class="num">${p.y}</td><td class="num">${p.u.toLocaleString()}</td><td class="num">${eok(p.p84)}</td><td><span class="vpill ${p.band}">${BAND[p.band]}</span></td></tr>`).join('')}</tbody></table></div></section>
+    <section class="sec"><h2>비슷한 조건의 단지</h2><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>연식</th><th>세대</th><th>84㎡</th><th>판정</th></tr></thead><tbody>${peers.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${dn(p)}</button></td><td class="num">${p.y}</td><td class="num">${p.u.toLocaleString()}</td><td class="num">${eok(p.p84)}</td><td><span class="vpill ${p.band}">${BAND[p.band]}</span></td></tr>`).join('')}</tbody></table></div></section>
     <p class="note">참고값입니다. 감정평가나 적정가격이 아니며 종합점수에 넣지 않습니다.</p>
   </div></div>`;
   $('pClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
@@ -893,8 +901,8 @@ function sheetTo(st){ if (!matchMedia('(max-width:900px)').matches) return; shee
 $('q').addEventListener('input',e=>{
   const q=e.target.value.trim(), box=$('sugg');
   if (!q){ box.hidden=true; return; }
-  const hits=CX.filter(c=>(c.dong+' '+c.n+' '+c.gu).includes(q)).slice(0,8);
-  box.innerHTML = hits.length ? hits.map(c=>`<button data-id="${c.id}">${c.dong} ${c.n} <span style="color:var(--muted);font-size:12px">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('') : '<div class="empty" style="padding:12px">검색 결과 없음</div>';
+  const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,8);
+  box.innerHTML = hits.length ? hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('') : '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;
   box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; select(b.dataset.id); });
 });
@@ -952,13 +960,13 @@ function openPop(k, btn){
     const HK=Object.keys(HINT), hi=k=>{ const i=HK.indexOf(k); return i<0?99:i; };
     const und=CX.some(c=>c.band==='under'), ordT0=[...(und?[['under','저평가 단지','good']]:[]), ...[...have.values()].filter(t=>t[2]==='good'), ...[...have.values()].filter(t=>!t[2]&&t[0]!=='naju'), ...[...have.values()].filter(t=>t[2]==='bad')], ordT=ordT0.sort((a,b)=>hi(a[0])-hi(b[0]));   // 태그 순서: 좋은 점 → 단지 형태 → 아쉬운 점
     const N=t=>t==='under'?CX.filter(c=>c.band==='under').length:CX.filter(c=>c.tags.some(x=>x[0]===t)).length;
-    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div><div class="pbtns tagb">${ordT.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div><div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div>${[['good','좋은 점'],['','단지 형태'],['bad','아쉬운 점']].map(([k,l])=>{ const ts=ordT.filter(t=>(t[2]||'')===k); return ts.length?`<div class="tgl">${l}</div><div class="pbtns tagb">${ts.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div>`:''; }).join('')}<div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
     const show=v=>{ const h=HINT[v]; $('tdesc').innerHTML=h?`<b>${h[0]}</b> ${h[1]}<small>${h[2]}</small>`:''; };
     pop.querySelectorAll('.tagb .chip').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; S.tags.has(v)?S.tags.delete(v):S.tags.add(v); b.setAttribute('aria-pressed',String(S.tags.has(v))); show(v); refresh(); });
     $('pReset').onclick=()=>{ S.tags.clear(); pop.querySelectorAll('.tagb .chip').forEach(b=>b.setAttribute('aria-pressed','false')); $('tdesc').innerHTML=''; refresh(); };
   } else if (k==='grade'){
     const opts = [1,2,3,4,5,6,7,8,9].map(g=>[g,g+'등급']), set = S.grades;
-    pop.innerHTML=`<div class="pt">종합 등급(여러 개 선택)</div><div class="pbtns">${opts.map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${set.has(v)}">${l}</button>`).join('')}</div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    pop.innerHTML=`<div class="pt">종합 등급(여러 개 선택)</div><div class="pbtns gb">${opts.map(([v,l])=>`<button class="chip" data-v="${v}" aria-pressed="${set.has(v)}">${l}</button>`).join('')}</div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
     pop.querySelectorAll('.pbtns .chip').forEach(b=>b.onclick=()=>{ const v=+b.dataset.v; set.has(v)?set.delete(v):set.add(v); b.setAttribute('aria-pressed',String(set.has(v))); refresh(); });
     $('pReset').onclick=()=>{ set.clear(); pop.querySelectorAll('.pbtns .chip').forEach(b=>b.setAttribute('aria-pressed','false')); refresh(); };
   } else {
@@ -1151,13 +1159,13 @@ function tPrice(c, st){   // 큰 숫자 + 1년·3년 = 고른 평형 최근 3개
   const mo=c.ym?(+TD.months[TD.months.length-1].slice(0,4)*12+ +TD.months[TD.months.length-1].slice(5))-(Math.floor(c.ym/100)*12+c.ym%100):99;   // 입주 뒤 지난 달 수
   return `<b>${tEok(b.p)}</b><span>${old?`마지막 거래 ’${L.slice(2,4)}.${+L.slice(4,6)}`:b.c12==null&&mo<14?'입주 1년 미만':b.c36==null&&mo<38?`${b.c12==null?'1년 전 거래 없음':`1년 ${tPct(b.c12)}`} · 입주 3년 미만`:`1년 ${tPct(b.c12)} · 3년 ${tPct(b.c36)}`}</span>`;
 }
-const tNameParts=c=>{ const x=CX.find(z=>z.id===c.id)||c, d=String(x.dong||'').replace(/\(.*\)$/,''), n=String(x.n||c.n).replace(/^광주(광역시)?\s*/,''), m=(d&&n.startsWith(d))?n.slice(d.length).trim():n; return [d,m]; };   // v1.7.3 비교 표 머리글도 같이 씀(동 이름 두 번 나오던 것)
-const tName=c=>{ const [d,m]=tNameParts(c); return d?`${d} ${m}`:m; };   // v1.7.2 연구원(11.5): 대장 카드 = 법정동 + 단지명(봉선동 한국아델리움1단지)
+const tNameParts=dnParts;   // v1.7.3 비교 표 머리글도 같이 씀 → v1.7.4 화면 이름 정리(dnParts)와 하나로
+const tName=dn;   // v1.7.2 연구원(11.5): 대장 카드 = 법정동 + 단지명(봉선동 한국아델리움1단지) → v1.7.4 dn
 function tCard(c, i){
   const col=`var(${TPAL[i%8]})`, st=tSt(c), ks=tBands(c); if(!ks.includes(st.b)) st.b=tDefBand(c, ks);
   return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${tName(c)} — 단지 상세 보기">${tName(c)}</span><span class="meta">${c.ppm?`㎡당 ${Math.round(c.ppm).toLocaleString()}만 · `:''}${c.gu||((CX.find(x=>x.id===c.id)||{}).gu||'')} ${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
     <div class="tp">${tPrice(c, st)}</div></div>
-    <div class="tctl">${ks.length?`<select class="tbsel" aria-label="${c.n} 평형 선택">${ks.map(k=>`<option value="${k}"${st.b===k?' selected':''}>${tBandName(c.id,k)}</option>`).join('')}</select>`:'<span></span>'}<span class="rsel" role="group" aria-label="${c.n} 기간 선택"><button data-cr="24" class="${st.r===24?'on':''}">최근 2년</button><button data-cr="0" class="${st.r===0?'on':''}">전체</button></span></div>
+    <div class="tctl">${ks.length?`<select class="tbsel" aria-label="${dn(c)} 평형 선택">${ks.map(k=>`<option value="${k}"${st.b===k?' selected':''}>${tBandName(c.id,k)}</option>`).join('')}</select>`:'<span></span>'}<span class="rsel" role="group" aria-label="${dn(c)} 기간 선택"><button data-cr="24" class="${st.r===24?'on':''}">최근 2년</button><button data-cr="0" class="${st.r===0?'on':''}">전체</button></span></div>
     <div class="bchart"></div></div>`;
 }
 function tMount(card, c){   // 카드 하나: 평형·기간 바꾸면 그 카드만 다시 그림
@@ -1186,7 +1194,7 @@ function tLine(el, c, M, col, st){   // 3개월 이동 중위 한 줄 + 옅은 �
   const ys=pts.map(p=>p.v).concat(svp.map(p=>p.v)); let [lo,hi]=d3.extent(ys); const pad=Math.max((hi-lo)*0.12, hi*0.03); lo-=pad; hi+=pad;
   const y=d3.scaleLinear().domain([Math.max(0,lo),hi]).nice(4).range([H-m.b,m.t]);
   const id='g'+Math.random().toString(36).slice(2,8);
-  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${c.n} ${st.b==='e'?'84㎡ 환산':lab} 실거래가 흐름`);
+  const svg=d3.select(el).html('').append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('role','img').attr('aria-label',`${dn(c)} ${st.b==='e'?'84㎡ 환산':lab} 실거래가 흐름`);
   const gr=svg.append('defs').append('linearGradient').attr('id',id).attr('x1',0).attr('x2',0).attr('y1',0).attr('y2',1);
   gr.append('stop').attr('offset','0%').attr('stop-color',col).attr('stop-opacity',.22); gr.append('stop').attr('offset','100%').attr('stop-color',col).attr('stop-opacity',0);
   const fmtY=t=>(t/10000).toFixed(t%10000===0?0:1)+'억';
@@ -1231,7 +1239,7 @@ function renderTrend(){   // v1.6.0 연구원(11.5): '대장 아파트' = 광주
       <li><b>광주 전세</b> = 전용 76~95㎡ 전세(월세 0) 신규 계약 보증금을 84㎡ 기준으로 맞춘 광주 전체 월 중위(’21년부터). 갱신 계약은 인상 5% 상한이 있어 뺐습니다. 전세가율 = 전세 ÷ 매매(앞뒤 1개월 포함 중위).</li>
       <li>호가가 아닌 신고가이며 투자 권유가 아닙니다. 등급·환금성 점수는 여기서 바뀌지 않습니다.</li></ul>
       <p class="note">${TD.src} · 기준 ${TD.asof} · 매일 새벽 자동 갱신</p></details>`;
-  B.querySelectorAll('.tcard').forEach((card,i)=>tMount(card, list[i]));
+  glueDom(B); B.querySelectorAll('.tcard').forEach((card,i)=>tMount(card, list[i]));
 }
 function tRange(b, M, px){   // 보이는 구간: 최근 2년 또는 전체(첫 거래·분양권·입주 6개월 전 중 가장 이른 달부터)
   const N=M.length; if(TS.rng) return [Math.max(0,N-TS.rng), N-1];
@@ -1276,7 +1284,7 @@ function cmpChart(el, L){   // v1.7.0 단지 비교: 모든 단지에 있는 같
     const ser=pxs.map((x,k)=>{ const bk=same?common[0]:(x.px.b['84']?'84':x.px.rep); return {c:x.c, bk, b:x.px.b[bk], col:cols[k]}; });
     let i0=TS.rng?Math.max(0,N-TS.rng):Math.min(...ser.map(s=>s.b.s.length?s.b.s[0][0]:N-1)), i1=N-1, span=i1-i0+1;
     const W=Math.max(300, el.clientWidth||560), H=Math.round(Math.min(260, Math.max(180, W*0.42))), m={l:46,r:12,t:12,b:24};
-    const wrap=d3.select(el).html(''); wrap.append('div').attr('class','rbar').html(`<span class="sm cmplg">${ser.map(s=>`<span class="ci" style="color:${s.col}">●</span> ${s.c.n} <span class="sm">${tBandName(s.c.id,s.bk)}</span>`).join(' · ')}</span>${rngHTML()}`);
+    const wrap=d3.select(el).html(''); wrap.append('div').attr('class','rbar').html(`<span class="sm cmplg">${ser.map(s=>`<span class="ci" style="color:${s.col}">●</span> ${dn(s.c)} <span class="sm">${tBandName(s.c.id,s.bk)}</span>`).join(' · ')}</span>${rngHTML()}`);
     const svg=wrap.append('svg').attr('viewBox',`0 0 ${W} ${H}`).style('width','100%').style('height','auto').style('display','block').attr('role','img').attr('aria-label','단지별 월 중위 실거래가');
     const S=ser.map(s=>({...s, pts:s.b.s.filter(q=>q[0]>=i0).map(([i,v,n])=>({i,v,n}))})); const all=S.flatMap(s=>s.pts.map(p=>p.v));
     if(!all.length){ svg.remove(); wrap.append('p').attr('class','note').text("이 기간에는 거래가 없습니다. '전체'를 눌러 보세요."); rngBind(el, ()=>cmpChart(el,L)); return; }
@@ -1318,7 +1326,7 @@ function openCmp(){
   const L=S.cmp.map(id=>CX.find(c=>c.id===id));
   const rows=[['종합점수',c=>scoreOf0(c),1,v=>f1(v)],['종합 등급',c=>c.grade,-1,v=>v+'등급'],['입지점수',c=>c.loc??c.locTent,1,v=>f1(v)],...AREAS.map(a=>[AN[a],c=>c.area[a],1,v=>f1(v)]),
     ['자료 충족률',c=>c.cover,1,v=>f1(v)+'%'],['실거래가',c=>repPrice(c),-1,eok],['가격 판정',c=>c.gap,-1,pct],['매매회전율',c=>c.qr,1,v=>v.toFixed(1)+'%'],['세대수',c=>c.u,1,v=>v.toLocaleString()],['사용승인',c=>c.y,1,v=>v+'년'],['세대당 주차',pkU,1,v=>v.toFixed(2)+'대'],['용적률',c=>c.far,-1,v=>v+'%']];
-  const body = L.length ? `<div class="tblwrap"><table class="t cmp"><thead><tr><th></th>${L.map((c,k)=>`<th>${L.length>1?`<i style="background:${['#3182f6','#f04452','#00a870','#f2994a'][k]}"></i>`:''}${tNameParts(c)[0]}<br>${tNameParts(c)[1]}</th>`).join('')}</tr></thead><tbody>${rows.filter(r=>L.some(c=>r[1](c)!=null)).map(([n,f,dir,fmt])=>{ const vs=L.map(f); const valid=vs.filter(v=>v!=null); const best=valid.length>1?(dir>0?Math.max(...valid):Math.min(...valid)):null; return `<tr><td>${n}</td>${vs.map(v=>`<td class="num ${v!=null&&v===best?'best':''}">${v==null?'–':(fmt?fmt(v):v)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="chart" id="cchart"></div><p class="note">파란 굵은 글씨 = 해당 항목 가장 좋은 값(가격 판정은 낮을수록) · 실거래가 = 대표 평형 최근 실거래가</p>` : `<div class="empty">단지 상세에서 단지 이름 옆 ☆를 눌러 최대 4개까지 비교하세요.</div>`;
+  const body = L.length ? `<div class="tblwrap"><table class="t cmp"><thead><tr><th></th>${L.map((c,k)=>`<th>${L.length>1?`<i style="background:${['#3182f6','#f04452','#00a870','#f2994a'][k]}"></i>`:''}<span class="cd">${dnParts(c)[0]}</span><span class="cn">${dnParts(c)[1]}</span></th>`).join('')}</tr></thead><tbody>${rows.filter(r=>L.some(c=>r[1](c)!=null)).map(([n,f,dir,fmt])=>{ const vs=L.map(f); const valid=vs.filter(v=>v!=null); const best=valid.length>1?(dir>0?Math.max(...valid):Math.min(...valid)):null; return `<tr><td>${n}</td>${vs.map(v=>`<td class="num ${v!=null&&v===best?'best':''}">${v==null?'–':(fmt?fmt(v):v)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="chart" id="cchart"></div><p class="note">파란 굵은 글씨 = 해당 항목 가장 좋은 값(가격 판정은 낮을수록) · 실거래가 = 대표 평형 최근 실거래가</p>` : `<div class="empty">단지 상세에서 단지 이름 옆 ☆를 눌러 최대 4개까지 비교하세요.</div>`;
   ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="cmpT"><div class="dh"><h2 id="cmpT">단지 비교</h2><button class="back" id="cClose" aria-label="닫기">✕</button></div><div class="db">${body}</div><div class="df"><button class="btn" id="cClear">비우기</button></div></div>`;
   if (L.length) cmpChart($('cchart'), L);
   $('cClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
@@ -1369,10 +1377,10 @@ function openMethod(){
     ['미분양','준공 때·지금 미분양 비율 10% 미만 / 10~20 / 20~30 / 30% 이상','최고 2 / 3 / 4 / 5등급'],
     ['임대 단지','매매할 수 없음','거래활발도 0점, 최고 4등급'],
     ['빈자리','조건으로 내려간 단지의 자리','아래 단지로 채우지 않음']];
-  const ctab=`<table class="calc"><thead><tr><th>조건</th><th>기준</th><th>결과</th></tr></thead><tbody>${cond.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table>`;
+  const ctab=`<table class="calc ct3"><thead><tr><th>조건</th><th>기준</th><th>결과</th></tr></thead><tbody>${cond.map(r=>`<tr><td class="ck"><b>${r[0]}</b></td><td class="cv">${r[1]}</td><td class="cr">${r[2]}</td></tr>`).join('')}</tbody></table>`;   // v1.7.4 휴대폰에서는 표 대신 조건 → 기준 → 결과를 위아래로(좁은 칸에서 3~4줄로 꺾이던 것)
   const pen=[['복도 유형','복도식 · 혼합식','2 · 1'],['나홀로아파트','동 1개 단지(세대수는 상품성에서 이미 반영)','1~2(2 × (1 − 세대÷600))'],['용적률','250% 초과부터 100%p마다(주상복합은 면제)','0.5~3'],['평형 구성','전 세대 84㎡ 미만 · 59㎡ 미만','1 · 2'],['소음','큰 도로 200m · 지상 철도 100m · 공항 3km 안','최대 2'],['악취','산업단지 · 축사 · 퇴비 사업장','최대 2'],['청소년 유해업소','단지 경계 200m 안 유흥·숙박·노래방·PC방 등','최대 3'],['기피시설','하수·소각·매립·화장·교정시설','최대 2'],['노후 빌라·원룸촌','단지 둘레의 노후 다세대·다가구 비율','최대 2'],['주상복합','상가 위 주거(용적률 감점 대신)','1']];
-  const ptab=`<table class="calc"><thead><tr><th>항목</th><th>기준</th><th>감점</th></tr></thead><tbody>${pen.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="n">${r[2]}</td></tr>`).join('')}</tbody></table>`;
-  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span> <span class="sm">${AD[a]}</span></summary><table class="calc"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S7t:'고등학교',S7a:'고등학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">영역 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
+  const ptab=`<table class="calc ct3 pen"><thead><tr><th>항목</th><th>기준</th><th>감점</th></tr></thead><tbody>${pen.map(r=>`<tr><td class="ck"><b>${r[0]}</b></td><td class="cv">${r[1]}</td><td class="n cr">${r[2]}</td></tr>`).join('')}</tbody></table>`;
+  const itemsT2 = ord.map(a=>`<details class="mi"><summary><b>${AN[a]}</b> <span class="ver">${pc(a)}%</span> <span class="sm">${AD[a]}</span></summary><table class="calc it3"><tbody>${Object.keys(IN[a]).map(k=>`<tr><td><b>${(a==='S'&&SNAME[k])?(({S6:'영유아',S1t:'초등',S1c:'초등',S2:'초등',S3:'중학교',S4:'중학교',S7t:'고등학교',S7a:'고등학교',S5a:'학원',S5b:'학원'})[k]+' · '+SNAME[k]):NAMES[k]}</b></td><td class="n">${(M.itemW[k]*100).toFixed(1)}%</td><td>${RULE[k]}${(M.basis&&M.basis.item[k])?`<br><span class="sm">근거: ${M.basis.item[k]}</span>`:''}</td></tr>`).join('')}</tbody></table>${(M.basis&&M.basis.area[a])?`<p class="sm">영역 근거: ${M.basis.area[a]}</p>`:''}</details>`).join('');
   const basisL = M.basis?`<ul class="sm">${Object.entries({grade:'등급 비율',price:'실거래가 조건',unsold:'미분양',small:'소단지',unit:'전 세대 59㎡ 미만',old:'구축',walk:'도보 시간',harm:'청소년 유해업소',far:'용적률',noise:'소음',nimby:'기피시설',villa:'노후 빌라·원룸촌',rent:'임대 단지',weight:'영역 비중',penalty:'보정 합계'}).filter(([k])=>M.basis.rule[k]).map(([k,n])=>`<li><b>${n}</b>: ${M.basis.rule[k]}</li>`).join('')}</ul>`:'';
   // 검증: 등급과 실제 시장(국토부 실거래)의 관계 — 화면에서 자료로 바로 계산(사람이 적어 넣는 값 없음)
   const V=validStats();
@@ -1404,9 +1412,9 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
-  $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
+  glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }
 $('btnMethod').onclick=openMethod;
 /* v3.0.0 연구원: 필터 칩 좌우 넘기기(마우스를 올리면 화살표, 화살표 위에 올리거나 누르면 이동) */
@@ -1440,6 +1448,12 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape') ['ovMine','ovCmp',
 /* ═════════ 네이버 지도(공개 사이트용). 불러오지 못하면 내장 지도 ═════════ */
 let NV=null, NVOL=null, NVL=null; const NVM=new Map(), NVLINES=[], NVB=[];   // v1.7.2 NVB = 동 표시
 function nvView(){ if(!NV) return; const b=NV.getBounds(), s=b.getSW(), n=b.getNE(); setVB([s.lat(),s.lng(),n.lat(),n.lng()]); }
+function nvClampGu(){   // v1.7.4 연구원(11.6): 구 알약이 지도 가장자리에서 잘리면 지도 안쪽으로 옮김(휴대폰 첫 화면의 광산구·동구)
+  const mp=$('nmap'); if(!mp||!NV) return; const mr=mp.getBoundingClientRect(), pad=8;
+  NVD.forEach((m,key)=>{ if(!key.startsWith('gu')||!m.getMap()) return; const el=m.getElement&&m.getElement(), box=el&&el.querySelector('.ndg'); if(!box) return;
+    const r=box.getBoundingClientRect(); if(!r.width) return; let dx=0; if(r.left<mr.left+pad) dx=mr.left+pad-r.left; else if(r.right>mr.right-pad) dx=mr.right-pad-r.right;
+    if(dx){ const ic=m.getIcon(), a=ic.anchor||new naver.maps.Point(0,0); m.setIcon({content:ic.content, anchor:new naver.maps.Point(a.x-dx,a.y)}); } });
+}
 function nvFit(rg,gu){ const b=new naver.maps.LatLngBounds(); CX.filter(c=>rg?(c.rg===rg&&(!gu||c.gu===gu)):!c.nj).forEach(c=>b.extend(new naver.maps.LatLng(c.lat,c.lon)));
   const mobile=matchMedia('(max-width:900px)').matches;
   NV.fitBounds(b, mobile?{top:70,right:16,bottom:40,left:16}:{top:24,right:56,bottom:24,left:Math.min(310,NV.getSize().width*0.35)}); }
@@ -1493,6 +1507,7 @@ function nvMarkers(){
       m.setPosition(new naver.maps.LatLng(d.lat,d.lon));
       m.setIcon({content:`<div class="ndg" style="background:${gCol(gr)};color:${gInk(gr)}"><b>${d.k}</b><span>${aggLab(d)}</span></div>`, anchor:new naver.maps.Point(-off[0],-off[1])});
       m.setZIndex(100+d.n); m.setMap(NV); });
+    if (lv==='gu') setTimeout(nvClampGu,60);
     nvUp(false);
     return;
   }
@@ -1516,7 +1531,7 @@ function nvMarkers(){
     const bg = gr==null ? 'background:#fff;color:#6b7684;border:1.5px dashed #8b95a1' : `background:${gCol(gr)};color:${gInk(gr)}`;
     const zi=sel?1000:cmp?900:on?200+(10-(gr||10))*10:1;
     out.push(`<div class="nmw nvp" data-cid="${c.id}" style="transform:translate(${Math.round(p.x)}px,${Math.round(p.y)}px);z-index:${zi}">`+(dot ? `<div class="nmk dot${on?'':' dim'}" style="${gr==null?'background:#fff;border-color:#8b95a1':`background:${gCol(gr)}`}"></div>`
-      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${c.dong} ${c.n} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${mLab(c)}</b>${(z>=16||sel)&&pt?`<span>${S.mine && S.mine.size!=='all'?eok(pt):repLab(c)}</span>`:''}</div>`)+'</div>');
+      : `<div class="nmk${on?'':' dim'}${sel?' sel':''}${cmp?' cmp':''}" title="${dn(c)} · ${gLab(c)} · ${f1(scoreOf(c))}점"><b style="${bg}">${mLab(c)}</b>${(z>=16||sel)&&pt?`<span>${S.mine && S.mine.size!=='all'?eok(pt):repLab(c)}</span>`:''}</div>`)+'</div>');
   }
   NVL.el.innerHTML=out.join('');
 }

@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.7.3">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.7.4">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.7.3</title>
+<title>우리동네 입지분석(광주) v1.7.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -780,6 +780,82 @@ table.hxt td:last-child{white-space:nowrap}   /* 거래 목록: '분양권 8억 
 @media (max-width:480px){.db.trend .tgrid .th .cname{letter-spacing:-.02em}}
 @media (max-width:520px){.mth2 table.calc.wt td:first-child,.mth2 table.calc.wt th:first-child{width:34%}}   /* 비중 표: 색 견본 + '단지 상품성'·'거래 활발도' 한 줄 */
 @media (max-width:420px){.gtab{font-size:11px}}   /* 등급 비율 표 '100%' 한 줄 */
+/* ── v1.7.4 화면 전수 점검(’26.11.6, 연구원: 보기에 조금 거슬리는 것까지 모두 고치기) ── */
+/* 1. 글자 줄바꿈: 설명 글은 단어 중간에서 끊지 않고(keep-all) 끝줄에 한두 글자만 남지 않게(pretty). 단지 이름은 줄 길이를 고르게(balance) */
+.mth2 p,.mth2 li,.mth2 td,.mth2 .sm,.mth2 summary,#pbody p,#pbody li,#pbody .note,.tnote li,.gate-card p,.gate-card li,#ovMine p,#ovMine li,#ovMine .sm,#ovCmp .note,#ovTrend .note{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}
+.item .nm,.dtitle h1,.db.trend .cname,.sugg .sgn{word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance}
+.item .nm.lw,.dtitle h1.lw{word-break:normal}   /* 띄어쓰기 없는 긴 이름(10자 이상)은 글자 단위로 고르게 나눔(끝에 한 글자만 남던 것) */
+#ovCmp thead th .cd,#ovCmp thead th .cn{display:block} #ovCmp thead th .cn{text-wrap:balance}   /* 비교 머리글: 동 / 이름, 이름은 두 줄이면 고르게('더샵염주센트럴파 / 크' → '더샵염주센 / 트럴파크') */
+/* 2. 검색 결과: 이름 한 줄 + 구·등급·점수 한 줄(휴대폰에서 '광산구 · 2등급 · / 68.9점'으로 꺾이던 것) */
+.sugg button .sgn{display:block;font-weight:600;line-height:1.35} .sugg button .sgm{display:block;color:var(--muted);font-size:12px;margin-top:1px;white-space:nowrap}
+/* 3. 목록(휴대폰 420px 이하): 등급 칸·여백을 줄여 이름 칸을 넓힘, 둘째 줄(구·세대·연식)은 한 줄로 */
+@media (max-width:420px){
+  .row .item{padding:12px 12px 34px;gap:8px;grid-template-columns:44px minmax(0,1fr) auto}
+  .row .item .grade{width:44px;height:44px} .row .item .grade>span{font-size:18px}
+  .item .sub{font-size:12px;white-space:nowrap;letter-spacing:-.01em}
+}
+/* 4. 누르는 곳 크기(28px 이상): 시트 손잡이, 접기 제목, 범위 막대, 글 속 링크, 초기화 */
+@media (max-width:900px){ .sheet-handle{padding:12px 0 11px} }
+.mth2 details.mi summary,#pbody details>summary{min-height:28px;padding:4px 0;box-sizing:border-box}
+.gate-by a,.mth2 .by a{display:inline-block;padding:7px 2px;margin:-7px 0;white-space:nowrap}
+input[type=range]{height:28px}
+#pReset{min-height:32px}
+/* 5. 평가기준: 휴대폰(520px 이하)에서는 표를 위아래로 풀어 씀(좁은 첫 칸에서 3~4줄로 꺾이던 것) */
+@media (max-width:520px){
+  .mth2 table.calc.ct3 thead,.mth2 table.calc.it3 thead,.mth2 table.calc.wt thead{display:none}
+  .mth2 table.calc.ct3,.mth2 table.calc.ct3 tbody,.mth2 table.calc.it3,.mth2 table.calc.it3 tbody,.mth2 table.calc.wt,.mth2 table.calc.wt tbody{display:block;width:100%}
+  .mth2 table.calc.ct3 tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}
+  .mth2 table.calc.ct3 td{display:block;width:auto!important;border:0;padding:1px 0;text-align:left}
+  .mth2 table.calc.ct3 td.ck{font-size:13px} .mth2 table.calc.ct3 td.cv{color:var(--muted)}
+  .mth2 table.calc.ct3 td.cr{font-weight:700;white-space:normal} .mth2 table.calc.ct3 td.cr::before{content:'→ ';color:var(--muted);font-weight:400}
+  .mth2 table.calc.ct3.pen td.cr::before{content:'감점 '}
+  .mth2 table.calc.it3 tr,.mth2 table.calc.wt tr{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .mth2 table.calc.it3 td,.mth2 table.calc.wt td{display:block;width:auto!important;border:0;padding:1px 0}
+  .mth2 table.calc.it3 td:last-child,.mth2 table.calc.wt td:last-child{grid-column:1 / -1;color:var(--muted)}
+  .mth2 table.calc.it3 td.n,.mth2 table.calc.wt td.n{text-align:right}
+}
+/* 6. 평가기준 비중 막대: 칸이 좁으면(5% 영역) 이름을 숨기고 숫자만(이름이 잘리고 옆 칸과 겹치던 것). 이름은 바로 아래 표에 색과 함께 있음 */
+.mth2 .wbar i{container-type:inline-size}
+@container (max-width:34px){ .mth2 .wbar i b{display:none} }
+/* 7. 등급 비율 눈금: 좁은 화면에서 '89%'·'96%'가 겹치던 것 → 한 칸씩 위아래로 엇갈려 놓음 */
+@media (max-width:560px){ .gtick{height:30px} .gtick span:nth-child(even){top:14px} }
+/* 8. 지도 출처 글자(네이버 지도를 못 불러 예비 지도를 쓸 때만 보임): 휴대폰에서 시트 위로, 글자 10.5px */
+.attrib{font-size:10.5px}
+@media (max-width:900px){ .attrib{bottom:calc(var(--sheet-h,152px) + 6px)} }
+/* 9. 단지 상세: 순위 줄 '(상위 2%)'는 한 덩어리로, 두 줄이면 고르게 · 강점/약점은 패널이 좁으면(560px 이하) 위아래로(반쪽 칸에서 2~3줄로 꺾이던 것) */
+.nw{white-space:nowrap}
+.ghead .gwhere{text-wrap:balance;word-break:keep-all}
+#pbody{container:pb / inline-size}
+@container pb (max-width:560px){ .pros{grid-template-columns:1fr} }
+#pbody dd,#pbody .ir,#pbody .pros li{word-break:keep-all;overflow-wrap:break-word;text-wrap:pretty}   /* 표 칸(td)은 빼야 함: 숫자·가격 칸이 '1,58 / 5'·'8억 / 8,090만원'으로 꺾임 */
+/* 10. 대장 카드: 화면 폭이 아니라 카드 폭(520px 이하)으로 가격 줄을 이름 아래로(태블릿 2열에서 이름·설명이 잘리고 1년·3년 숫자와 겹치던 것) */
+.db.trend .tgrid .tcard{container:tc / inline-size}
+@container tc (max-width:520px){
+  .db.trend .tgrid .th{flex-wrap:wrap;row-gap:6px}
+  .db.trend .tgrid .th .tt{flex:1 1 calc(100% - 34px)}
+  .db.trend .tgrid .th .tp{flex:1 1 100%;flex-direction:row;flex-wrap:wrap;align-items:baseline;justify-content:flex-start;gap:2px 8px;text-align:left;padding-left:34px}
+  .db.trend .tgrid .th .cname,.db.trend .tgrid .th .meta{white-space:normal;overflow:visible;text-overflow:clip;word-break:keep-all;overflow-wrap:anywhere}
+}
+.db.trend .tgrid .th .meta{text-wrap:pretty}
+/* 11. 평가기준 표(넓은 화면): 첫 칸 폭을 정해 '중학교 · 학업성취도'가 4~5줄로 꺾이던 것 */
+@media (min-width:521px){
+  .mth2 table.calc.ct3 td.ck{width:24%} .mth2 table.calc.ct3 td.cr{width:26%} .mth2 table.calc.ct3.pen td.cr{width:20%}
+  .mth2 table.calc.it3 td:first-child{width:24%} .mth2 table.calc.it3 td.n{width:60px}
+}
+.item .nm,.item .sub{display:block}   /* v1.7.4 이름을 따로 한 덩어리로(줄 길이 고르게 나누기는 덩어리 단위로만 됨) — 목록 HTML에서 이름 뒤 <br> 뺌 */
+/* 12. 휴대폰(420px 이하) 머리: 제목을 '우리동네 / 입지분석' 두 줄로 줄여 단추 4개가 한 줄에(360~390px에서 '기준' 단추만 따로 둘째 줄로 내려가던 것) */
+@media (max-width:420px){
+  .brand{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:4px;white-space:normal;word-break:keep-all;line-height:1.12;flex:1 1 0;min-width:0}
+  .brand svg{margin-right:0}
+}
+/* 13. 내 조건 비중 단추 3개: 좁은 화면에서 둘째 줄 단추 하나만 덩그러니 → 줄마다 단추가 폭을 나눠 채움 · 등급 거르기 칩 9개: 5개 + 4개 두 줄(9등급 하나만 셋째 줄로 내려가던 것) */
+.db.mine2 .btns>button{flex:1 1 auto}
+.fpop .pbtns.gb{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))} .fpop .pbtns.gb .chip{padding-left:0;padding-right:0;text-align:center}
+/* 14. 태그 거르기: 좋은 점 · 단지 형태 · 아쉬운 점으로 나눠 작은 제목을 붙임(맨 끝 '악취 주의' 칩 하나만 마지막 줄에 덩그러니 남던 것) */
+.fpop .tgl{font-size:11.5px;font-weight:700;color:var(--muted);margin:10px 0 5px} .fpop .tgl:first-of-type{margin-top:4px}
+/* 15. 태그 칩: 줄마다 칩이 폭을 나눠 채움(묶음 끝 칩 하나만 마지막 줄 왼쪽에 덩그러니 남던 것) · 휴대폰 순위 줄 글자 13.5px(390px에서 '(상위 26%)'만 둘째 줄로 가던 것) */
+.fpop .pbtns.tagb .chip{flex:1 1 auto;justify-content:center;text-align:center}
+@media (max-width:420px){ .ghead .gwhere{font-size:13.5px} }
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -790,7 +866,7 @@ table.hxt td:last-child{white-space:nowrap}   /* 거래 목록: '분양권 8억 
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.3</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.4</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -878,7 +954,7 @@ table.hxt td:last-child{white-space:nowrap}   /* 거래 목록: '분양권 8억 
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=8be0c31a", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=a8367241", DASHF="data/rt/trend.json.gz?v=e59fa430", TXF="data/rt/tx.json.gz?v=99259881";
+  var CORE="data/core.json.gz?v=c1e5d835", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=8799d686", DASHF="data/rt/trend.json.gz?v=a2bda3e4", TXF="data/rt/tx.json.gz?v=3082851a";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

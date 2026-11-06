@@ -29,6 +29,7 @@ def _med(xs): return round(statistics.median(xs)) if xs else None
 import re
 def _norm(s): return re.sub(r"[\s()\[\]·.,\-]|아파트|APT", "", str(s)).lower()
 LEAD_MIN_AREA = 84.0   # 연구원(11.4): 대장은 전용 84㎡ 이상 매매의 ㎡당 가격으로(39~74㎡는 ㎡당 가격이 높게 나와 제외)
+LEAD_QMIN = 0.25      # v1.7.6 연구원(11.6): 대장 후보는 거래활발도(최근 2년 매매 ÷ 세대수 ÷ 24개월, 단지 상세와 같은 월간 빌드 값 dash_src q)가 월 0.25% 이상(2년간 세대수의 6%). q가 없으면(입주 2년 미만 등) 이 조건 없이
 def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, lead_floor=0, rent=None):   # v1.7.0 rent = 전월세 행 (umd, jibun, aptNm, 연, 월, 일, 보증금(만원), 월세(만원), 전용㎡, 층, 신규/갱신)
     """lead_floor: 대장 후보 세대수 하한(그 이상 단지가 없는 동네는 전체에서). excl_direct: 직거래 제외(행에 직거래 여부가 있을 때만)"""
     if start is None: start = min(f"{r[3]}-{r[4]:02d}" for r in rows)
@@ -132,7 +133,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         n24 = round(sum(t[4] for t in tr if t[0] >= M[max(0, N - 24)]))
         px[cid] = dict(rep=rep, ym=c.get("ym"), b=bands)
         lp = lead_ppm(tr)
-        if n24 >= 8: dong_cx[c["hd"]].append(dict(id=cid, n=c["n"], u=c["u"], y=c["y"], g=c.get("g"), rep=rep, lp=lp, n24=n24))
+        if n24 >= 8 and (c.get("q") is None or c["q"] >= LEAD_QMIN): dong_cx[c["hd"]].append(dict(id=cid, n=c["n"], u=c["u"], y=c["y"], g=c.get("g"), rep=rep, lp=lp, n24=n24))   # v1.7.6 거래활발도 조건
     tx = {}   # v1.5.9 연구원(11.4): 단지 상세 실거래 그래프의 개별 거래 점·거래 목록 = 최근 TX_MONTHS개월 매매·분양권 [달 번호, 일, 금액(만원), 전용㎡×100, 0 매매|1 분양권, 층] 최신순(호출 쪽에서 따로 저장). v1.7.0 층 추가(6칸)
     rtx = {}  # v1.7.0 전월세 개별 거래(최근 TX_MONTHS개월) [달 번호, 일, 보증금(만원), 월세(만원), 전용㎡×100, 층, 0 신규|1 갱신|2 미상]
     def raw(cid, src):
@@ -153,7 +154,7 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             rb[k] = dict(s=sparse(L), n=len(L), p=pr)
         if rb: px[cid]["r"] = rb
     out = dict(v=4, enc="d3", src=src_text, asof=today.isoformat(), months=M, bandLabel=BAND_LABEL, city={}, gu={}, dongs={}, px=px,
-               lead=dict(area=LEAD_MIN_AREA, floor=lead_floor, direct=("제외" if excl_direct else "포함")), svName=sv_name, nDirect=n_direct)
+               lead=dict(area=LEAD_MIN_AREA, floor=lead_floor, direct=("제외" if excl_direct else "포함"), qmin=(LEAD_QMIN if any(c.get("q") is not None for c in CX.values()) else None)), svName=sv_name, nDirect=n_direct)
     cm, cc = idx84(city_tr); out["city"] = dict(mo=cm, mc=cc)
     # v1.7.1 광주 전체 전세 = 연결된 단지의 전세(월세 0, 신규·미상 계약) 중 전용 76~95㎡ 보증금을 84.9㎡로 환산한 월 중위(3건 이상인 달만) + 월 건수.
     #   대장 아파트 윗줄의 '광주 전세 중위·전세가율', 단지 상세 전세가율 추이의 광주 비교선에 씀. 전월세 자료가 없는 달(2021년 이전)은 None

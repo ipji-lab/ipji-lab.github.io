@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.7.5">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.7.6">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.7.5</title>
+<title>우리동네 입지분석(광주) v1.7.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -858,6 +858,20 @@ input[type=range]{height:28px}
 @media (max-width:420px){ .ghead .gwhere{font-size:13.5px} }
 /* ── v1.7.5 실제 글꼴(Pretendard) 점검(’26.11.6) ── */
 .mth2 .sb{display:block}   /* 평가 기준 표의 '근거' 작은 글을 따로 한 덩어리로(앞 설명 끝줄에 '안 함)'만 남던 것) */
+/* ── v1.7.6 비교 단지 10곳(’26.11.6 연구원) · 대장 윗줄 ── */
+#ovCmp{--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948}   /* 기본 범주 8색(대장 그래프와 같은 팔레트), 9·10번째는 1·2번 색 + 점선 */
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #ovCmp{--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300;--c7:#9085e9;--c8:#e66767}}
+:root[data-theme="dark"] #ovCmp{--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300;--c7:#9085e9;--c8:#e66767}
+.cg{display:inline-block;vertical-align:middle;flex:0 0 auto}
+table.t.cmp th .ch{display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:28px;margin:-4px 0 2px}
+table.t.cmp th .cx{border:0;background:none;color:var(--muted);font-size:12px;line-height:1;min-width:28px;min-height:28px;padding:0;margin-right:-4px;margin-left:auto;cursor:pointer;border-radius:8px}
+table.t.cmp th .cx:hover,table.t.cmp th .cx:focus-visible{background:var(--surface2);color:var(--ink)}
+table.t.cmp.many{table-layout:auto;width:max-content;min-width:100%}   /* 5곳 이상: 칸 폭을 지키고 옆으로 밀어 봄 */
+table.t.cmp.many th:not(:first-child),table.t.cmp.many td:not(:first-child){min-width:86px;width:86px}
+table.t.cmp.many th:first-child,table.t.cmp.many td:first-child{position:sticky;left:0;z-index:1;background:var(--surface);min-width:72px}   /* 항목 이름 칸은 고정 */
+.cmplg .cgi{display:inline-block;max-width:100%}
+@media (max-width:720px){.db.trend .tcity .tsep{display:none}}   /* 휴대폰에서 광주 시세가 따로 한 줄이 될 때 첫머리 '·' 숨김 */
+
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -868,7 +882,7 @@ input[type=range]{height:28px}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.5</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.6</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -956,7 +970,7 @@ input[type=range]{height:28px}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=bd273476", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=d6deb07c", DASHF="data/rt/trend.json.gz?v=a2bda3e4", TXF="data/rt/tx.json.gz?v=3082851a";
+  var CORE="data/core.json.gz?v=8fde0f73", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=03f091bf", DASHF="data/rt/trend.json.gz?v=880e6be3", TXF="data/rt/tx.json.gz?v=3082851a";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

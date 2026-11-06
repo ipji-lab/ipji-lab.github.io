@@ -532,7 +532,7 @@ function typeTable(c){   // v1.7.2 연구원(11.5): 전용면적은 정수 ㎡(�
   rows.forEach(g=>{ g.n=g.ts.reduce((s_,t)=>s_+(t.n||0),0); const L=g.ts.filter(t=>t.dt).sort((x,y)=>String(y.dt).localeCompare(String(x.dt)))[0]; g.last=L?L.last:null; g.dt=L?String(L.dt):null; });
   c.__ty=rows;
   const hasU=rows.some(r=>r.u), all=c.udong||[], ymd=d=>d?`’${d.slice(0,2)}.${+d.slice(2,4)}`:'';
-  return `<h3 class="hx3">전용면적별 세대·동</h3><table class="t pt ty"><thead><tr><th>전용</th>${hasU?'<th>세대</th>':''}<th>1년<br>거래</th><th>최근가</th></tr></thead><tbody>${rows.map((r,i)=>`<tr class="tyr" data-i="${i}"><td class="tya"><span class="num">${r.a}㎡</span>${r.ds&&r.ds.length?`<button class="tydb" data-i="${i}" aria-expanded="false" aria-label="${r.a}㎡가 있는 동 보기">동</button>`:''}</td>${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num tyn">${r.n}건</td><td class="num"><b class="px tyl">${r.last?tEokKo(r.last):'–'}</b><span class="pdt tyt">${ymd(r.dt)}</span></td></tr>
+  return `<h3 class="hx3">전용면적별 세대·동</h3><table class="t pt ty${hasU?' hu':''}"><thead><tr><th>전용</th>${hasU?'<th>세대</th>':''}<th>1년 거래</th><th>최근가</th></tr></thead><tbody>${rows.map((r,i)=>`<tr class="tyr" data-i="${i}"><td class="tya"><span class="num">${r.a}㎡</span>${r.ds&&r.ds.length?`<button class="tydb" data-i="${i}" aria-expanded="false" aria-label="${r.a}㎡가 있는 동 보기">동</button>`:''}</td>${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num tyn">${r.n}건</td><td class="num"><b class="px tyl">${r.last?tEokKo(r.last):'–'}</b><span class="pdt tyt">${ymd(r.dt)}</span></td></tr>
     <tr class="tyd" data-i="${i}" hidden><td colspan="${hasU?4:3}"><div class="dongs">${(all.length?all:(r.ds||[])).map(d=>`<span class="dg${r.ds&&r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note tydn" style="margin:4px 0 0"></p></td></tr>`).join('')}</tbody></table><p class="note" style="margin:4px 0 0">세대·동: 공동주택 공시가격 · 거래: 국토교통부 실거래</p>`;
 }
 function tyFill(c){   // v1.7.2 표의 1년 거래·최근가를 매일 갱신되는 거래 목록(최근 3년 매매)으로 바꿔 씀 — 위 그래프·거래 목록과 같은 기준
@@ -765,7 +765,7 @@ function renderDetail(){
   }).join('');
   const inCmp=S.cmp.includes(c.id);
   const tot = c.final ? c.total : c.tent;
-  const subsc = [['입지 점수', c.loc ?? c.locTent], ['상품성 점수', c.area.C!=null?c.area.C*10:null], ['거래활발도 점수', c.area.Q!=null?c.area.Q*10:null]]
+  const subsc = [['입지', c.loc ?? c.locTent], ['상품성', c.area.C!=null?c.area.C*10:null], ['거래활발도', c.area.Q!=null?c.area.Q*10:null]]   // v1.7.3 휴대폰에서 '거래활발도 점수'가 두 줄로 꺾여 '점수'를 뺌(바로 위 '종합점수'와 같은 점수 상자)
     .map(([l,v])=>`<div class="sbx"><span class="l">${l}</span><b class="num">${v==null?'–':f1(v)}</b></div>`).join('');   // v1.1.2 연구원: 점수 3개만
   const pro = (c.hi||[]).map(([k,t])=>`<li>${t}</li>`).join('') || '<li>두드러진 강점 항목이 없습니다</li>';
   const con = (c.lo||[]).map(([k,t])=>`<li>${t}</li>`).join('') || '<li>두드러진 약점 항목이 없습니다</li>';
@@ -1036,7 +1036,7 @@ function openMine(){
 
       <section class="blk"><h3><span>1</span>나와 가족</h3>
         ${money('mAge','내 나이(만)',d.age,'세')}
-        <div class="fld"><span class="lb">혼인</span>${opt('mMarry',[['single','미혼'],['new','신혼','혼인신고 7년 이내'],['married','기혼','7년 넘음']],d.marry,3)}</div>
+        <div class="fld"><span class="lb">혼인</span>${opt('mMarry',[['single','미혼'],['new','신혼','혼인 7년 이내'],['married','기혼','7년 넘음']],d.marry,3)}</div>
         <div class="fld"><span class="lb">자녀</span>${opt('mChild',[['0','없음'],['1','있음']],d.child?1:0,2)}</div>
         <div id="mKids" ${d.child?'':'hidden'}>${d.kids.map(kidRow).join('')}<button type="button" class="add" id="kAdd" ${d.kids.length>=3?'hidden':''}>＋ 자녀 추가</button></div>
         <p class="hint" id="mChildNote"></p>
@@ -1151,7 +1151,8 @@ function tPrice(c, st){   // 큰 숫자 + 1년·3년 = 고른 평형 최근 3개
   const mo=c.ym?(+TD.months[TD.months.length-1].slice(0,4)*12+ +TD.months[TD.months.length-1].slice(5))-(Math.floor(c.ym/100)*12+c.ym%100):99;   // 입주 뒤 지난 달 수
   return `<b>${tEok(b.p)}</b><span>${old?`마지막 거래 ’${L.slice(2,4)}.${+L.slice(4,6)}`:b.c12==null&&mo<14?'입주 1년 미만':b.c36==null&&mo<38?`${b.c12==null?'1년 전 거래 없음':`1년 ${tPct(b.c12)}`} · 입주 3년 미만`:`1년 ${tPct(b.c12)} · 3년 ${tPct(b.c36)}`}</span>`;
 }
-const tName=c=>{ const x=CX.find(z=>z.id===c.id)||c, d=String(x.dong||'').replace(/\(.*\)$/,''), n=String(x.n||c.n).replace(/^광주(광역시)?\s*/,''), m=(d&&n.startsWith(d))?n.slice(d.length).trim():n; return d?`${d} ${m}`:m; };   // v1.7.2 연구원(11.5): 대장 카드 = 법정동 + 단지명(봉선동 한국아델리움1단지)
+const tNameParts=c=>{ const x=CX.find(z=>z.id===c.id)||c, d=String(x.dong||'').replace(/\(.*\)$/,''), n=String(x.n||c.n).replace(/^광주(광역시)?\s*/,''), m=(d&&n.startsWith(d))?n.slice(d.length).trim():n; return [d,m]; };   // v1.7.3 비교 표 머리글도 같이 씀(동 이름 두 번 나오던 것)
+const tName=c=>{ const [d,m]=tNameParts(c); return d?`${d} ${m}`:m; };   // v1.7.2 연구원(11.5): 대장 카드 = 법정동 + 단지명(봉선동 한국아델리움1단지)
 function tCard(c, i){
   const col=`var(${TPAL[i%8]})`, st=tSt(c), ks=tBands(c); if(!ks.includes(st.b)) st.b=tDefBand(c, ks);
   return `<div class="tcard" data-id="${c.id}" style="--tc:${col}"><div class="th"><span class="rk">${i+1}</span><div class="tt"><span class="cname" data-id="${c.id}" title="${tName(c)} — 단지 상세 보기">${tName(c)}</span><span class="meta">${c.ppm?`㎡당 ${Math.round(c.ppm).toLocaleString()}만 · `:''}${c.gu||((CX.find(x=>x.id===c.id)||{}).gu||'')} ${c.hd} · ${c.u.toLocaleString()}세대 · ${c.ym?'입주 '+tYM(c.ym):c.y+'년'}${c.g?' · '+c.g+'등급':''}</span></div>
@@ -1316,8 +1317,8 @@ function openCmp(){
   const ov=$('ovCmp'); ov.hidden=false;
   const L=S.cmp.map(id=>CX.find(c=>c.id===id));
   const rows=[['종합점수',c=>scoreOf0(c),1,v=>f1(v)],['종합 등급',c=>c.grade,-1,v=>v+'등급'],['입지점수',c=>c.loc??c.locTent,1,v=>f1(v)],...AREAS.map(a=>[AN[a],c=>c.area[a],1,v=>f1(v)]),
-    ['자료 충족률',c=>c.cover,1,v=>f1(v)+'%'],['대표 평형 실거래',c=>repPrice(c),-1,eok],['가격 판정',c=>c.gap,-1,pct],['매매회전율',c=>c.qr,1,v=>v.toFixed(1)+'%'],['세대수',c=>c.u,1,v=>v.toLocaleString()],['사용승인',c=>c.y,1,v=>v+'년'],['세대당 주차',pkU,1,v=>v.toFixed(2)+'대'],['용적률',c=>c.far,-1,v=>v+'%']];
-  const body = L.length ? `<div class="tblwrap"><table class="t cmp"><thead><tr><th></th>${L.map((c,k)=>`<th>${L.length>1?`<i style="background:${['#3182f6','#f04452','#00a870','#f2994a'][k]}"></i>`:''}${c.dong}<br>${c.n}</th>`).join('')}</tr></thead><tbody>${rows.filter(r=>L.some(c=>r[1](c)!=null)).map(([n,f,dir,fmt])=>{ const vs=L.map(f); const valid=vs.filter(v=>v!=null); const best=valid.length>1?(dir>0?Math.max(...valid):Math.min(...valid)):null; return `<tr><td>${n}</td>${vs.map(v=>`<td class="num ${v!=null&&v===best?'best':''}">${v==null?'–':(fmt?fmt(v):v)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="chart" id="cchart"></div><p class="note">파란 굵은 글씨 = 해당 항목 가장 좋은 값(가격 판정은 낮을수록)</p>` : `<div class="empty">단지 상세에서 단지 이름 옆 ☆를 눌러 최대 4개까지 비교하세요.</div>`;
+    ['자료 충족률',c=>c.cover,1,v=>f1(v)+'%'],['실거래가',c=>repPrice(c),-1,eok],['가격 판정',c=>c.gap,-1,pct],['매매회전율',c=>c.qr,1,v=>v.toFixed(1)+'%'],['세대수',c=>c.u,1,v=>v.toLocaleString()],['사용승인',c=>c.y,1,v=>v+'년'],['세대당 주차',pkU,1,v=>v.toFixed(2)+'대'],['용적률',c=>c.far,-1,v=>v+'%']];
+  const body = L.length ? `<div class="tblwrap"><table class="t cmp"><thead><tr><th></th>${L.map((c,k)=>`<th>${L.length>1?`<i style="background:${['#3182f6','#f04452','#00a870','#f2994a'][k]}"></i>`:''}${tNameParts(c)[0]}<br>${tNameParts(c)[1]}</th>`).join('')}</tr></thead><tbody>${rows.filter(r=>L.some(c=>r[1](c)!=null)).map(([n,f,dir,fmt])=>{ const vs=L.map(f); const valid=vs.filter(v=>v!=null); const best=valid.length>1?(dir>0?Math.max(...valid):Math.min(...valid)):null; return `<tr><td>${n}</td>${vs.map(v=>`<td class="num ${v!=null&&v===best?'best':''}">${v==null?'–':(fmt?fmt(v):v)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="chart" id="cchart"></div><p class="note">파란 굵은 글씨 = 해당 항목 가장 좋은 값(가격 판정은 낮을수록) · 실거래가 = 대표 평형 최근 실거래가</p>` : `<div class="empty">단지 상세에서 단지 이름 옆 ☆를 눌러 최대 4개까지 비교하세요.</div>`;
   ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="cmpT"><div class="dh"><h2 id="cmpT">단지 비교</h2><button class="back" id="cClose" aria-label="닫기">✕</button></div><div class="db">${body}</div><div class="df"><button class="btn" id="cClear">비우기</button></div></div>`;
   if (L.length) cmpChart($('cchart'), L);
   $('cClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
@@ -1403,7 +1404,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p></section>
   </div></div>`;
   $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
 }

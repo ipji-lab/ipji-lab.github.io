@@ -1,4 +1,4 @@
-# 시세 흐름 자동 갱신: 매일 05:20(한국) 국토부 실거래·분양권 API(2006년~, 연도별 보관 data/rt/) → gwangju/v1.4.0/data/dash.json.gz
+# 시세 흐름 자동 갱신: 매일 05:20(한국) 국토부 실거래·분양권 API(2006년~, 연도별 보관 data/rt/) → gwangju/data/dash.json.gz
 name: dash-update
 on:
   schedule:
@@ -19,10 +19,10 @@ jobs:
       - name: 실거래 조회·대시보드 자료 생성
         env:
           MOLIT_KEY: ${{ secrets.MOLIT_KEY }}
-        run: python3 scripts/dash_auto.py gwangju/v1.4.0/data/dash_src.json gwangju/v1.4.0/data/dash.json.gz
+        run: python3 scripts/dash_auto.py gwangju/data/dash_src.json gwangju/data/dash.json.gz
       - name: 바뀌었으면 커밋
         run: |
           git config user.name "dash-bot"
           git config user.email "dash-bot@users.noreply.github.com"
-          git add gwangju/v1.4.0/data/dash.json.gz gwangju/v1.4.0/data/rt
+          git add gwangju/data/dash.json.gz gwangju/data/rt
           git diff --cached --quiet && echo "변경 없음" || git commit -m "시세 흐름 자동 갱신 $(date -u +%F)" && git push

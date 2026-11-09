@@ -185,6 +185,7 @@ const HINT = {   // v1.1.3 연구원: 태그를 누르면 뜻을 보여 줌(엔�
   liq:['거래 활발','거래활발도 점수가 10점 만점에 8점 이상인 단지입니다. 최근 2년 매매가 광주 평균보다 많아 팔고 사기 쉬운 편입니다.','국토교통부 실거래가 기준입니다.'],
   rent:['임대','분양형태가 임대인 단지입니다. 매매할 수 없어 거래활발도는 0점이고, 등급은 최고 4등급입니다.','K-apt 분양형태 기준입니다.'],
   mixr:['임대 혼합','분양 세대와 임대 세대가 함께 있는 단지입니다.','K-apt 분양형태(혼합) 기준입니다.'],
+  pre:['입주 초기(대장 반영 전)','입주가 시작됐지만 건축물대장·공동주택관리정보에 아직 올라오지 않은 단지입니다. 세대수·동수는 청약 공고·시공사·보도 자료 기준이고, 주차·용적률·평형은 자료가 올라오면 채웁니다. 실거래가 쌓이기 전이라 등급이 바뀔 수 있습니다.','청약홈 분양정보 · 시공사·보도 자료(입주 시작 월) 기준입니다.'],
   mixu:['주상복합','아래층에 상가가 있는 주상복합 단지입니다.','K-apt 단지 분류 기준입니다.'],
   villa:['연립·다세대','공시가격 기준으로 아파트가 아닌 연립·다세대(빌라)로 분류된 곳입니다. 등급은 같은 규칙으로 매겼지만 아파트와 바로 비교하기는 어렵습니다.','국토교통부 공동주택 공시가격 구분입니다.'],
   sup:['입주 물량 많음','반경 2km 안에 3년 안 입주하는 새 아파트가 기존 세대의 20% 이상입니다. 입주 때 전세·매매가가 눌릴 수 있습니다.','청약홈 분양정보·사용승인 예정 기준입니다.'],
@@ -330,6 +331,15 @@ function dongAgg(lv){
   return [...m].map(([k,cs])=>({ k, lv, n:cs.length, g:cs.reduce((s,c)=>s+gradeOf(c),0)/cs.length, s:cs.reduce((s,c)=>s+(scoreOf(c)||0),0)/cs.length,
     lat:(lv==='gu'&&GUC[k])?GUC[k][0]:cs.reduce((s,c)=>s+c.lat,0)/cs.length, lon:(lv==='gu'&&GUC[k])?GUC[k][1]:cs.reduce((s,c)=>s+c.lon,0)/cs.length }));
 }
+// v1.8.1 연구원(11.9): 구·동 알약을 누르면 경계의 기하 중심(광산구는 어등산)이 아니라 단지가 모인 중심지로. 구 = 동별 평균 등급이 가장 좋은 동(단지 5곳 이상; 없으면 구 전체)의 단지 중심, 동 = 등급 가중(1등급 9 … 9등급 1) 단지 중심. 규칙으로만 정하고 손으로 좌표를 넣지 않음
+function hotspot(d){
+  const key=c=>d.lv==='gu'?((c.nj&&c.rg==='naju')?'나주시':c.gu):(c.hd||c.dong);
+  const cs=visible().filter(c=>gradeOf(c)!=null&&key(c)===d.k); if(!cs.length) return [d.lat,d.lon];
+  const mean=a=>[a.reduce((s,c)=>s+c.lat,0)/a.length, a.reduce((s,c)=>s+c.lon,0)/a.length];
+  if(d.lv==='gu'){ const m=new Map(); cs.forEach(c=>{ const k=c.hd||c.dong; if(!m.has(k)) m.set(k,[]); m.get(k).push(c); });
+    let best=null; m.forEach(a=>{ if(a.length<5) return; const g=a.reduce((s,c)=>s+gradeOf(c),0)/a.length; if(!best||g<best.g) best={g,a}; }); return mean(best?best.a:cs); }
+  let W=0,X=0,Y=0; cs.forEach(c=>{ const w=10-gradeOf(c); W+=w; X+=c.lat*w; Y+=c.lon*w; }); return W?[X/W,Y/W]:mean(cs);
+}
 const GUC = {}; DATA.geo.sgg.features.forEach(f=>{ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates; let A=0,X=0,Y=0;
   polys.forEach(poly=>{ const r=poly[0]; for(let i=0;i<r.length-1;i++){ const k=r[i][0]*r[i+1][1]-r[i+1][0]*r[i][1]; A+=k; X+=(r[i][0]+r[i+1][0])*k; Y+=(r[i][1]+r[i+1][1])*k; } });
   if (A) GUC[f.properties.g]=[Y/(3*A), X/(3*A)]; });   // 시군구 경계 중심(위도, 경도)
@@ -340,7 +350,7 @@ function drawDong(lv){
   const D=dongAgg(lv);
   const g=gDong.selectAll('g.dg').data(D,d=>d.lv+d.k).join(e=>{ const g=e.append('g').attr('class','dg').attr('role','button').attr('tabindex',0);
       g.append('rect'); g.append('text').attr('class','dn'); g.append('text').attr('class','dv');
-      g.on('click',(ev,d)=>{ const [x,y]=proj([d.lon,d.lat]); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(d.lv==='gu'?Math.max(GZ+0.3,K*1.5):Math.max(DZ+0.4,K*2.2)).translate(-x,-y)); });
+      g.on('click',(ev,d)=>{ const h=hotspot(d), [x,y]=proj([h[1],h[0]]); svg.transition().duration(350).call(zoom.transform, d3.zoomIdentity.translate(W/2,H/2).scale(d.lv==='gu'?Math.max(GZ+0.3,K*1.5):Math.max(DZ+0.4,K*2.2)).translate(-x,-y)); });
       return g; });
   g.each(function(d){ const e=d3.select(this), gr=Math.round(d.g), lab=aggLab(d);
     e.attr('aria-label',`${d.k} ${lab}`);
@@ -1427,7 +1437,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();
@@ -1518,7 +1528,7 @@ function nvMarkers(){
       // v1.2.6 연구원(치평동 알약이 안 보임): 겹치면 숨기기 전에 위·아래·옆으로 비켜 봄
       let q=null, off=[0,0]; for (const [ox,oy] of (lv==='gu'?[[0,0]]:[[0,0],[0,-40],[0,40],[-w*.7,0],[w*.7,0],[0,-80],[0,80]])){ const t=[p.x-w/2+ox,p.y-19+oy,p.x+w/2+ox,p.y+19+oy]; if(!hit0(t)){ q=t; off=[ox,oy]; break; } }
       if (!q && lv==='gu') q=[p.x-w/2,p.y-19,p.x+w/2,p.y+19];   // v1.2.9 연구원(첫 화면에 동구 없음): 구 알약 5개는 겹쳐도 모두 표시(v1.2.6에서 숨겨지던 오류)
-      if (!q) return; bx.push(q); let m=NVD.get(lv+d.k); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(d.lat,d.lon), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}}); naver.maps.Event.addListener(m,'click',()=>{ NV.morph(m.getPosition(), lv==='gu'?NGZ+1:NDZ+1); }); NVD.set(lv+d.k,m); }
+      if (!q) return; bx.push(q); let m=NVD.get(lv+d.k); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(d.lat,d.lon), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}}); naver.maps.Event.addListener(m,'click',()=>{ const h=hotspot(d); NV.morph(new naver.maps.LatLng(h[0],h[1]), lv==='gu'?NGZ+1:NDZ+1); }); NVD.set(lv+d.k,m); }
       const gr=clamp(Math.round(d.g),1,9);
       m.setPosition(new naver.maps.LatLng(d.lat,d.lon));
       m.setIcon({content:`<div class="ndg" style="background:${gCol(gr)};color:${gInk(gr)}"><b>${d.k}</b><span>${aggLab(d)}</span></div>`, anchor:new naver.maps.Point(-off[0],-off[1])});

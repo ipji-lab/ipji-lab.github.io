@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.8.0">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.8.2">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.8.0</title>
+<title>우리동네 입지분석(광주) v1.8.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -928,7 +928,7 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.8.0</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.8.2</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -1016,7 +1016,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=79767c90", DET=["data/d00.json.gz?v=61433e05", "data/d01.json.gz?v=7d076cec", "data/d02.json.gz?v=46b53530", "data/d03.json.gz?v=6ef83efa", "data/d04.json.gz?v=1582f660", "data/d05.json.gz?v=9985dde7", "data/d06.json.gz?v=b01091cb", "data/d07.json.gz?v=8716d9a2", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=34ad8a23", "data/d12.json.gz?v=c1e2afad", "data/d13.json.gz?v=74e65d9b", "data/d14.json.gz?v=3158666d", "data/d15.json.gz?v=fdcfb41c"], APP="app.js?v=2d06d74b", DASHF="data/rt/trend.json.gz?v=35f4ff8e", TXF="data/rt/tx.json.gz?v=46f1161e";
+  var CORE="data/core.json.gz?v=298f433f", DET=["data/d00.json.gz?v=64a96dd9", "data/d01.json.gz?v=4d2e28fb", "data/d02.json.gz?v=185af287", "data/d03.json.gz?v=6ef83efa", "data/d04.json.gz?v=1582f660", "data/d05.json.gz?v=0babb51d", "data/d06.json.gz?v=448fbc35", "data/d07.json.gz?v=2e8fb6ee", "data/d08.json.gz?v=70cddd6e", "data/d09.json.gz?v=467ec5ac", "data/d10.json.gz?v=d2fcc1ad", "data/d11.json.gz?v=34ad8a23", "data/d12.json.gz?v=00959f49", "data/d13.json.gz?v=49272fcb", "data/d14.json.gz?v=b4dbaedb", "data/d15.json.gz?v=88710eed"], APP="app.js?v=be93653b", DASHF="data/rt/trend.json.gz?v=017ec791", TXF="data/rt/tx.json.gz?v=46f1161e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

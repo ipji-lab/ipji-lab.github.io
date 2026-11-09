@@ -121,7 +121,7 @@ function personalItems(c,m){   // 내 조건으로 바뀐 항목 점수와 설�
   const out={}, note=[];
   if (m.hub!=null && c.jh && c.jh[m.hub]!=null){ const t=c.jh[m.hub]; out.Jcar=linC(t,M.jcurve)*10; note.push(`직주근접: ${M.hubN[m.hub]}까지 자가용 ${t}분 → ${f1(out.Jcar)}점`); }
   const ks=kidsOf(m);
-  const midFor=sex=>{ if(!c.ms||!c.ms.length) return null; const ok=c.ms.filter(r=>r[1]==='공'||!sex||r[1]===sex); if(!ok.length) return null; const lim=Math.max((M.midK||2)*ok[0][2],1000/60); let top=ok.filter(r=>r[2]<=lim).slice(0,3); if(!top.length) top=[ok[0]];
+  const midFor=sex=>{ if(!c.ms||!c.ms.length) return null; const ok=c.ms.filter(r=>r[1]==='공'||!sex||r[1]===sex); if(!ok.length) return null; const lim=M.midRmin?M.midRmin:Math.max((M.midK||2)*ok[0][2],1000/60); let top=ok.filter(r=>r[2]<=lim).slice(0,3);   /* v1.8.3 3km 안 최대 3곳(도보 환산) */ if(!top.length) top=[ok[0]];
     const avg=top.reduce((a,r)=>a+r[2],0)/top.length, ach=top.filter(r=>r[3]!=null); return {S3:linC(avg,M.mcurve)*10, S4:ach.length?ach.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ach.length:null, names:top.map(r=>r[0]), avg, achp:ach.length?ach.reduce((a,r)=>a+r[3],0)/ach.length:null}; };
   const highFor=sex=>{ if(!c.hs||!c.hs.length) return null; const ok=c.hs.filter(r=>sex==='남'?r[1]!=='여':sex==='여'?r[1]!=='남':true).slice(0,3); if(!ok.length) return null; const avg=ok.reduce((a,r)=>a+r[2],0)/ok.length; return {S7t:linC(avg,M.mcurve)*10, S7a:ok.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ok.length, names:ok.map(r=>r[0]), avg, achp:ok.reduce((a,r)=>a+r[3],0)/ok.length}; };
   const needMid=ks.filter(k=>k.st==='pre'||k.st==='elem'||k.st==='mid'), needHigh=ks.filter(k=>k.st!=='pre'&&k.sex);
@@ -1437,7 +1437,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

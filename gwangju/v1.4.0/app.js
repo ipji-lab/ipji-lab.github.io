@@ -1427,9 +1427,10 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.8 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.9 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
+  vcFill();
 }
 $('btnMethod').onclick=openMethod;
 /* v3.0.0 연구원: 필터 칩 좌우 넘기기(마우스를 올리면 화살표, 화살표 위에 올리거나 누르면 이동) */
@@ -1569,15 +1570,14 @@ let rt; addEventListener('resize',()=>{clearTimeout(rt); rt=setTimeout(()=>{if(!
 // GoatCounter(goatcounter.com): 쿠키·브라우저 저장 없음, IP는 8시간 메모리에서만(저장 안 함), 하루 단위 고유 방문 집계. GC_CODE = 연구원이 가입해 받은 사이트 코드(예: 'ipji' → ipji.goatcounter.com)
 // 운영 주소(ipji-lab.github.io)에서만 보냄. 주소 끝에 #toggle-goatcounter 를 붙이면 그 브라우저는 집계에서 빠짐(연구원 본인용). 바닥글에 '어제 N명 · 지금까지 N명'(설정 'Allow adding visitor counts' 필요, 응답은 최대 4시간 캐시)
 const GC_CODE='ipji';   // 연구원 가입(11.9) · 설정 'Allow adding visitor counts' 켬 확인
-(function(){
-  if(!GC_CODE || location.hostname!=='ipji-lab.github.io') return;
-  window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈
-  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`); document.head.append(sc);
-  const el=document.getElementById('vc'); if(!el) return;
+const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null;
+if(GC_ON){ window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈(대시보드에는 /gwangju 로 보임)
+  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`); document.head.append(sc); }
+function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어 창을 열 때마다 채움(숫자는 한 번만 받아 둠)
+  const el=document.getElementById('vc'); if(!el||!GC_ON) return; if(VC_TXT!==null){ el.textContent=VC_TXT; return; }
   const kst=d=>new Date(d.getTime()+9*3600e3).toISOString().slice(0,10), y=kst(new Date(Date.now()-864e5));
-  const get=u=>fetch(u,{cache:'force-cache'}).then(r=>(r.ok||r.status===404)?r.json():null).catch(()=>null);   // 아직 방문이 없는 날은 404 + {count:'0'}
-  Promise.all([get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju/')}.json?start=${y}&end=${y}`), get(`https://${GC_CODE}.goatcounter.com/counter/TOTAL.json`)]).then(([a,b])=>{
+  const get=u=>fetch(u,{cache:'force-cache'}).then(r=>(r.ok||r.status===404)?r.json():null).catch(()=>null);   // 방문이 없는 날은 404 + {count:'0'}
+  Promise.all([get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json?start=${y}&end=${y}`), get(`https://${GC_CODE}.goatcounter.com/counter/TOTAL.json`)]).then(([a,b])=>{
     const parts=[]; if(a&&a.count!=null) parts.push(`어제 ${a.count}명`); if(b&&b.count!=null) parts.push(`지금까지 ${b.count}명`);
-    if(parts.length) el.textContent=' · 방문 '+parts.join(' · ');
-  });
-})();
+    VC_TXT=parts.length?' · 방문 '+parts.join(' · '):''; const e2=document.getElementById('vc'); if(e2) e2.textContent=VC_TXT; });
+}

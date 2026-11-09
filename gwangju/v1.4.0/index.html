@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.7.6">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.7.7">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.7.6</title>
+<title>우리동네 입지분석(광주) v1.7.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -254,7 +254,7 @@ header.top{display:flex;align-items:center;gap:10px;padding-block:8px;background
 .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
 .tag{font-size:10.5px;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent)}
 .tag.good{background:var(--tag-good-bg);color:var(--tag-good)}
-.tag.bad{background:var(--tag-bad-bg);color:var(--bad)}
+.tag.bad{background:var(--tag-bad-bg);color:var(--bad-text,var(--bad))}
 .empty{color:var(--muted);text-align:center;padding:36px 16px}
 
 /* 상세 */
@@ -284,7 +284,7 @@ header.top{display:flex;align-items:center;gap:10px;padding-block:8px;background
 .kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:13px;margin:0}
 .kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right;font-family:var(--f-num)}
 .note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0}
-.chart svg{width:100%;height:auto;display:block}
+.chart > svg{width:100%;height:auto;display:block}   /* v1.7.7: 그래프 본체만(범례·말풍선 안 선 모양 svg까지 칸 폭으로 커지던 것) */
 .axis text{fill:var(--muted);font-size:10px;font-family:var(--f-num)}
 .axis line,.axis path{stroke:var(--line)}
 
@@ -310,7 +310,7 @@ table.t.cmp th i{display:inline-block;width:9px;height:9px;border-radius:2px;mar
 .slider input{width:100%;accent-color:var(--accent)}
 .slider output{font-family:var(--f-num);text-align:right}
 .sum{font-family:var(--f-num);font-weight:500}
-.sum.bad{color:var(--bad)}
+.sum.bad{color:var(--bad-text,var(--bad))}
 .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{flex:1;border:0;background:var(--surface);padding:8px 0;cursor:pointer;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
@@ -418,7 +418,7 @@ header.top{border-bottom:0;box-shadow:0 1px 0 var(--line)}
 .item .score{font-size:20px;font-weight:800;letter-spacing:-.03em;text-align:right;display:block;line-height:1.1} .item .score small{font-size:11px;color:var(--muted);font-weight:500}
 .item .price{font-size:13px;font-weight:600;color:var(--muted)}
 .tag{font-size:11px;padding:2px 7px;border-radius:6px;background:var(--surface2);color:var(--muted);font-weight:500}
-.tag.good{background:var(--accent-soft);color:var(--accent)} .tag.bad{border:0;background:#fdecee;color:var(--bad)}
+.tag.good{background:var(--accent-soft);color:var(--accent)} .tag.bad{border:0;background:#fdecee;color:var(--bad-text,var(--bad))}
 .vpill{font-size:11.5px;border:0;padding:3px 9px;font-weight:600}
 .vpill.under{background:#e6f8f1} .vpill.over{background:#fdecee} .vpill.fair{background:var(--surface2)} .vpill.hold{background:var(--surface2);border:0}
 .detail{padding:8px 16px 28px;gap:12px}
@@ -446,10 +446,10 @@ header.top{border-bottom:0;box-shadow:0 1px 0 var(--line)}
 .it .in{font-weight:600;font-size:13px} .it .iv{font-weight:800;font-size:14px;text-align:right} .it .iv small{font-weight:500;color:var(--muted);font-size:11px}
 .it .ir{grid-column:1/-1;font-size:12px;color:var(--ink);line-height:1.55}
 .it .is{grid-column:1/-1;font-size:11px;color:var(--muted)}
-.it.miss .iv{color:var(--bad)} .it.excl .iv{color:var(--muted)}
+.it.miss .iv{color:var(--bad-text,var(--bad))} .it.excl .iv{color:var(--muted)}
 .pros{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .pros>div{border-radius:12px;padding:12px;font-size:13px;line-height:1.55}
-.pros .p{background:var(--accent-soft)} .pros .c{background:var(--bad-soft);color:var(--ink)} .pros .p{color:var(--ink)} .pros h3{margin:0 0 6px;font-size:12.5px} .pros .p h3{color:var(--accent)} .pros .c h3{color:var(--bad)}
+.pros .p{background:var(--accent-soft)} .pros .c{background:var(--bad-soft);color:var(--ink)} .pros .p{color:var(--ink)} .pros h3{margin:0 0 6px;font-size:12.5px} .pros .p h3{color:var(--accent)} .pros .c h3{color:var(--bad-text,var(--bad))}
 .pros ul{margin:0;padding-left:16px}
 @media (max-width:520px){.pros{grid-template-columns:1fr}}
 .mk .pill{stroke:#fff;stroke-width:1.6} .mk.sel .pill{stroke:var(--ink);stroke-width:2.6}
@@ -872,6 +872,47 @@ table.t.cmp.many th:first-child,table.t.cmp.many td:first-child{position:sticky;
 .cmplg .cgi{display:inline-block;max-width:100%}
 @media (max-width:720px){.db.trend .tcity .tsep{display:none}}   /* 휴대폰에서 광주 시세가 따로 한 줄이 될 때 첫머리 '·' 숨김 */
 
+/* ── v1.7.7 가독성 점검(’26.11.6 연구원: '인터페이스 전반적으로 다시 다 검토') ──
+   ① 글자 대비: 작은 글 4.5:1 이상(밝은·어두운 화면 각각 계산). 흐린 글씨·파란 글씨는 조금 진하게, 어두운 화면에 남아 있던 밝은 바탕(고평가·저평가·약점 칩)은 어두운 바탕으로
+   ② 색 위 글자: 바탕 밝기에 따라 흰 글자 / 진한 글자 중 대비가 큰 쪽(등급 칩·지도 표시·대장 순위·평가기준 막대)
+   ③ 비교 그래프: 범례·말풍선 단지 이름을 선 색(글자용으로 밝기만 맞춤)으로, 선 모양은 작은 아이콘으로 */
+:root{--muted:#636e7b;--accent:#1b64da;--accent-strong:#1b64da;--under-soft:#e6f8f1;--under-text:#1b7d55;--over-text:#d12039;--bad-text:#d11f3a;--up:#c0392b;--dn:#1b64da;--je-text:#17805a;--je-strong:#17805a;--badge:#d92f3e;
+  --aLk:#fff;--aSk:#191f28;--aJk:#191f28;--aTk:#191f28;--aDk:#191f28;--aCk:#fff;--aQk:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--muted:#a0a8b3;--accent:#4f93ff;--accent-strong:#2b6fe0;--under-soft:#173a2e;--under-text:#2fd39a;--over-text:#ff6b76;--bad-text:#ff6b76;--up:#ef7d70;--dn:#5b9bff;--je-text:#2fc492;
+  --aLk:#191f28;--aSk:#191f28;--aJk:#191f28;--aTk:#191f28;--aDk:#191f28;--aCk:#fff;--aQk:#191f28}}
+:root[data-theme="dark"]{--muted:#a0a8b3;--accent:#4f93ff;--accent-strong:#2b6fe0;--under-soft:#173a2e;--under-text:#2fd39a;--over-text:#ff6b76;--bad-text:#ff6b76;--up:#ef7d70;--dn:#5b9bff;--je-text:#2fc492;
+  --aLk:#191f28;--aSk:#191f28;--aJk:#191f28;--aTk:#191f28;--aDk:#191f28;--aCk:#fff;--aQk:#191f28}
+.btn.primary{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+.chip.mode[aria-pressed="true"],.dongs .dg.on,.fpop .abar .ab.cur{background:var(--accent-strong);border-color:var(--accent-strong);color:#fff}
+.hxbub{background:var(--accent-strong);color:#fff} .hxbub.je{background:var(--je-strong);color:#fff} .hxbig.hxje{color:var(--je-text)}
+.badge-n{background:var(--badge)}
+.tag.bad{background:var(--bad-soft);color:var(--bad-text)} .pros .c h3{color:var(--bad-text)} .it.miss .iv{color:var(--bad-text)}
+.vpill.under{background:var(--under-soft);color:var(--under-text)} .vpill.over{background:var(--bad-soft);color:var(--over-text)} .vpill.fair{color:var(--muted)}
+.up{color:var(--up)} .dn{color:var(--dn)}
+/* 대장 카드 순위 숫자: 바탕색(자리별 색)에 맞춰 흰 글자 / 진한 글자 */
+.db.trend{--t1k:#fff;--t2k:#191f28;--t3k:#191f28;--t4k:#191f28;--t5k:#191f28;--t6k:#fff;--t7k:#fff;--t8k:#191f28}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .db.trend{--t1k:#191f28;--t2k:#191f28;--t3k:#191f28;--t4k:#191f28;--t5k:#191f28;--t6k:#fff;--t7k:#191f28;--t8k:#191f28}}
+:root[data-theme="dark"] .db.trend{--t1k:#191f28;--t2k:#191f28;--t3k:#191f28;--t4k:#191f28;--t5k:#191f28;--t6k:#fff;--t7k:#191f28;--t8k:#191f28}
+.db.trend .tgrid .th .rk{color:var(--tk,#fff)}
+/* 비교: 단지 이름 글자색(선 색과 같은 색상, 바탕 대비 4.5:1 이상으로 밝기만 맞춤) */
+#ovCmp{--n1:#2675d3;--n2:#cb4b0c;--n3:#19855d;--n4:#ab6300;--n5:#b8507a;--n6:#008300;--n7:#6250d6;--n8:#d53b3c}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #ovCmp{--n1:#3b89e7;--n2:#d7643a;--n3:#199e70;--n4:#c98500;--n5:#c96787;--n6:#2c9a28;--n7:#9085e9;--n8:#e66767}}
+:root[data-theme="dark"] #ovCmp{--n1:#3b89e7;--n2:#d7643a;--n3:#199e70;--n4:#c98500;--n5:#c96787;--n6:#2c9a28;--n7:#9085e9;--n8:#e66767}
+svg.cg{width:16px;height:8px;flex:none;display:inline-block;vertical-align:middle}
+.cnm{font-weight:700}
+#cchart .cmph{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:16px 0 6px}
+#cchart .cmpt{font-size:13.5px;font-weight:700;color:var(--ink)}
+#cchart .cmplg,.cmplg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 8px;font-size:13px;line-height:1.4}
+#cchart .cgi,.cmplg .cgi{display:inline-flex;align-items:center;gap:6px;max-width:100%}
+#cchart .cgi .sm{color:var(--muted);font-weight:400}
+#cchart .ttip{padding:7px 10px;font-size:12.5px;line-height:1.35}
+#cchart .ttip .tth{color:var(--muted);font-size:12px;margin-bottom:4px}
+#cchart .ttip .ttg{display:grid;grid-template-columns:auto auto auto;gap:3px 10px;align-items:center}
+#cchart .ttip .ttg b{text-align:right;font-variant-numeric:tabular-nums}
+#cchart .ttip .ttg .sm{color:var(--muted);text-align:right}
+table.t.cmp thead th{vertical-align:top}
+/* 내 조건: 만원 단위 입력 아래에 '2억 원'처럼 읽기 쉬운 금액 */
+.fld .eq{display:block;margin-top:4px;font-size:12px;color:var(--muted);text-align:right;min-height:16px}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -882,7 +923,7 @@ table.t.cmp.many th:first-child,table.t.cmp.many td:first-child{position:sticky;
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.6</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.7</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -970,7 +1011,7 @@ table.t.cmp.many th:first-child,table.t.cmp.many td:first-child{position:sticky;
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=8fde0f73", DET=["data/d00.json.gz?v=2290b8b8", "data/d01.json.gz?v=9b2e4268", "data/d02.json.gz?v=e36a4327", "data/d03.json.gz?v=1bf1624a", "data/d04.json.gz?v=8c70fc4b", "data/d05.json.gz?v=6782c903", "data/d06.json.gz?v=136c4c13", "data/d07.json.gz?v=53bf267c", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=3b51d206", "data/d12.json.gz?v=72c4f888", "data/d13.json.gz?v=aa7057d5", "data/d14.json.gz?v=220e4ae4", "data/d15.json.gz?v=50034c02"], APP="app.js?v=03f091bf", DASHF="data/rt/trend.json.gz?v=880e6be3", TXF="data/rt/tx.json.gz?v=3082851a";
+  var CORE="data/core.json.gz?v=81a75bd5", DET=["data/d00.json.gz?v=61433e05", "data/d01.json.gz?v=7d076cec", "data/d02.json.gz?v=46b53530", "data/d03.json.gz?v=6ef83efa", "data/d04.json.gz?v=1582f660", "data/d05.json.gz?v=9985dde7", "data/d06.json.gz?v=b01091cb", "data/d07.json.gz?v=8716d9a2", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=34ad8a23", "data/d12.json.gz?v=c1e2afad", "data/d13.json.gz?v=74e65d9b", "data/d14.json.gz?v=3158666d", "data/d15.json.gz?v=fdcfb41c"], APP="app.js?v=c8b9eb03", DASHF="data/rt/trend.json.gz?v=2d0999b0", TXF="data/rt/tx.json.gz?v=46f1161e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

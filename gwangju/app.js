@@ -60,7 +60,8 @@ try { const v = JSON.parse(localStorage.getItem('dn10-mine')||'null'); if (v) S.
 const CMP_MAX=10, CMPC=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','var(--c7)','var(--c8)','var(--c1)','var(--c2)'], CMPD=[null,null,null,null,null,null,null,null,'5 3','5 3'];   // v1.7.6 연구원(11.6): 비교 단지 4 → 10곳. 색 = 기본 범주 8색(밝은·어두운 화면 따로, #ovCmp), 9·10번째는 1·2번 색 + 점선(색만으로 구분하지 않게)
 const cmpGlyph=k=>`<svg class="cg" width="16" height="8" viewBox="0 0 16 8" aria-hidden="true"><line x1="1.5" y1="4" x2="14.5" y2="4" style="stroke:${CMPC[k]}" stroke-width="3" stroke-linecap="round"${CMPD[k]?` stroke-dasharray="${CMPD[k]}"`:''}/></svg>`;
 const CMPT=['var(--n1)','var(--n2)','var(--n3)','var(--n4)','var(--n5)','var(--n6)','var(--n7)','var(--n8)','var(--n1)','var(--n2)'], cmpNm=(k,t)=>`<span class="cnm" style="color:${CMPT[k]}">${t}</span>`;   // v1.7.7 연구원(11.6): 범례·말풍선 단지 이름을 선 색으로(글자용: 같은 색상, 바탕 대비 4.5:1 이상으로 밝기만 맞춤). 9·10번째는 선 모양(점선)으로 구분
-try { const v = JSON.parse(localStorage.getItem('dn10-cmp')||'null'); if (Array.isArray(v)) S.cmp = v.filter(id=>CX.some(c=>c.id===id)).slice(-CMP_MAX); } catch(e){}   // v1.7.0 관심(비교) 단지 복원
+try { const v = JSON.parse(localStorage.getItem('dn10-cmp')||'null'); if (Array.isArray(v)) S.cmp = v.filter(id=>CX.some(c=>c.id===id)).slice(-CMP_MAX); } catch(e){}
+try { const m = /[#&]cmp=([^&]+)/.exec(location.hash); if (m) { const ids = decodeURIComponent(m[1]).split(',').filter(id=>CX.some(c=>c.id===id)); if (ids.length) { S.cmp = [...new Set([...S.cmp.filter(id=>!ids.includes(id)), ...ids])].slice(-CMP_MAX); try{ localStorage.setItem('dn10-cmp', JSON.stringify(S.cmp)); }catch(e){} S._cmpFromLink = ids.length; history.replaceState(null,'',location.pathname+location.search); } } } catch(e){}   // v1.9.0 연구원(11.9): 비교 단지를 주소(#cmp=)에 담아 다른 기기·다른 사람과 공유. 주소로 들어오면 그 단지들을 내 비교 목록에 더함   // v1.7.0 관심(비교) 단지 복원
 document.addEventListener('DOMContentLoaded',()=>{ const n=$('cmpN'); if(n) n.textContent=S.cmp.length; }); if(document.readyState!=='loading'){ const n=$('cmpN'); if(n) n.textContent=S.cmp.length; }
 
 /* ═════════ 내 조건: 예산·비용 (지방세법 제11조①8, 공인중개사법 시행규칙 제20조) ═════════ */
@@ -122,16 +123,16 @@ function personalItems(c,m){   // 내 조건으로 바뀐 항목 점수와 설�
   if (m.hub!=null && c.jh && c.jh[m.hub]!=null){ const t=c.jh[m.hub]; out.Jcar=linC(t,M.jcurve)*10; note.push(`직주근접: ${M.hubN[m.hub]}까지 자가용 ${t}분 → ${f1(out.Jcar)}점`); }
   const ks=kidsOf(m);
   const midFor=sex=>{ if(!c.ms||!c.ms.length) return null; const ok=c.ms.filter(r=>r[1]==='공'||!sex||r[1]===sex); if(!ok.length) return null; const lim=M.midRmin?M.midRmin:Math.max((M.midK||2)*ok[0][2],1000/60); let top=ok.filter(r=>r[2]<=lim).slice(0,3);   /* v1.8.3 3km 안 최대 3곳(도보 환산) */ if(!top.length) top=[ok[0]];
-    const avg=top.reduce((a,r)=>a+r[2],0)/top.length, ach=top.filter(r=>r[3]!=null); return {S3:linC(avg,M.mcurve)*10, S4:ach.length?ach.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ach.length:null, names:top.map(r=>r[0]), avg, achp:ach.length?ach.reduce((a,r)=>a+r[3],0)/ach.length:null}; };
+    const avg=top.reduce((a,r)=>a+r[2],0)/top.length, ach=top.filter(r=>r[3]!=null), car=top.filter(r=>r[4]!=null); return {S3:linC(avg,M.mcurve)*10, S4:ach.length?ach.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ach.length:null, S8:car.length?car.reduce((a,r)=>a+linC(r[4],M.schoolC),0)/car.length:null, names:top.map(r=>r[0]), avg, achp:ach.length?ach.reduce((a,r)=>a+r[3],0)/ach.length:null}; };   /* v1.9.0 r[4] = 특목·자사고 진학률 광주 상위 % */
   const highFor=sex=>{ if(!c.hs||!c.hs.length) return null; const ok=c.hs.filter(r=>sex==='남'?r[1]!=='여':sex==='여'?r[1]!=='남':true).slice(0,3); if(!ok.length) return null; const avg=ok.reduce((a,r)=>a+r[2],0)/ok.length; return {S7t:linC(avg,M.mcurve)*10, S7a:ok.reduce((a,r)=>a+linC(r[3],M.schoolC),0)/ok.length, names:ok.map(r=>r[0]), avg, achp:ok.reduce((a,r)=>a+r[3],0)/ok.length}; };
   const needMid=ks.filter(k=>k.st==='pre'||k.st==='elem'||k.st==='mid'), needHigh=ks.filter(k=>k.st!=='pre'&&k.sex);
   const avgOf=(arr,key)=>{ const v=arr.map(x=>x[key]).filter(x=>x!=null); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; };
-  if (needMid.length){ const rs=needMid.map(k=>({k,r:midFor(k.sex)})).filter(x=>x.r); if(rs.length){ out.S3=avgOf(rs.map(x=>x.r),'S3'); const s4=avgOf(rs.map(x=>x.r),'S4'); if(s4!=null) out.S4=s4;
+  if (needMid.length){ const rs=needMid.map(k=>({k,r:midFor(k.sex)})).filter(x=>x.r); if(rs.length){ out.S3=avgOf(rs.map(x=>x.r),'S3'); const s4=avgOf(rs.map(x=>x.r),'S4'); if(s4!=null) out.S4=s4; const s8=avgOf(rs.map(x=>x.r),'S8'); if(s8!=null) out.S8=s8;
     rs.forEach(x=>note.push(`중학교(${x.k.sex?(x.k.sex==='여'?'여학생: 여중·공학':'남학생: 남중·공학'):'성별 미정: 전체'}${needMid.length>1?` · ${x.k.by}년생`:''}): ${x.r.names.join('·')} 평균 도보 ${Math.round(x.r.avg)}분${x.r.achp!=null?` · 학업성취 상위 ${Math.round(x.r.achp)}%`:''}`)); } }
   if (needHigh.length){ const rs=needHigh.map(k=>({k,r:highFor(k.sex)})).filter(x=>x.r); if(rs.length){ out.S7t=avgOf(rs.map(x=>x.r),'S7t'); out.S7a=avgOf(rs.map(x=>x.r),'S7a');
     rs.forEach(x=>note.push(`고등학교(${x.k.sex==='여'?'여학생: 남고 제외':'남학생: 여고 제외'}${needHigh.length>1?` · ${x.k.by}년생`:''}): ${x.r.names.join('·')} 평균 도보 ${Math.round(x.r.avg)}분 · 학업성취 상위 ${Math.round(x.r.achp)}%`)); } }
   // 학년에 안 맞는 항목 제외: 어느 자녀에게도 필요 없는 항목만 뺌
-  const need=new Set(); ks.forEach(k=>{ ({pre:['S6','S1t','S1c','S2','S3','S4','S5a','S5b','S7t','S7a'],elem:['S1t','S1c','S2','S3','S4','S5a','S5b','S7t','S7a'],mid:['S3','S4','S5a','S5b','S7t','S7a'],high:['S5a','S5b','S7t','S7a']})[k.st].forEach(x=>need.add(x)); });
+  const need=new Set(); ks.forEach(k=>{ ({pre:['S6','S1t','S1c','S2','S3','S4','S8','S5a','S5b','S7t','S7a'],elem:['S1t','S1c','S2','S3','S4','S8','S5a','S5b','S7t','S7a'],mid:['S3','S4','S8','S5a','S5b','S7t','S7a'],high:['S5a','S5b','S7t','S7a']})[k.st].forEach(x=>need.add(x)); });
   const drop = ks.length ? Object.keys(IN.S).filter(k=>!need.has(k)) : [];
   if (drop.length) note.push(`자녀(${ks.map(k=>STAGE_KO[k.st]).join('·')}) 기준: ${drop.map(k=>NAMES[k]).join('·')} 항목은 빼고 계산`);
   return {it:out, drop, note};
@@ -337,7 +338,8 @@ function hotspot(d){
   const cs=visible().filter(c=>gradeOf(c)!=null&&key(c)===d.k); if(!cs.length) return [d.lat,d.lon];
   const mean=a=>[a.reduce((s,c)=>s+c.lat,0)/a.length, a.reduce((s,c)=>s+c.lon,0)/a.length];
   if(d.lv==='gu'){ const m=new Map(); cs.forEach(c=>{ const k=c.hd||c.dong; if(!m.has(k)) m.set(k,[]); m.get(k).push(c); });
-    let best=null; m.forEach(a=>{ if(a.length<5) return; const g=a.reduce((s,c)=>s+gradeOf(c),0)/a.length; if(!best||g<best.g) best={g,a}; }); return mean(best?best.a:cs); }
+    let best=null; m.forEach(a=>{ const top=a.filter(c=>gradeOf(c)<=2).length, g=a.reduce((s,c)=>s+gradeOf(c),0)/a.length; if(!best||top>best.top||(top===best.top&&g<best.g)) best={top,g,a}; });   // v1.9.0 연구원(11.9): 구 = 1·2등급 단지가 가장 많은 동(같으면 평균 등급이 좋은 동) → 서구 치평동
+    return mean(best?best.a:cs); }
   let W=0,X=0,Y=0; cs.forEach(c=>{ const w=10-gradeOf(c); W+=w; X+=c.lat*w; Y+=c.lon*w; }); return W?[X/W,Y/W]:mean(cs);
 }
 const GUC = {}; DATA.geo.sgg.features.forEach(f=>{ const polys=f.geometry.type==='Polygon'?[f.geometry.coordinates]:f.geometry.coordinates; let A=0,X=0,Y=0;
@@ -520,7 +522,7 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
 }
 
 /* ═════════ 패널: 상세 ═════════ */
-const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S7t:'고등학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S7t:'통학 시간',S7a:'학업성취도',S5a:'학원가',S5b:'대형학원'};   // v1.4.1 연구원: 초등 → 중학교 → 고등학교 → 학원   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
+const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S7t:'고등학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S8:'특목·자사고 진학률',S7t:'통학 시간',S7a:'학업성취도',S5a:'학원가',S5b:'대형학원'}   /* v1.9.0 연구원: 중학교 = 통학 시간·학업성취도·특목·자사고 진학률 세 항목 */;   // v1.4.1 연구원: 초등 → 중학교 → 고등학교 → 학원   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
 function rankOf(c){   // v1.1.3 연구원: 같은 권역 등급 단지(임대 제외) 안 순위 = 등급 → 점수 순
   const z=c.zn||'gj', L=CX.filter(x=>(x.zn||'gj')===z && gradeOf(x)!=null).sort((a,b)=>gradeOf(a)-gradeOf(b) || (scoreOf(b)??-1)-(scoreOf(a)??-1));
   const i=L.indexOf(c); return [i+1, L.length, 100*(i+.5)/L.length]; }
@@ -1351,10 +1353,11 @@ function openCmp(){
   const rows=[['종합점수',c=>scoreOf0(c),1,v=>f1(v)],['종합 등급',c=>c.grade,-1,v=>v+'등급'],['입지점수',c=>c.loc??c.locTent,1,v=>f1(v)],...AREAS.map(a=>[AN[a],c=>c.area[a],1,v=>f1(v)]),
     ['자료 충족률',c=>c.cover,1,v=>f1(v)+'%'],['실거래가',c=>repPrice(c),-1,eok],['가격 판정',c=>c.gap,-1,pct],['매매회전율',c=>c.qr,1,v=>v.toFixed(1)+'%'],['세대수',c=>c.u,1,v=>v.toLocaleString()],['사용승인',c=>c.y,1,v=>v+'년'],['세대당 주차',pkU,1,v=>v.toFixed(2)+'대'],['용적률',c=>c.far,-1,v=>v+'%']];
   const body = L.length ? `<div class="tblwrap"><table class="t cmp${L.length>4?' many':''}"><thead><tr><th></th>${L.map((c,k)=>`<th><span class="ch">${L.length>1?cmpGlyph(k):''}<button class="cx" data-id="${c.id}" aria-label="${dn(c)} 비교에서 빼기" title="비교에서 빼기">✕</button></span><span class="cd">${dnParts(c)[0]}</span><span class="cn">${dnParts(c)[1]}</span></th>`).join('')}</tr></thead><tbody>${rows.filter(r=>L.some(c=>r[1](c)!=null)).map(([n,f,dir,fmt])=>{ const vs=L.map(f); const valid=vs.filter(v=>v!=null); const best=valid.length>1?(dir>0?Math.max(...valid):Math.min(...valid)):null; return `<tr><td>${n}</td>${vs.map(v=>`<td class="num ${v!=null&&v===best?'best':''}">${v==null?'–':(fmt?fmt(v):v)}</td>`).join('')}</tr>`; }).join('')}</tbody></table></div><div class="chart" id="cchart"></div><p class="note">파란 굵은 글씨 = 해당 항목 가장 좋은 값(가격 판정은 낮을수록) · 실거래가 = 대표 평형 최근 실거래가</p>` : `<div class="empty">단지 상세에서 단지 이름 옆 ☆를 눌러 최대 10곳까지 비교하세요. 10곳이 넘으면 가장 먼저 넣은 단지가 빠집니다.</div>`;
-  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="cmpT"><div class="dh"><h2 id="cmpT">단지 비교</h2><button class="back" id="cClose" aria-label="닫기">✕</button></div><div class="db">${body}</div><div class="df"><button class="btn" id="cClear">비우기</button></div></div>`;
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="cmpT"><div class="dh"><h2 id="cmpT">단지 비교</h2><button class="back" id="cClose" aria-label="닫기">✕</button></div><div class="db">${body}</div><div class="df"><button class="btn" id="cClear">비우기</button>${L.length?`<button class="btn" id="cShare">공유 링크 복사</button><span class="sm" id="cShareMsg" aria-live="polite"></span>`:``}</div></div>`;
   if (L.length) cmpChart($('cchart'), L);
   ov.querySelectorAll('button.cx').forEach(b=>b.onclick=e=>{ e.stopPropagation(); toggleCmp(b.dataset.id); openCmp(); });   // v1.7.6 머리글 ✕ = 그 단지만 비교에서 빼기
   $('cClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
+  const sh=$('cShare'); if(sh) sh.onclick=async()=>{ const url=location.origin+location.pathname+'#cmp='+S.cmp.join(','); let ok=false; try{ await navigator.clipboard.writeText(url); ok=true; }catch(e){ try{ const ta=document.createElement('textarea'); ta.value=url; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); ta.remove(); }catch(e2){} } $('cShareMsg').textContent= ok?'복사했습니다. 이 주소를 열면 지금 비교 중인 단지가 그대로 보입니다(다른 기기·다른 사람도).':'복사가 막혔습니다: '+url; };   // v1.9.0 공유 링크
   $('cClear').onclick=()=>{ S.cmp=[]; saveCmp(); $('cmpN').textContent=0; drawMarkers(); ov.hidden=true; if (S.view==='detail') renderDetail(); };
 }
 $('btnCmp').onclick=openCmp;
@@ -1437,7 +1440,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.9.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

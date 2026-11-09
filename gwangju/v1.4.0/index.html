@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v1.7.7">
+<meta property="og:title" content="우리동네 입지분석(광주) v1.7.8">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/v1.4.0/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v1.7.7</title>
+<title>우리동네 입지분석(광주) v1.7.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" integrity="sha384-GIdEBaqGN9mNkDkMkzMHW8EKUqtpPIe/sLj1X7DIrnc9uPtLROJgmuDlh+3rBw0j" crossorigin="anonymous">
@@ -914,6 +914,11 @@ table.t.cmp thead th{vertical-align:top}
 /* 내 조건: 만원 단위 입력 아래에 '2억 원'처럼 읽기 쉬운 금액 */
 .fld .eq{display:block;margin-top:4px;font-size:12px;color:var(--muted);text-align:right;min-height:16px}
 
+/* v1.7.8 방문자 수(바닥글) */
+.by .vc{white-space:nowrap}
+@media (max-width:520px){.by .vc{display:block}}
+.by .vcn{margin-top:4px;color:var(--muted);font-size:11.5px}
+
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
 </head>
@@ -923,7 +928,7 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.7</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v1.7.8</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -1011,7 +1016,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=81a75bd5", DET=["data/d00.json.gz?v=61433e05", "data/d01.json.gz?v=7d076cec", "data/d02.json.gz?v=46b53530", "data/d03.json.gz?v=6ef83efa", "data/d04.json.gz?v=1582f660", "data/d05.json.gz?v=9985dde7", "data/d06.json.gz?v=b01091cb", "data/d07.json.gz?v=8716d9a2", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=34ad8a23", "data/d12.json.gz?v=c1e2afad", "data/d13.json.gz?v=74e65d9b", "data/d14.json.gz?v=3158666d", "data/d15.json.gz?v=fdcfb41c"], APP="app.js?v=c8b9eb03", DASHF="data/rt/trend.json.gz?v=2d0999b0", TXF="data/rt/tx.json.gz?v=46f1161e";
+  var CORE="data/core.json.gz?v=0f831f6b", DET=["data/d00.json.gz?v=61433e05", "data/d01.json.gz?v=7d076cec", "data/d02.json.gz?v=46b53530", "data/d03.json.gz?v=6ef83efa", "data/d04.json.gz?v=1582f660", "data/d05.json.gz?v=9985dde7", "data/d06.json.gz?v=b01091cb", "data/d07.json.gz?v=8716d9a2", "data/d08.json.gz?v=ede412d5", "data/d09.json.gz?v=cf5d32c8", "data/d10.json.gz?v=9c48e442", "data/d11.json.gz?v=34ad8a23", "data/d12.json.gz?v=c1e2afad", "data/d13.json.gz?v=74e65d9b", "data/d14.json.gz?v=3158666d", "data/d15.json.gz?v=fdcfb41c"], APP="app.js?v=63b5c856", DASHF="data/rt/trend.json.gz?v=b6d8ad45", TXF="data/rt/tx.json.gz?v=46f1161e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

@@ -411,7 +411,7 @@ function drawUp(){
     g.on('click',(ev,u)=>openUp(u.id)).on('keydown',(ev,u)=>{ if(ev.key==='Enter'||ev.key===' '){ev.preventDefault(); openUp(u.id);} });
     return g;
   }).each(function(u){ const g=d3.select(this);
-    g.attr('aria-label',`입주예정 ${u.n}, ${ymTxt(u.mvn)} 입주 예정`); g.select('title').text(`입주예정 · ${u.n} · ${ymTxt(u.mvn)} 입주 예정 · ${u.u.toLocaleString()}세대`);
+    const lateT=u.late?' 예정월 지남(사용승인 전)':''; g.attr('aria-label',`입주예정 ${u.n}, ${ymTxt(u.mvn)} 입주 예정${lateT}`); g.select('title').text(`입주예정 · ${u.n} · ${ymTxt(u.mvn)} 입주 예정${lateT} · ${u.u.toLocaleString()}세대`);   // v1.8.0 예정월이 지난 단지(연구원 11.9 전수조사)
     g.select('.upb').attr('x',-27).attr('y',-10).attr('width',54).attr('height',20).attr('rx',7);
     g.select('.upt').text('입주예정'); });
 }
@@ -758,9 +758,9 @@ function openUp(id){
   const silv=u.silv.length?`<div class="tblwrap"><table class="t"><thead><tr><th>전용</th><th>거래</th><th>최근 1년 중위</th><th>최근 거래</th></tr></thead><tbody>${u.silv.map(([a,n,md,last,dt])=>`<tr><td>${a}㎡</td><td class="num">${n}건</td><td class="num">${eok(md)}</td><td class="num">${eok(last)} <span style="color:var(--muted)">’${dt}</span></td></tr>`).join('')}</tbody></table></div><p class="note">분양권 전매 실거래(’24.9~’26.9, 해제 거래 제외). 분양가와 비교할 때는 같은 주택형인지 확인하세요.</p>`:`<p class="note">’24.9~’26.9 분양권 전매 실거래가 없습니다(전매 제한 기간이거나 거래 없음).</p>`;
   ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="upT"><div class="dh"><h2 id="upT">입주예정 단지</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
     <div><div style="font-weight:700;font-size:17px">${u.n}</div><div class="dmeta">${u.addr} · ${u.u.toLocaleString()}세대(공고 공급) · ${u.b}</div>
-      <div class="tags" style="margin-top:6px"><span class="tag">입주 예정 ${ymTxt(u.mvn)}</span><span class="tag">모집공고 ${u.pbl.replace(/-/g,'.').slice(2)}</span></div></div>
+      <div class="tags" style="margin-top:6px"><span class="tag">입주 예정 ${ymTxt(u.mvn)}</span>${u.late?`<span class="tag bad">예정월 지남 · 사용승인 전</span>`:``}<span class="tag">모집공고 ${u.pbl.replace(/-/g,'.').slice(2)}</span></div></div>
     ${u.eloc?`<section class="sec" style="margin:0"><h2>예상 입지 등급 <b style="color:var(--accent)">${u.eloc.g}등급</b> <span style="font-size:13px;font-weight:400;color:var(--muted)">(예상 입지 점수 ${f1(u.eloc.s)}점)</span></h2><p class="note">반경 2km 안 기존 단지 ${u.eloc.k||u.eloc.n.length}곳의 입지 점수를 거리로 가중 평균한 추정값입니다(참고용). 가까운 곳: ${u.eloc.n.join(' · ')}</p></section>`:'<p class="note">반경 2km 안 기존 단지가 2곳 미만이라 예상 입지 등급을 계산하지 않았습니다.</p>'}
-    <div class="callout">아직 입주 전이라 종합 등급은 매기지 않습니다. 입주 후 실거래·관리 자료가 쌓이면 평가에 넣습니다.${u.approx?'<br>※ 지도 위치는 근사입니다('+u.gsrc.replace('위치 근사: ','')+').':''}</div>
+    <div class="callout">${u.late?`공고의 입주예정월(${ymTxt(u.mvn)})은 지났지만 건축물대장(사용승인)과 공동주택관리정보에 아직 올라오지 않아 입주예정으로 둡니다. 사용승인이 확인되면 등급 단지로 바꿉니다.<br>`:``}아직 입주 전이라 종합 등급은 매기지 않습니다. 입주 후 실거래·관리 자료가 쌓이면 평가에 넣습니다.${u.approx?'<br>※ 지도 위치는 근사입니다('+u.gsrc.replace('위치 근사: ','')+').':''}</div>
     <section class="sec"><h2>주택형별 분양가·청약 경쟁률</h2>${u.cmp&&u.cmp.sup?`<p style="margin:0 0 8px">일반공급 <b class="num">${u.cmp.sup.toLocaleString()}</b>세대 · 1순위 접수 <b class="num">${u.cmp.req1.toLocaleString()}</b>건(평균 <b>${u.cmp.rate1}:1</b>)${u.cmp.short?` · <span style="color:var(--bad-text)">2순위까지 미달 ${u.cmp.short.toLocaleString()}세대(${u.cmp.shortPct}%)</span>`:' · 미달 없음'}</p>`:''}${u.unsold!=null?`<p style="margin:0 0 8px">광주시 미분양 현황(’26.8월말): ${u.unsold?`<b style="color:var(--bad-text)">미분양 ${u.unsold}세대</b>`:'미분양 없음'}</p>`:''}${u.tys.length?'':'<p class="note">이 지역은 주택형별 경쟁률 자료를 아직 받지 않았습니다. 아래 청약홈 공고에서 확인하세요.</p>'}<div class="tblwrap"${u.tys.length?'':' hidden'}><table class="t"><thead><tr><th>주택형(전용)</th><th>분양 최고가</th><th>일반공급</th><th>1순위 해당지역</th><th>1순위 기타지역</th><th>2순위 해당지역</th></tr></thead><tbody>${tyRows}</tbody></table></div>
       <p class="note">경쟁률 = 1순위 해당지역 접수 기준(청약홈 표기). 미달은 공급보다 접수가 적었던 세대 수(광양만권 ‘2순위 해당지역’ 칸은 2순위까지 받은 뒤 최종 미달). 분양가는 주택형별 최고가(발코니 확장·옵션 제외).</p></section>
     <section class="sec"><h2>분양권 실거래</h2>${silv}</section>
@@ -1427,7 +1427,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.7.9 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.8.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

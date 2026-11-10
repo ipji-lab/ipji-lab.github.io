@@ -524,12 +524,13 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
 /* ═════════ 패널: 상세 ═════════ */
 const SGRP={S6:'어린이집·유치원',S1t:'초등학교',S3:'중학교',S7t:'고등학교',S5a:'학원'}, SNAME={S6:'도보 거리',S1t:'통학 시간',S1c:'통학 길 차도 횡단',S2:'고학년 집단 변화',S3:'통학 시간',S4:'학업성취도',S8:'특목·자사고 진학률',S7t:'통학 시간',S7a:'학업성취도',S5a:'학원가',S5b:'대형학원'}   /* v1.9.0 연구원: 중학교 = 통학 시간·학업성취도·특목·자사고 진학률 세 항목 */;   // v1.4.1 연구원: 초등 → 중학교 → 고등학교 → 학원   // v1.1.2 연구원: 교육은 초등 → 중학교 → 학원
 function rankOf(c){   // v1.9.2 연구원(11.9): '상위 9%인데 3등급?' → 순위를 등급 계산과 같은 모집단(같은 권역·임대 제외)의 점수 순으로. 등급은 이 순위 + 조건
+  if (!S.mine && !S.locMode && c.rk0) return [c.rk0, c.n0, 100*(c.rk0-.5)/c.n0];   // v1.9.4: 화면 점수(등급 구간에 맞춘 값)가 아니라 등급을 정한 점수 순위 그대로 → 등급 사유의 '점수 상위 %'와 같은 숫자
   const z=c.zn||'gj', L=CX.filter(x=>(x.zn||'gj')===z && !x.rent && scoreOf(x)!=null).sort((a,b)=>(scoreOf(b)??-1)-(scoreOf(a)??-1));
   const i=L.indexOf(c); return [i+1, L.length, 100*(i+.5)/L.length]; }
 function capWhy(c,g){   // v1.9.2: 등급 사유 한두 문장(연구원 11.9 '짧고 바로 이해되게')
   const CUTS=[4,11,23,40,60,77,89,96,100], pg=v=>CUTS.findIndex(x=>v<=x)+1, pp=v=>v==null?'-':v<1?'1% 이내':Math.round(v)+'%';
   if (g==null) return c.rent&&!S.mine?'임대 단지는 매매가 없어 종합 등급 대신 입지 등급만 보여 줍니다.':'자료가 빠진 항목이 있어 등급을 붙이지 않았습니다.';
-  const g0=c.grade0??g, pct0=Math.round(c.pct0??c.pct), band=`${g0}등급 구간은 상위 ${g0>1?CUTS[g0-2]+'~':''}${CUTS[g0-1]}%`;
+  const g0=c.grade0??g, pct0=Math.round(c.rk0?100*(c.rk0-.5)/c.n0:(c.pct0??c.pct)), band=`${g0}등급 구간은 상위 ${g0>1?CUTS[g0-2]+'~':''}${CUTS[g0-1]}%`;
   const edge=c.edge?' 경계에 가까워 비중을 조금만 바꿔도 한 단계 달라질 수 있습니다.':'';
   if (g===g0) return `점수 상위 ${pct0}% → ${g}등급(${band}).${edge}`;
   if (c.why==='mktup') return `점수 상위 ${pct0}%는 ${g0}등급이지만, 자리값(상위 ${pp(c.pxp)})과 ㎡당 실거래가(상위 ${pp(c.rpp)})가 모두 ${g}등급 수준이라 한 단계 올려 ${g}등급.`;
@@ -1440,7 +1441,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.9.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.9.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

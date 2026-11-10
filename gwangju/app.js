@@ -748,10 +748,10 @@ function drawTypeChart(c, i, bk){
 function futureLines(c){            // v1.7.1 연구원(11.5): 2호선 1단계 = 확정 역 이름(’26.10.28 고시), 2단계 = 가칭(1km 안일 때만), 광주 공통 계획(FUT['광주'], 출처 있는 것만)
   const L=[], yk=n=>{ const i=n.indexOf('('); return i<0?n+'역':n.slice(0,i)+'역'+n.slice(i); };
   const F=(DATA.future||{})[c.nj?c.gu:'광주']||[], a=c.sub2&&c.sub2[1]<=1000, b=c.sub2b&&c.sub2b[1]<=1000;
-  if (a) L.push(`도시철도 2호선 1단계 <b>${yk(c.sub2[0])}</b>까지 약 ${c.sub2[1].toLocaleString()}m (공사 중)`);
+  // v1.9.6 점검: 1단계 예정역은 '교통 한눈에'에 이미 있어(0.3km · 도보 7분) 여기서는 뺌
   if (b) L.push(`도시철도 2호선 2단계 <b>${yk(c.sub2b[0])}</b>(가칭)까지 약 ${c.sub2b[1].toLocaleString()}m (공사 중)`);
   if (!a&&!b&&!c.nj) L.push('1km 안에 도시철도 2호선 예정역이 없습니다');
-  F.forEach(f=>L.push(`${f.t}${f.src?` <span style="color:var(--muted);font-size:12px">(${f.src})</span>`:''}`));
+  F.forEach(f=>L.push(`${f.t}${f.src?` <span style="color:var(--muted);font-size:12px">· ${f.src}</span>`:''}`));
   if (a||b) L.push('※ 개통 시기·운행 조건은 공식 발표로 다시 확인하세요');
   if (!L.length) L.push('확인된 개발 계획 자료를 준비 중입니다');
   return L.map(t=>`<p>${t}</p>`).join('');
@@ -1441,7 +1441,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.9.5 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v1.9.6 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

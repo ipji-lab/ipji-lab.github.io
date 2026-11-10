@@ -1518,7 +1518,7 @@ function nvInit(){
 }
 const NVD=new Map(), NVU=new Map();
 function nvUp(show){
-  UP.forEach(u=>{ let m=NVU.get(u.id); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(u.lat,u.lon), icon:{content:`<div class="nmw"><div class="nup" title="입주예정 · ${u.n} · ${ymTxt(u.mvn)}">입주예정</div></div>`, anchor:new naver.maps.Point(0,0)}, zIndex:150});
+  UP.forEach(u=>{ let m=NVU.get(u.id); if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(u.lat,u.lon), icon:{content:`<div class="nmw"><div class="nup" title="입주예정 · ${u.n} · ${ymTxt(u.mvn)}${u.eloc?` · 예상 입지 ${u.eloc.g}등급`:''}">${u.eloc?`예정 ${u.eloc.g}등급`:'입주예정'}</div></div>`, anchor:new naver.maps.Point(0,0)}, zIndex:150});
     naver.maps.Event.addListener(m,'click',()=>openUp(u.id)); NVU.set(u.id,m); }
     m.setMap(show?NV:null); });
 }

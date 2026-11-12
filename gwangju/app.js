@@ -1368,7 +1368,7 @@ function loadDeals(){ if(DL) return Promise.resolve(DL); if(DLP) return DLP; if(
 const dMD=d=>`${Math.floor(d/100)%100}.${d%100}`, dWk=d=>DWK[new Date(Math.floor(d/10000), Math.floor(d/100)%100-1, d%100).getDay()];
 const dDiff=v=>{ const a=Math.abs(v); return (v>0?'+':'−')+(a>=10000?eok(a):a.toLocaleString()+'만'); };
 function openDeals(){ const ov=$('ovDeal'); ov.hidden=false;
-  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="dlT"><div class="dh"><h2 id="dlT">실거래 현황</h2><button class="back" id="dlClose" aria-label="닫기">✕</button></div><div class="db" id="dlBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
+  ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="dlT"><div class="dh"><h2 id="dlT">실거래 현황</h2><button class="back" id="dlClose" aria-label="닫기">✕</button></div><div class="db" id="dlBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
   $('dlClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
   loadDeals().then(renderDeals).catch(e=>{ $('dlBody').innerHTML=`<p class="note">실거래 자료를 불러오지 못했습니다. (${e.message})</p>`; }); }
 const gPill=(g,pre)=>`<i class="gp" style="background:${GCOL[g-1]};color:${g===6?'#222':'#fff'}">${pre||''}${g}등급</i>`;

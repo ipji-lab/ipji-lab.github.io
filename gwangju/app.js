@@ -1547,7 +1547,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.1.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.1.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

@@ -1420,9 +1420,12 @@ function upDraw(){ const el=$('upCh'); if(!el||typeof d3==='undefined') return; 
     if(o.up&&UPM==='y'&&W>=520&&(bx-lastL>=30||o.up>=lastV)&&(lastL=bx,lastV=o.up,true)) svg.append('text').attr('class','vl').attr('x',bx+bw/2).attr('y',y(o.done+o.up)-4).attr('text-anchor','middle').text((o.done+o.up)>=10000?((o.done+o.up)/10000).toFixed(1)+'만':((o.done+o.up)/1000).toFixed(1)+'천');
     const isY=UPM==='y'||o.k[4]==='a', yr=+o.k.slice(0,4); if(isY&&(yr%step===0)) svg.append('text').attr('x',UPM==='y'?bx+bw/2:bx+bw+x.step()*x.padding()/2).attr('y',H-7).attr('text-anchor','middle').text('’'+String(yr).slice(2)); });
   const Y=UPM==='y'?B:upBins('y'), L10=Y.filter(o=>+o.k>=NOWY-10&&+o.k<NOWY), avg=L10.length?L10.reduce((a,o)=>a+o.done,0)/L10.length/(UPM==='y'?1:2):0;
-  if(avg){ svg.append('line').attr('class','av').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(avg)).attr('y2',y(avg));  }
+  const lineLbl=(v,c,dy)=>svg.append('text').attr('class','ll '+c).attr('x',W-m.r-2).attr('y',y(v)+dy).attr('text-anchor','end').text(Math.round(v).toLocaleString());   // v2.2.2 선 위에 수치(오른쪽 끝 · 흰 테두리로 막대와 겹쳐도 읽힘)
+  if(avg){ svg.append('line').attr('class','av').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(avg)).attr('y2',y(avg)); }
   const dem=UP_POP[0]*0.005/(UPM==='y'?1:2); svg.append('line').attr('class','dm').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(dem)).attr('y2',y(dem));
-  const lg=$('upLg'); if(lg) lg.innerHTML=`<span><i style="background:none;border-top:2px dashed var(--over);height:0;vertical-align:3px"></i>최근 10년 평균 <b>${Math.round(avg).toLocaleString()}</b></span><span><i style="background:none;border-top:2px dotted var(--ink);height:0;vertical-align:3px"></i>실수요 <b>${Math.round(dem).toLocaleString()}</b></span>`;
+  const near=avg&&Math.abs(y(avg)-y(dem))<16;
+  const lg=$('upLg'); if(lg) lg.innerHTML=`<span><i style="background:none;border-top:2px dashed var(--over);height:0;vertical-align:3px"></i>최근 10년 평균</span><span><i style="background:none;border-top:2px dotted var(--ink);height:0;vertical-align:3px"></i>실수요</span>`;
+  if(avg) lineLbl(avg,'avt',(near&&avg<dem)?13:-5); lineLbl(dem,'dmt',(near&&dem<=avg)?13:-5);
   B.forEach(o=>svg.append('rect').attr('class','hit').attr('x',x(o.k)-x.step()*x.padding()/2).attr('width',x.step()).attr('y',m.t).attr('height',H-m.b-m.t).on('click',()=>{ UPSEL=o.k; upDraw(); }));
   const o=B.find(o=>o.k===UPSEL), info=$('upInfo'); if(info) info.innerHTML=o?`<b>${upLbl(o.k)}</b> ${[o.done?`입주 ${o.done.toLocaleString()}세대(${o.dn}곳)`:'', o.up?`입주예정 ${o.up.toLocaleString()}세대(${o.un}곳)`:'', o.pl?`사업승인 단계 ${o.pl.toLocaleString()}세대(${o.pn}곳)`:''].filter(Boolean).join(' · ')||'입주 없음'}`:''; }
 function openUpList(){ const ov=$('ovUpl'); ov.hidden=false;
@@ -1554,7 +1557,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.1 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.2 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

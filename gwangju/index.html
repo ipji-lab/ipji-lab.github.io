@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.0.4">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.1.0">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.0.4</title>
+<title>우리동네 입지분석(광주) v2.1.0</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -347,6 +347,26 @@ table.t thead th{color:var(--muted);font-weight:500}
   header.top .btn{height:34px;padding:0 10px}
   header.top .btn .lbl-long{display:none}
 }
+/* v2.1.0 실거래 현황 · 입주예정 */
+.hbtns{display:contents}
+.dlc{display:flex;flex-direction:column;gap:8px}
+.dlc .seg button{white-space:nowrap}
+table.t.dl td,table.t.dl th{padding:7px 6px;vertical-align:top}
+table.t.dl tr.dgr td{background:var(--accent-soft);font-weight:700;font-size:12.5px;padding:5px 8px}
+table.t.dl .nm{background:none;border:0;padding:0;font:inherit;font-weight:600;color:inherit;text-align:left;cursor:pointer}
+table.t.dl .nm[data-id]{color:var(--accent)}
+table.t.dl .sub{color:var(--muted);font-size:11.5px}
+table.t.dl tr.can td{color:var(--muted)} table.t.dl tr.can .pr{text-decoration:line-through}
+table.t.dl .mk{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap}
+table.t.dl .mk.hi{border-color:var(--over);color:var(--over)}
+.dstat{font-size:12px;color:var(--muted);margin:1px 0 2px}
+table.t.dl .nm{white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+table.t.dl td:first-child,table.t.dl:not(.ul) td:last-child{white-space:normal;overflow-wrap:anywhere}
+@media (max-width:600px){ table.t.dl{table-layout:fixed} table.t.dl th:nth-child(2),table.t.dl td:nth-child(2){width:58px} table.t.dl:not(.ul) th:nth-child(3),table.t.dl:not(.ul) td:nth-child(3){width:40px} table.t.dl:not(.ul) th:nth-child(4),table.t.dl:not(.ul) td:nth-child(4){width:98px}
+  table.t.dl.ul th:nth-child(3),table.t.dl.ul td:nth-child(3){width:46px} table.t.dl.ul th:nth-child(4),table.t.dl.ul td:nth-child(4){width:62px} table.t.dl .hm{display:none} table.t.dl .mk{margin-left:0;margin-right:3px} table.t.dl tr.dgr td{width:auto} }
+.ybar{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;font-size:13px}
+.ybar i{display:block;height:18px;border-radius:0 4px 4px 0;background:var(--accent);min-width:2px}
+@media (max-width:900px){ .hbtns{display:flex;order:8;flex:1 1 100%;gap:6px} .hbtns .btn{flex:1 1 0;padding:0 2px!important;min-width:0} .search{order:1!important;flex:1 1 0!important} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* 첫 화면 안내(프로토타입·외부 유출 금지). ’26.10.20 연구원 요청 */
 .gate{position:fixed;inset:0;z-index:200;background:rgba(10,16,13,.62);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -935,16 +955,20 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.0.4</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.1.0</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
         <div class="sugg" id="sugg" hidden></div>
       </div>
+      <div class="hbtns">
       <button class="btn primary" id="btnMine">내 조건<span class="lbl-long">으로 찾기</span></button>
       <button class="btn" id="btnTrend">대장<span class="lbl-long"> 아파트</span></button>
+      <button class="btn" id="btnDeal">실거래</button>
+      <button class="btn" id="btnUpl">입주<span class="lbl-long">예정</span></button>
       <button class="btn" id="btnCmp">비교<span class="badge-n num" id="cmpN">0</span></button>
       <button class="btn" id="btnMethod" aria-label="평가기준"><span class="lbl-long">평가</span>기준</button>
+      </div>
     </header>
     <nav class="chips" aria-label="필터">
       <button class="chip dd" data-pop="grade" data-def="등급" aria-pressed="false"><span>등급</span> ▾</button>
@@ -986,6 +1010,8 @@ table.t.cmp thead th{vertical-align:top}
 <div class="overlay" id="ovCmp" hidden></div>
 <div class="overlay" id="ovMethod" hidden></div>
 <div class="overlay" id="ovTrend" hidden></div>
+<div class="overlay" id="ovDeal" hidden></div>
+<div class="overlay" id="ovUpl" hidden></div>
 <div class="overlay" id="ovPrice" hidden></div>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateT">
   <div class="gate-card">
@@ -1023,7 +1049,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=5f0906bd", DET=["data/d00.json.gz?v=587be1b3", "data/d01.json.gz?v=64c51a47", "data/d02.json.gz?v=d1223759", "data/d03.json.gz?v=88aeecf3", "data/d04.json.gz?v=82c3c9a7", "data/d05.json.gz?v=782f8e26", "data/d06.json.gz?v=93610b7a", "data/d07.json.gz?v=e17dd14b", "data/d08.json.gz?v=431c4b52", "data/d09.json.gz?v=597a5c18", "data/d10.json.gz?v=f29ec2bc", "data/d11.json.gz?v=77e47f9b", "data/d12.json.gz?v=0569213e", "data/d13.json.gz?v=b87efcc1", "data/d14.json.gz?v=253c081a", "data/d15.json.gz?v=22264acb"], APP="app.js?v=03107375", DASHF="data/rt/trend.json.gz?v=afa6b7a0", TXF="data/rt/tx.json.gz?v=cad57857";
+  var CORE="data/core.json.gz?v=620b6504", DET=["data/d00.json.gz?v=f36da5fb", "data/d01.json.gz?v=f1b4b3f0", "data/d02.json.gz?v=959eee6f", "data/d03.json.gz?v=c921204c", "data/d04.json.gz?v=91a7f1d0", "data/d05.json.gz?v=cb94a0c6", "data/d06.json.gz?v=0bef9019", "data/d07.json.gz?v=b28dd6eb", "data/d08.json.gz?v=8546146f", "data/d09.json.gz?v=1d707c53", "data/d10.json.gz?v=c3cdcbbf", "data/d11.json.gz?v=c382b985", "data/d12.json.gz?v=10ef0ef6", "data/d13.json.gz?v=397151ee", "data/d14.json.gz?v=253c081a", "data/d15.json.gz?v=22264acb"], APP="app.js?v=c0b568ed", DASHF="data/rt/trend.json.gz?v=17e630f7", TXF="data/rt/tx.json.gz?v=ab321ea3";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

@@ -523,7 +523,7 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
   if (wasFolded) setSide(true);           // v0.7.5 연구원: 목록을 접은 상태에서 단지를 누르면 목록을 펼쳐 상세를 보여줌
   S.sel=id; S.view='detail'; DHL=null; drawMarkers(); renderPanel();
   const c=CX.find(x=>x.id===id);
-  try{ if(c && typeof GC_ON!=='undefined' && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'단지/'+c.n, title:c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){}   // v2.0.4 단지별 조회 수(이벤트, 쿠키 없음)
+  try{ if(c && typeof GC_ON!=='undefined' && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'c/'+c.id, title:c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){}   // v2.0.4 단지별 조회 수(이벤트, 쿠키 없음) · v2.1.0 경로를 단지 번호로(이름이 같은 단지 구분)
   if (c && !opts.noFly) { if (wasFolded) setTimeout(()=>flyTo(c), 260); else flyTo(c); }
   sheetTo('half'); $('pbody').scrollTop=0;
 }
@@ -817,6 +817,7 @@ function renderDetail(){
     : '인근 비슷한 조건 단지의 시세와 실거래가가 비슷합니다.';
   $('pbody').innerHTML = `<div class="detail">
     <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
+      <div class="dstat" id="dstat" hidden></div>
       <div class="dmeta">${c.gu} ${c.addr||''} · ${c.u.toLocaleString()}세대 · ${c.ym?String(c.ym).slice(0,4)+'.'+String(c.ym).slice(4):c.y} 사용승인 · ${c.b||''}</div>
       <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
@@ -844,7 +845,7 @@ function renderDetail(){
   $('pbody').querySelectorAll('.area').forEach(b=>b.onclick=()=>{S.openCat=S.openCat===b.dataset.cat?null:b.dataset.cat; renderDetail();});
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
-  $('star').onclick=()=>toggleCmp(c.id);
+  $('star').onclick=()=>toggleCmp(c.id); statFill(c.id);
 }
 function priceChart(el, list){
   // v1.2.4: 점·선이 축 밖으로 나가지 않게 여백·클립, 점(월)에 마우스·터치하면 그 달 가격 표시
@@ -1347,12 +1348,78 @@ function cmpChart(el, L){   // v1.7.0 단지 비교: 모든 단지에 있는 같
   }).catch(()=>priceChart(el, L));
 }
 $('btnTrend').onclick=openTrend;
+
+// ───── v2.1.0 실거래 현황(연구원 ’26.11.12): 매일 받는 국토교통부 실거래(data/rt/<연도>.json.gz) 전체를 계약일 최신순으로. 서비스 공개 달(’26.10)부터. 매매·분양권·전월세 ─────
+let DL=null, DLP=null; const DS={k:'apt', gu:'', min:0, n:200}, DL0=20261001, DWK='일월화수목금토';
+function loadDeals(){ if(DL) return Promise.resolve(DL); if(DLP) return DLP; if(!(window.__loadGz&&window.__DASH)) return Promise.reject(new Error('자료 없음'));
+  const base=String(window.__DASH).split('?')[0].replace(/trend\.json\.gz$/,''), day=new Date(Date.now()+9*3600e3).toISOString().slice(0,10).replace(/-/g,''), ys=[]; for(let y=2026;y<=+day.slice(0,4);y++) ys.push(y);
+  DLP=Promise.all([Promise.all(ys.map(y=>window.__loadGz(`${base}${y}.json.gz?d=${day}`).catch(()=>null))), fetch(base.replace(/rt\/$/,'')+'dash_src.json?d='+day).then(r=>r.ok?r.json():null).catch(()=>null)]).then(([Y,src])=>{
+    const KM=new Map(); ((src&&src.cx)||[]).forEach(c=>(c.rtk||[]).forEach(k=>KM.set(`${k[0]}|${k[1]}${k[2]?'-'+k[2]:''}`, c.id)));
+    const CI=new Map(CX.map(c=>[c.id,c])), out={apt:[],silv:[],rent:[]};
+    for(const J of Y){ if(!J) continue; for(const k of ['apt','silv','rent']) for(const L of Object.values(J[k]||{})) for(const r of L){
+      const c=CI.get(KM.get(`${r[0]}|${r[1]}`))||null, d=r[3]*10000+r[4]*100+r[5];
+      out[k].push(k==='rent'?{d,dong:r[0],n:r[2],p:r[6],mw:r[7],a:r[8],f:r[9],nw:r[10],c}:{d,dong:r[0],n:r[2],p:r[6],a:r[7],can:!!r[8],dir:!!r[9],f:r[10],c}); } }
+    for(const k of ['apt','silv']){ const G=new Map(); out[k].sort((x,y)=>x.d-y.d);   // 같은 단지·같은 전용면적(㎡ 반올림)의 직전 거래가와 그해 최고가
+      for(const r of out[k]){ if(r.can) continue; const key=`${r.dong}|${r.n}|${Math.round(r.a)}`, g=G.get(key)||{}; const yr=Math.floor(r.d/10000);
+        if(g.last!=null) r.pv=g.last; if(g.yr===yr&&g.cnt>=1&&r.p>g.mx) r.hi=1; if(g.yr!==yr){ g.yr=yr; g.mx=0; g.cnt=0; } g.mx=Math.max(g.mx,r.p); g.cnt++; g.last=r.p; G.set(key,g); } }
+    for(const k of ['apt','silv','rent']) out[k]=out[k].filter(r=>r.d>=DL0).sort((x,y)=>(y.d-x.d)||(y.p-x.p));
+    DL=out; return out; });
+  return DLP; }
+const dMD=d=>`${Math.floor(d/100)%100}.${d%100}`, dWk=d=>DWK[new Date(Math.floor(d/10000), Math.floor(d/100)%100-1, d%100).getDay()];
+const dDiff=v=>{ const a=Math.abs(v); return (v>0?'+':'−')+(a>=10000?eok(a):a.toLocaleString()+'만'); };
+function openDeals(){ const ov=$('ovDeal'); ov.hidden=false;
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="dlT"><div class="dh"><h2 id="dlT">실거래 현황</h2><button class="back" id="dlClose" aria-label="닫기">✕</button></div><div class="db" id="dlBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
+  $('dlClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
+  loadDeals().then(renderDeals).catch(e=>{ $('dlBody').innerHTML=`<p class="note">실거래 자료를 불러오지 못했습니다. (${e.message})</p>`; }); }
+function renderDeals(){ const B=$('dlBody'); if(!B||!DL) return; const rent=DS.k==='rent';
+  const R=DL[DS.k].filter(r=>(!DS.gu||(r.c&&r.c.gu===DS.gu))&&(rent||r.p>=DS.min)), show=R.slice(0,DS.n);
+  const seg=(key,opts)=>`<div class="seg" role="group">${opts.map(([v,t])=>`<button data-${key}="${v}" aria-pressed="${String(DS[key])===String(v)}">${t}</button>`).join('')}</div>`;
+  let h='', cur=null; const cnt=new Map(); R.forEach(r=>cnt.set(r.d,(cnt.get(r.d)||0)+1));
+  for(const r of show){ if(r.d!==cur){ cur=r.d; h+=`<tr class="dgr"><td colspan="4">${dMD(r.d)} ${dWk(r.d)} · ${cnt.get(r.d)}건</td></tr>`; }
+    const c=r.c, g=c?gradeOf(c):null, loc=c?`${c.gu} ${r.dong}`:r.dong;
+    const price=rent?(r.mw?`${eok(r.p)} / ${r.mw.toLocaleString()}만`:eok(r.p)):eok(r.p);
+    const marks=(r.can?'<span class="mk">해제</span>':'')+(r.dir?'<span class="mk">직거래</span>':'')+(r.hi?'<span class="mk hi">올해 최고가</span>':'')+(rent&&r.nw?`<span class="mk">${r.nw}</span>`:'');
+    const diff=(!rent&&!r.can&&r.pv!=null&&r.pv!==r.p)?`<br><span class="sub ${r.p>r.pv?'up':'dn'}">직전 ${dDiff(r.p-r.pv)}</span>`:'';
+    h+=`<tr class="${r.can?'can':''}"><td><button class="nm"${c?` data-id="${c.id}"`:''}>${c?dn(c):r.n}</button>${g!=null?`<span class="mk">${g}등급</span>`:''}<br><span class="sub">${loc}</span></td><td class="num">${(+r.a).toFixed(1)}㎡<br><span class="sub">${Math.round(r.a*0.4)}평형</span></td><td class="num">${r.f??'–'}층</td><td class="num"><b class="pr">${price}</b>${marks}${diff}</td></tr>`; }
+  const span=R.length?`’${String(R[R.length-1].d).slice(2,4)}.${dMD(R[R.length-1].d)}~${dMD(R[0].d)} 계약 · ${R.length.toLocaleString()}건`:'조건에 맞는 거래가 없습니다';
+  B.innerHTML=`<div class="dlc">${seg('k',[['apt','매매'],['silv','분양권'],['rent','전월세']])}${seg('gu',[['','전체'],['동구','동구'],['서구','서구'],['남구','남구'],['북구','북구'],['광산구','광산구']])}${rent?'':seg('min',[[0,'전체'],[30000,'3억 이상'],[60000,'6억 이상'],[90000,'9억 이상']])}</div>
+    <p class="sm" style="margin:0">${span}</p>
+    ${R.length?`<div class="tblwrap"><table class="t dl"><thead><tr><th>단지</th><th>전용</th><th>층</th><th>${rent?'보증금 / 월세':'금액'}</th></tr></thead><tbody>${h}</tbody></table></div>`:''}
+    ${R.length>show.length?`<button class="btn" id="dlMore">더 보기 (${(R.length-show.length).toLocaleString()}건 남음)</button>`:''}
+    <p class="note">출처: 국토교통부 실거래가 공개시스템(매일 새벽 갱신). 계약일 순서이며 신고는 계약 후 30일 안에 올라옵니다.</p>`;
+  B.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ const d=b.dataset; if('k' in d) DS.k=d.k; if('gu' in d) DS.gu=d.gu; if('min' in d) DS.min=+d.min; DS.n=200; renderDeals(); B.scrollTop=0; });
+  B.querySelectorAll('.nm[data-id]').forEach(b=>b.onclick=()=>{ $('ovDeal').hidden=true; select(b.dataset.id); });
+  const m=$('dlMore'); if(m) m.onclick=()=>{ const st=B.scrollTop; DS.n+=300; renderDeals(); B.scrollTop=st; }; }
+$('btnDeal').onclick=openDeals;
+
+// ───── v2.1.0 입주예정(연구원 ’26.11.12): 아직 준공 전인 단지(청약홈 모집공고 기준)와 연도별 입주 세대수 ─────
+function upPrice(u){ const T=(u.tys||[]).filter(t=>t.top); if(!T.length) return null; const e=T.filter(t=>{ const a=parseFloat(t.ty); return a>=80&&a<90; }); const L=e.length?e:[[...T].sort((a,b)=>(b.gen||0)-(a.gen||0))[0]]; const t=[...L].sort((a,b)=>b.top-a.top)[0]; return {a:Math.floor(parseFloat(t.ty)), top:t.top}; }
+function openUpList(){ const ov=$('ovUpl'); ov.hidden=false;
+  const L=[...UP].sort((a,b)=>String(a.mvn).localeCompare(String(b.mvn))||(b.u-a.u)), Y=new Map(); L.forEach(u=>{ const y=String(u.mvn).slice(0,4), o=Y.get(y)||{n:0,u:0,L:[]}; o.n++; o.u+=u.u||0; o.L.push(u); Y.set(y,o); });
+  const mx=Math.max(1,...[...Y.values()].map(o=>o.u)), tot=L.reduce((s,u)=>s+(u.u||0),0);
+  const bars=[...Y].map(([y,o])=>`<div class="ybar"><b>${y}년</b><i style="width:${Math.max(1,Math.round(o.u/mx*100))}%"></i><span class="num"><b>${o.u.toLocaleString()}</b>세대 · ${o.n}곳</span></div>`).join('');
+  const row=u=>{ const p=upPrice(u), c=u.cmp, s=(u.silv||[])[0];
+    const T1=(u.tys||[]).filter(t=>t.gen&&t.r1h), g1=T1.reduce((a,t)=>a+t.gen,0), q1=T1.reduce((a,t)=>a+(t.r1h[0]||0),0), rv=g1?q1/g1:null;
+    const rate=c&&c.sup?(c.short?`<span style="color:var(--bad-text)">미달 ${c.short.toLocaleString()}</span>`:`${c.rate1}:1`):(rv!=null?`<span${rv<1?' style="color:var(--bad-text)"':''}>${rv.toFixed(rv<10?2:1)}:1</span>`:'–');
+    return `<tr><td><button class="nm" data-id="${u.id}">${u.n}</button>${u.eloc?`<span class="mk">예상 입지 ${u.eloc.g}등급</span>`:''}<br><span class="sub">${String(u.addr).split(/\s+/).slice(0,2).join(' ')} · ${String(u.b||'').split(',')[0].replace(/\(주\)|주식회사/g,'').trim()}</span></td><td class="num">${ymTxt(u.mvn)}${u.late?'<br><span class="sub">예정월 지남</span>':''}</td><td class="num">${(u.u||0).toLocaleString()}</td><td class="num">${p?`${eok(p.top)}<br><span class="sub">${p.a}㎡</span>`:'–'}</td><td class="num hm">${rate}${u.unsold?`<br><span class="sub" style="color:var(--bad-text)">미분양 ${u.unsold.toLocaleString()}</span>`:''}</td><td class="num hm">${s?`${eok(s[3])}<br><span class="sub">${s[0]}㎡ ’${s[4]}</span>`:'–'}</td></tr>`; };
+  const body=[...Y].map(([y,o])=>`<tr class="dgr"><td colspan="6">${y}년 · ${o.u.toLocaleString()}세대 · ${o.n}곳</td></tr>${o.L.map(row).join('')}`).join('');
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="ulT"><div class="dh"><h2 id="ulT">입주예정</h2><button class="back" id="ulClose" aria-label="닫기">✕</button></div><div class="db">
+    <p style="margin:0;font-size:15px">준공 전 <b>${L.length}곳 · ${tot.toLocaleString()}세대</b></p>
+    <div class="dlc">${bars}</div>
+    <div class="tblwrap"><table class="t dl ul"><thead><tr><th>단지</th><th>입주 예정</th><th>세대</th><th>분양가</th><th class="hm">1순위 경쟁률</th><th class="hm">분양권 최근</th></tr></thead><tbody>${body}</tbody></table></div>
+    <p class="note">출처: ${DATA.upSrc}. 세대수는 모집공고의 공급 세대이고, 아직 모집공고가 나지 않은 사업은 들어 있지 않습니다. 분양가는 주택형별 최고가(발코니 확장·옵션 제외)입니다.</p>
+  </div></div>`;
+  $('ulClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
+  ov.querySelectorAll('.nm[data-id]').forEach(b=>b.onclick=()=>{ ov.hidden=true; openUp(b.dataset.id); }); }
+$('btnUpl').onclick=openUpList;
+
    // v1.3.0 광주 최종판: 내 조건으로 찾기 공개(보유 자금·대출 → 살 수 있는 집값, 찾는 면적, 내 가중치로 다시 매긴 순위)   // (v1.7~v1.2.8: 준비중 알림)
 
 /* ═════════ 비교함 ═════════ */
 function saveCmp(){ try{ localStorage.setItem('dn10-cmp', JSON.stringify(S.cmp)); }catch(e){} }   // v1.7.0 관심(비교) 단지를 브라우저에 저장
 function toggleCmp(id){
-  const i=S.cmp.indexOf(id); if (i>=0) S.cmp.splice(i,1); else { if (S.cmp.length>=CMP_MAX) S.cmp.shift(); S.cmp.push(id); }
+  const i=S.cmp.indexOf(id); if (i>=0) S.cmp.splice(i,1); else { if (S.cmp.length>=CMP_MAX) S.cmp.shift(); S.cmp.push(id);
+    try{ const c=CX.find(x=>x.id===id); if(c && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'s/'+id, title:'★ '+c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){} }   // v2.1.0 별표(비교함 담기) 횟수
   saveCmp();
   $('cmpN').textContent=S.cmp.length; drawMarkers(); if (S.view==='detail') renderDetail();
 }
@@ -1449,7 +1516,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.0.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.1.0 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();
@@ -1472,7 +1539,7 @@ $('btnMethod').onclick=openMethod;
 })();
 /* v1.1 연구원: 왼쪽 위 '우리동네 입지분석'을 누르면 첫 화면으로(비교함은 유지) */
 function goHome(e){ if(e) e.preventDefault();
-  ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
+  ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend','ovDeal','ovUpl'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
   document.querySelectorAll('.ov,[role="dialog"]').forEach(o=>{ const w=o.closest('[id^="ov"]'); if(w) w.hidden=true; });
   const q=$('q'); if(q) q.value=''; const sg=$('sugg'); if(sg) sg.hidden=true;
   Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false});
@@ -1481,7 +1548,7 @@ function goHome(e){ if(e) e.preventDefault();
   renderMacro(); refresh(); $('pbody').scrollTop=0; sheetTo('peek'); $('zfit').click();
 }
 document.querySelectorAll('.brand').forEach(b=>{ b.addEventListener('click',goHome); b.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' ') goHome(e); }); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; }); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend','ovDeal','ovUpl'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; }); });
 
 /* ═════════ 네이버 지도(공개 사이트용). 불러오지 못하면 내장 지도 ═════════ */
 let NV=null, NVOL=null, NVL=null; const NVM=new Map(), NVLINES=[], NVB=[];   // v1.7.2 NVB = 동 표시
@@ -1595,6 +1662,11 @@ const GC_CODE='ipji';   // 연구원 가입(11.9) · 설정 'Allow adding visito
 const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null;
 if(GC_ON){ window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈(대시보드에는 /gwangju 로 보임)
   const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`); document.head.append(sc); }
+const STC=new Map();   // v2.1.0 단지별 조회 수·별표 수(방문 집계 도구의 공개 카운터). 0이거나 못 받으면 표시하지 않음
+function statFill(id){ if(!GC_ON) return; const put=v=>{ const el=document.getElementById('dstat'); if(!el||S.sel!==id) return; const t=[]; if(v[0]) t.push('조회 '+v[0]); if(v[1]) t.push('★ '+v[1]); el.textContent=t.join(' · '); el.hidden=!t.length; };
+  if(STC.has(id)) return put(STC.get(id));
+  const get=p=>fetch(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent(p)}.json`).then(r=>r.ok?r.json():null).then(j=>{ const n=j&&j.count!=null?String(j.count).replace(/\D/g,''):''; return +n>0?(+n).toLocaleString():''; }).catch(()=>'');
+  Promise.all([get('c/'+id), get('s/'+id)]).then(v=>{ STC.set(id,v); put(v); }); }
 function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어 창을 열 때마다 채움(숫자는 한 번만 받아 둠)
   const el=document.getElementById('vc'); if(!el||!GC_ON) return; if(VC_TXT!==null){ el.textContent=VC_TXT; return; }
   const kst=d=>new Date(d.getTime()+9*3600e3).toISOString().slice(0,10), y=kst(new Date(Date.now()-864e5));

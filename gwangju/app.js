@@ -1671,7 +1671,7 @@ function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어
   const el=document.getElementById('vc'); if(!el||!GC_ON) return; if(VC_TXT!==null){ el.textContent=VC_TXT; return; }
   const kst=d=>new Date(d.getTime()+9*3600e3).toISOString().slice(0,10), y=kst(new Date(Date.now()-864e5));
   const get=u=>fetch(u,{cache:'force-cache'}).then(r=>(r.ok||r.status===404)?r.json():null).catch(()=>null);   // 방문이 없는 날은 404 + {count:'0'}
-  Promise.all([get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json?start=${y}&end=${y}`), get(`https://${GC_CODE}.goatcounter.com/counter/TOTAL.json`)]).then(([a,b])=>{
+  Promise.all([get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json?start=${y}&end=${y}`), get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json`)   /* v2.1.0 TOTAL은 단지 조회·별표 이벤트까지 더해져 방문자 수가 부풀려짐 → 페이지 방문만 */]).then(([a,b])=>{
     const parts=[]; if(a&&a.count!=null) parts.push(`어제 ${a.count}명`); if(b&&b.count!=null) parts.push(`지금까지 ${b.count}명`);
     VC_TXT=parts.length?' · 방문 '+parts.join(' · '):''; const e2=document.getElementById('vc'); if(e2) e2.textContent=VC_TXT; });
 }

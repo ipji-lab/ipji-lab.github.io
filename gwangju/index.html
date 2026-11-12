@@ -8,14 +8,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.1.4">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.1.5">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.1.4</title>
+<title>우리동네 입지분석(광주) v2.1.5</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -367,16 +367,16 @@ div.drow{cursor:default}
 .drow .pr{font-size:15.5px;font-weight:700;white-space:nowrap}
 .drow .sub,.ucard .sub{font-size:12.5px;color:var(--muted);line-height:1.4}
 .drow .sub .up,.drow .sub .dn{font-weight:600}
-.gp{display:inline-block;font-style:normal;font-size:11px;font-weight:700;line-height:1.5;border-radius:5px;padding:0 5px;margin-right:6px;vertical-align:1px;white-space:nowrap}
-.mk{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap;color:var(--muted)}
+.gp{display:inline-block;font-style:normal;font-size:12px;font-weight:700;line-height:1.5;border-radius:5px;padding:0 5px;margin-right:6px;vertical-align:1px;white-space:nowrap}
+.mk{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:4px;white-space:nowrap;color:var(--muted)}
 .mk.hi{border-color:var(--over);color:var(--over)}
 .ugrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;padding:10px 0 4px}
 .ucard{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit;color:inherit;cursor:pointer}
 .ukv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13.5px;margin-top:4px}
 .ukv i,.ukv em{font-style:normal;color:var(--muted);font-size:11.5px} .ukv i{margin-right:4px} .ukv .bad{color:var(--bad-text)}
-.upch svg{display:block} .upch text{font-size:10.5px;fill:var(--muted)} .upch .gl{stroke:var(--line)} .upch .b0{fill:var(--muted);opacity:.45} .upch .b1{fill:var(--accent)} .upch .vl{fill:var(--ink);font-weight:700} .upch .av{stroke:var(--over);stroke-dasharray:4 3} .upch .avt{fill:var(--over)} .upch .hit{fill:transparent;cursor:pointer} .upch .sel{fill:var(--accent-soft)}
+.upch svg{display:block} .upch text{font-size:11.5px;fill:var(--muted)} .upch .gl{stroke:var(--line)} .upch .b0{fill:var(--muted);opacity:.45} .upch .b1{fill:var(--accent)} .upch .vl{fill:var(--ink);font-weight:700} .upch .av{stroke:var(--over);stroke-dasharray:4 3} .upch .avt{fill:var(--over)} .upch .dm{stroke:var(--ink);stroke-dasharray:2 3} .upch .dmt{fill:var(--ink);font-weight:600} .upch .hit{fill:transparent;cursor:pointer} .upch .sel{fill:var(--accent-soft)}
 .upleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)} .upleg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
-@media (max-width:900px){ .hbtns{display:flex;order:8;flex:1 1 100%;gap:6px} .hbtns .btn{flex:1 1 0;padding:0 2px!important;min-width:0} .search{order:1!important;flex:1 1 0!important} }
+@media (max-width:900px){ .dlc .seg button,.dfil .seg button{min-height:36px} .dfil select{min-height:38px;font-size:14px} #sort{min-height:36px} .tag{font-size:12px} .ukv{font-size:14px} .drow{padding:12px 2px} .hbtns{display:flex;order:8;flex:1 1 100%;gap:6px} .hbtns .btn{flex:1 1 0;padding:0 2px!important;min-width:0} .search{order:1!important;flex:1 1 0!important} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 /* 첫 화면 안내(프로토타입·외부 유출 금지). ’26.10.20 연구원 요청 */
 .gate{position:fixed;inset:0;z-index:200;background:rgba(10,16,13,.62);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -965,7 +965,7 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.1.4</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.1.5</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -1059,7 +1059,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=1014ae30", DET=["data/d00.json.gz?v=c1bb4262", "data/d01.json.gz?v=f1b4b3f0", "data/d02.json.gz?v=959eee6f", "data/d03.json.gz?v=c921204c", "data/d04.json.gz?v=91a7f1d0", "data/d05.json.gz?v=cb94a0c6", "data/d06.json.gz?v=0bef9019", "data/d07.json.gz?v=14d7cbbb", "data/d08.json.gz?v=874cd01d", "data/d09.json.gz?v=38850919", "data/d10.json.gz?v=89eb6158", "data/d11.json.gz?v=c382b985", "data/d12.json.gz?v=10ef0ef6", "data/d13.json.gz?v=df415ad6", "data/d14.json.gz?v=b6a191ad", "data/d15.json.gz?v=56700f64"], APP="app.js?v=52c0452c", DASHF="data/rt/trend.json.gz?v=7dbf5ee2", TXF="data/rt/tx.json.gz?v=ab321ea3";
+  var CORE="data/core.json.gz?v=8831a348", DET=["data/d00.json.gz?v=c1bb4262", "data/d01.json.gz?v=f1b4b3f0", "data/d02.json.gz?v=959eee6f", "data/d03.json.gz?v=c921204c", "data/d04.json.gz?v=91a7f1d0", "data/d05.json.gz?v=cb94a0c6", "data/d06.json.gz?v=0bef9019", "data/d07.json.gz?v=14d7cbbb", "data/d08.json.gz?v=874cd01d", "data/d09.json.gz?v=38850919", "data/d10.json.gz?v=89eb6158", "data/d11.json.gz?v=c382b985", "data/d12.json.gz?v=10ef0ef6", "data/d13.json.gz?v=df415ad6", "data/d14.json.gz?v=b6a191ad", "data/d15.json.gz?v=56700f64"], APP="app.js?v=0993da27", DASHF="data/rt/trend.json.gz?v=c27f4b59", TXF="data/rt/tx.json.gz?v=ab321ea3";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

@@ -758,6 +758,7 @@ function futureLines(c){            // v1.7.1 연구원(11.5): 2호선 1단계 =
   // v1.9.6 점검: 1단계 예정역은 '교통 한눈에'에 이미 있어(0.3km · 도보 7분) 여기서는 뺌
   if (b) L.push(`도시철도 2호선 2단계 <b>${yk(c.sub2b[0])}</b>(가칭)까지 약 ${c.sub2b[1].toLocaleString()}m (공사 중)`);
   if (!a&&!b&&!c.nj) L.push('1km 안에 도시철도 2호선 예정역이 없습니다');
+  const pf=c.xs&&c.xs.pkf; if (pf) L.push(`<b>${pf[0]}</b> 민간공원 특례사업 공사 중${pf[2]?`(준공 계획 ${ymTxt(pf[2])})`:''} · 도보 약 ${pf[1]}분. 준공 뒤 공원 점수에 반영합니다`);   // v2.2.4
   F.forEach(f=>L.push(`${f.t}${f.src?` <span style="color:var(--muted);font-size:12px">· ${f.src}</span>`:''}`));
   if (a||b) L.push('※ 개통 시기·운행 조건은 공식 발표로 다시 확인하세요');
   if (!L.length) L.push('확인된 개발 계획 자료를 준비 중입니다');
@@ -1156,10 +1157,13 @@ function rngHTML(){ return `<span class="rsel" role="group" aria-label="기간">
 function rngBind(root, cb){ root.querySelectorAll('.rsel button[data-rng]').forEach(b=>b.onclick=()=>{ TS.rng=+b.dataset.rng; cb(); }); }
 function tSpan(M){ const N=M.length; return N>=24?M.length-24:0; }
 function lgdHTML(b, px){ return `<div class="lgd"><span><i></i>매매 월 중위가</span><span><i class="vol"></i>월 거래 건수</span>${b.sv?`<span><i class="sv"></i>분양권 전매</span>`:''}${px&&px.ym?`<span><i class="in"></i>입주 ${tYM(px.ym)}</span>`:''}</div>`; }
+const escH=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));   // v2.2.4 밖에서 받은 글자(실거래 단지명·동)는 화면에 넣기 전에 바꿈
 function openTrend(){
   const ov=$('ovTrend'); ov.hidden=false;
-  ov.innerHTML=`<div class="drawer wide full" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="dh"><h2 id="trT">대장 아파트</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db trend" id="tBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
-  $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
+  if(ov.dataset.w===String(innerWidth)&&ov.querySelector('.tcard')) return;   // v2.2.4 이미 그려 둔 화면은 다시 그리지 않음(열 때마다 그래프 20개를 새로 그려 버벅임)
+  ov.dataset.w=String(innerWidth);
+  ov.innerHTML=`<div class="drawer wide full" role="dialog" aria-modal="true" aria-labelledby="trT"><div class="dh"><h2 id="trT">대장 아파트</h2><button class="back" id="trClose" aria-label="닫기">✕</button></div><div class="db trend" id="tBody"><p class="note">자료를 불러오는 중…</p></div></div>`;
+  $('trClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };   // v2.2.4 평가기준 창의 닫기 버튼과 id가 같아(tClose) 평가기준을 한 번 연 뒤에는 ✕가 눌리지 않던 것
   Promise.all([loadDash(), loadTx().catch(()=>null)]).then(()=>renderTrend()).catch(e=>{ $('tBody').innerHTML=`<p class="note">시세 자료를 불러오지 못했습니다. (${e.message})</p>`; });
 }
 const tMan=v=>v==null?'–':Math.round(v).toLocaleString()+'만';
@@ -1377,11 +1381,11 @@ function renderDeals(){ const B=$('dlBody'); if(!B||!DL) return; const rent=DS.k
   const opt=(v,t,cur)=>`<option value="${v}"${String(cur)===String(v)?' selected':''}>${t}</option>`;
   let h='', cur=null; const cnt=new Map(); R.forEach(r=>cnt.set(r.d,(cnt.get(r.d)||0)+1));
   for(const r of show){ if(r.d!==cur){ cur=r.d; h+=`<div class="dday"><b>${dMD(r.d)} ${dWk(r.d)}요일</b><span>${cnt.get(r.d)}건</span></div>`; }
-    const c=r.c, g=c?gradeOf(c):null, loc=c?`${c.gu} ${r.dong}`:r.dong, tag=c?'button':'div';
+    const c=r.c, g=c?gradeOf(c):null, loc=c?`${c.gu} ${escH(r.dong)}`:escH(r.dong), tag=c?'button':'div';
     const price=rent?(r.mw?`${eok(r.p)} / ${r.mw.toLocaleString()}만`:eok(r.p)):eok(r.p);
     const x=[]; if(!rent&&!r.can&&r.pv!=null&&r.pv!==r.p) x.push(`<span class="${r.p>r.pv?'up':'dn'}">직전 ${dDiff(r.p-r.pv)}</span>`);
     if(r.hi) x.push('<span class="mk hi">올해 최고가</span>'); if(r.dir) x.push('<span class="mk">직거래</span>'); if(r.can) x.push('<span class="mk">해제</span>'); if(rent&&r.nw) x.push(`<span class="mk">${r.nw}</span>`);
-    h+=`<${tag} class="drow${r.can?' can':''}"${c?` data-id="${c.id}"`:''}><span class="dl-l"><span class="dl-n">${g!=null?gPill(g):''}${c?dn(c):r.n}</span><span class="sub">${loc} · ${(+r.a).toFixed(1)}㎡(${Math.round(r.a*0.4)}평형) · ${r.f??'–'}층</span></span><span class="dl-r"><span class="pr">${price}</span><span class="sub">${x.join('')}</span></span></${tag}>`; }
+    h+=`<${tag} class="drow${r.can?' can':''}"${c?` data-id="${c.id}"`:''}><span class="dl-l"><span class="dl-n">${g!=null?gPill(g):''}${c?dn(c):escH(r.n)}</span><span class="sub">${loc} · ${(+r.a).toFixed(1)}㎡(${Math.round(r.a*0.4)}평형) · ${r.f??'–'}층</span></span><span class="dl-r"><span class="pr">${price}</span><span class="sub">${x.join('')}</span></span></${tag}>`; }
   const span=R.length?`’${String(R[R.length-1].d).slice(2,4)}.${dMD(R[R.length-1].d)}~${dMD(R[0].d)} · ${R.length.toLocaleString()}건`:'';
   B.innerHTML=`<div class="dlc"><div class="seg" role="group">${[['apt','매매'],['silv','분양권'],['rent','전월세']].map(([v,t])=>`<button data-k="${v}" aria-pressed="${DS.k===v}">${t}</button>`).join('')}</div>
     <div class="dfil"><select data-f="gu" aria-label="구 고르기">${[['','광주 전체'],['동구','동구'],['서구','서구'],['남구','남구'],['북구','북구'],['광산구','광산구']].map(([v,t])=>opt(v,t,DS.gu)).join('')}</select>${rent?'':`<select data-f="min" aria-label="금액 고르기">${[[0,'금액 전체'],[30000,'3억 이상'],[60000,'6억 이상'],[90000,'9억 이상']].map(([v,t])=>opt(v,t,DS.min)).join('')}</select>`}<span class="cnt">${span}</span></div></div>
@@ -1542,7 +1546,7 @@ function openMethod(){
     ['제 기준은 다른데요?','기본 등급은 교육 35%를 가장 크게 보는 연구원 기준입니다. 아이가 없거나 직장이 더 중요하면 <b>내 조건으로 찾기</b>에서 비중을 바꿔 보세요. 내 기준으로 다시 매긴 등급이 지도에 나옵니다.'],
     ['앞으로 오를 집을 알려 주나요?','아닙니다. 지금까지의 공개 자료로 지금의 입지를 평가한 것입니다. 투자 추천이나 가격 전망이 아니며, 최종 판단은 임장과 본인 상황으로 하셔야 합니다.']];
   const faqH=faq.map(q=>`<details class="mi faq"><summary><b>${q[0]}</b></summary><p>${q[1]}</p></details>`).join('');
-  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="tClose" aria-label="닫기">✕</button></div><div class="db mth2">
+  ov.innerHTML=`<div class="drawer wide" role="dialog" aria-modal="true" aria-labelledby="mtT"><div class="dh"><h2 id="mtT">평가기준</h2><button class="back" id="mtClose" aria-label="닫기">✕</button></div><div class="db mth2">
     <section class="mb"><h3><span>1</span>점수는 이렇게 만듭니다</h3>${wbar}<p class="fx"><b>단지 점수</b> = Σ(영역 점수 × 비중) − 보정 감점</p>${wtab}<p class="sm">입지 ${gsum('loc')} : 상품성 ${gsum('prd')} : 환금성 ${gsum('liq')}, 이 비중은 '오래 남는 땅을 가장 크게 본다'는 평가 원칙입니다. 비중의 근거는 ⑤에 있습니다.</p></section>
     <section class="mb"><h3><span>2</span>영역별 세부 항목</h3><p class="sm">영역을 누르면 항목별 비중·점수 기준·근거가 펼쳐집니다.</p>${itemsT2}</section>
     <section class="mb"><h3><span>3</span>등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>은 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
@@ -1557,9 +1561,9 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.3 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.4 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
-  glueDom(ov); $('tClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
+  glueDom(ov); $('mtClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();
 }
 $('btnMethod').onclick=openMethod;

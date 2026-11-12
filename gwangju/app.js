@@ -1411,10 +1411,11 @@ function upDraw(){ const el=$('upCh'); if(!el||typeof d3==='undefined') return; 
   y.ticks(4).forEach(t=>{ svg.append('line').attr('class','gl').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)); svg.append('text').attr('x',m.l-5).attr('y',y(t)+3.5).attr('text-anchor','end').text(t>=10000?(t/10000)+'만':t>=1000?(t/1000)+'천':t); });
   if(UPSEL&&x(UPSEL)!=null) svg.append('rect').attr('class','sel').attr('x',x(UPSEL)-x.step()*x.padding()/2).attr('width',x.step()).attr('y',m.t).attr('height',H-m.b-m.t);
   const step=UPM==='y'?(W<520?2:1):(W<520?4:2);
+  let lastL=-99, lastV=0;   // 좁은 화면에서 붙어 있는 막대의 숫자가 겹치지 않게(30px 안이면 더 큰 값만)
   B.forEach((o,i)=>{ const bx=x(o.k), bw=x.bandwidth();
     if(o.done) svg.append('rect').attr('class','b0').attr('x',bx).attr('width',bw).attr('y',y(o.done)).attr('height',y(0)-y(o.done)).attr('rx',Math.min(2,bw/3));
     if(o.up) svg.append('rect').attr('class','b1').attr('x',bx).attr('width',bw).attr('y',y(o.done+o.up)).attr('height',y(o.done)-y(o.done+o.up)).attr('rx',Math.min(2,bw/3));
-    if(o.up&&UPM==='y') svg.append('text').attr('class','vl').attr('x',bx+bw/2).attr('y',y(o.done+o.up)-4).attr('text-anchor','middle').text((o.done+o.up)>=10000?((o.done+o.up)/10000).toFixed(1)+'만':((o.done+o.up)/1000).toFixed(1)+'천');
+    if(o.up&&UPM==='y'&&(bx-lastL>=30||o.up>=lastV)&&(lastL=bx,lastV=o.up,true)) svg.append('text').attr('class','vl').attr('x',bx+bw/2).attr('y',y(o.done+o.up)-4).attr('text-anchor','middle').text((o.done+o.up)>=10000?((o.done+o.up)/10000).toFixed(1)+'만':((o.done+o.up)/1000).toFixed(1)+'천');
     const isY=UPM==='y'||o.k[4]==='a', yr=+o.k.slice(0,4); if(isY&&(yr%step===0)) svg.append('text').attr('x',UPM==='y'?bx+bw/2:bx+bw+x.step()*x.padding()/2).attr('y',H-7).attr('text-anchor','middle').text('’'+String(yr).slice(2)); });
   const Y=UPM==='y'?B:upBins('y'), L10=Y.filter(o=>+o.k>=NOWY-10&&+o.k<NOWY), avg=L10.length?L10.reduce((a,o)=>a+o.done,0)/L10.length/(UPM==='y'?1:2):0;
   if(avg){ svg.append('line').attr('class','av').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(avg)).attr('y2',y(avg)); svg.append('text').attr('class','avt').attr('x',m.l+4).attr('y',y(avg)-4).text(`최근 10년 평균 ${Math.round(avg).toLocaleString()}세대`); }

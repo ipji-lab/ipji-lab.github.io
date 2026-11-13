@@ -190,6 +190,10 @@ const HINT = {   // v1.1.3 연구원: 태그를 누르면 뜻을 보여 줌(엔�
   liq:['거래 활발','거래활발도 점수가 10점 만점에 8점 이상인 단지입니다. 최근 2년 매매가 광주 평균보다 많아 팔고 사기 쉬운 편입니다.','국토교통부 실거래가 기준입니다.'],
   rent:['임대','분양형태가 임대인 단지입니다. 매매할 수 없어 거래활발도는 0점이고, 등급은 최고 4등급입니다.','K-apt 분양형태 기준입니다.'],
   mixr:['임대 혼합','분양 세대와 임대 세대가 함께 있는 단지입니다.','K-apt 분양형태(혼합) 기준입니다.'],
+  agekid:['어린이 많은 동네','이 단지가 속한 법정동의 0~9세 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
+  ageteen:['10대 많은 동네','이 단지가 속한 법정동의 10~19세 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
+  ageyoung:['청년 많은 동네','이 단지가 속한 법정동의 20~39세 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
+  ageold:['어르신 많은 동네','이 단지가 속한 법정동의 70세 이상 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
   lowdata:['자료 부족','평가 항목의 20% 넘게 자료가 없는 단지입니다. 새 택지의 초기 입주 단지처럼 주변 학교·교통 자료가 아직 없는 경우이며, 자료가 채워지면 등급이 달라질 수 있습니다.',''],
   pre:['입주 초기(대장 반영 전)','입주가 시작됐지만 건축물대장·공동주택관리정보에 아직 올라오지 않은 단지입니다. 세대수·동수는 청약 공고·시공사·보도 자료 기준이고, 주차·용적률·평형은 자료가 올라오면 채웁니다. 실거래가 쌓이기 전이라 등급이 바뀔 수 있습니다.','청약홈 분양정보 · 시공사·보도 자료(입주 시작 월) 기준입니다.'],
   mixu:['주상복합','아래층에 상가가 있는 주상복합 단지입니다.','K-apt 단지 분류 기준입니다.'],
@@ -753,6 +757,13 @@ function drawTypeChart(c, i, bk){
     rngBind(nt, ()=>drawTypeChart(c, i, bk));
   }).catch(e=>{ el.innerHTML=`<p class="note">그래프 자료를 불러오지 못했습니다. (${e.message})</p>`; });
 }
+function ageCard(c){   // v2.2.9 동네 인구: 법정동 연령대 비중을 광주 평균과 나란히(점수에는 넣지 않음)
+  const a=c.xs&&c.xs.age; if(!a) return '';
+  const L=['0~9세','10대','20·30대','70세 이상'], mx=Math.max(...a.v.map(v=>Math.max(v[0],v[1])));
+  return `<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">동네 인구 <span style="font-weight:400;color:var(--muted);font-size:12px">${c.dong} ${a.t.toLocaleString()}명 · ${ymTxt(a.ym)}</span></h2>
+    <div class="agec">${a.v.map((v,i)=>`<div class="ager"><span class="al">${L[i]}</span><span class="ab"><i style="width:${(v[0]/mx*100).toFixed(1)}%"></i><em style="left:${(v[1]/mx*100).toFixed(1)}%"></em></span><span class="av"><b>${v[0].toFixed(1)}%</b> <small>광주 ${v[1].toFixed(1)}%</small></span></div>`).join('')}</div>
+    <p class="note" style="margin:6px 0 0">막대는 이 동, 세로선은 광주 평균입니다. 단지가 아니라 동 전체 기준이고 점수에는 넣지 않습니다.</p></section>`;
+}
 function futureLines(c){            // v1.7.1 연구원(11.5): 2호선 1단계 = 확정 역 이름(’26.10.28 고시), 2단계 = 가칭(1km 안일 때만), 광주 공통 계획(FUT['광주'], 출처 있는 것만)
   const L=[], yk=n=>{ const i=n.indexOf('('); return i<0?n+'역':n.slice(0,i)+'역'+n.slice(i); };
   const F=(DATA.future||{})[c.nj?c.gu:'광주']||[], a=c.sub2&&c.sub2[1]<=1000, b=c.sub2b&&c.sub2b[1]<=1000;
@@ -839,6 +850,7 @@ function renderDetail(){
       <div id="jsold">${jsHTML(c)}</div></section>
     ${S.mine?(()=>{const pi=personalItems(c,S.mine); const j=c.js&&c.js.rep; const gapTxt=(S.mine.prod==='gap'&&j&&j[1]&&j[3])?`갭: ${j[0]}㎡ 매매 중위 ${eok(j[3])} − 전세 중위 ${eok(j[1])} = ${eok(j[3]-j[1])}`:''; return `<section class="card mine"><h2 style="font-size:14px;margin:0;font-weight:700">내 조건으로 본 이 단지 <span class="tagref">개인 참고</span></h2><div class="lines"><p><b>내 점수 ${f1(c.ps)}점${c.pr?` · 내 조건에 맞는 ${S.mineN}곳 중 ${c.pr}위`:''}</b> · 등급은 그대로 ${c.grade!=null?c.grade+'등급':(c.rent?'임대':'잠정')}입니다(내 점수는 순위용이며 등급을 바꾸지 않습니다)</p>${pi.note.map(t=>`<p>${t}</p>`).join('')}${gapTxt?`<p>${gapTxt}</p>`:''}${pi.note.length?'':'<p>직장·자녀 조건을 넣지 않아 비중만 바꿔 계산했습니다.</p>'}</div></section>`;})():''}
     ${(c.xs.tr||[]).filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통·지형 한눈에</h2><dl class="kv trk">${c.xs.tr.filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
+    ${ageCard(c)}
     <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
     ${flags.length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">확인이 필요한 점</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}</div></section>`:''}<p class="note">공공데이터로 자동 계산한 참고 정보입니다. 매수 전에는 현장과 공식 자료로 직접 확인해 주세요.</p>
     ${reportBtn(c)}
@@ -990,9 +1002,9 @@ function openPop(k, btn){
   } else if (k==='tag'){   // v1.1.3 연구원: 태그 여러 개 선택 · 누르면 뜻 설명
     const have=new Map(); CX.forEach(c=>c.tags.forEach(t=>{ if(!have.has(t[0])) have.set(t[0],t); }));
     const HK=Object.keys(HINT), hi=k=>{ const i=HK.indexOf(k); return i<0?99:i; };
-    const und=CX.some(c=>c.band==='under'), ordT0=[...(und?[['under','저평가 단지','good']]:[]), ...[...have.values()].filter(t=>t[2]==='good'), ...[...have.values()].filter(t=>!t[2]&&t[0]!=='naju'), ...[...have.values()].filter(t=>t[2]==='bad')], ordT=ordT0.sort((a,b)=>hi(a[0])-hi(b[0]));   // 태그 순서: 좋은 점 → 단지 형태 → 아쉬운 점
+    const und=CX.some(c=>c.band==='under'), ordT0=[...(und?[['under','저평가 단지','good']]:[]), ...[...have.values()].filter(t=>t[2]==='good'), ...[...have.values()].filter(t=>!t[2]&&t[0]!=='naju'), ...[...have.values()].filter(t=>t[2]==='bad'), ...[...have.values()].filter(t=>t[2]==='pop')], ordT=ordT0.sort((a,b)=>hi(a[0])-hi(b[0]));   // 태그 순서: 좋은 점 → 단지 형태 → 아쉬운 점
     const N=t=>t==='under'?CX.filter(c=>c.band==='under').length:CX.filter(c=>c.tags.some(x=>x[0]===t)).length;
-    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div>${[['good','좋은 점'],['','단지 형태'],['bad','아쉬운 점']].map(([k,l])=>{ const ts=ordT.filter(t=>(t[2]||'')===k); return ts.length?`<div class="tgl">${l}</div><div class="pbtns tagb">${ts.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div>`:''; }).join('')}<div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div>${[['good','좋은 점'],['','단지 형태'],['bad','아쉬운 점'],['pop','동네 인구']].map(([k,l])=>{ const ts=ordT.filter(t=>(t[2]||'')===k); return ts.length?`<div class="tgl">${l}</div><div class="pbtns tagb">${ts.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div>`:''; }).join('')}<div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
     const show=v=>{ const h=HINT[v]; $('tdesc').innerHTML=h?`<b>${h[0]}</b> ${h[1]}<small>${h[2]}</small>`:''; };
     pop.querySelectorAll('.tagb .chip').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; S.tags.has(v)?S.tags.delete(v):S.tags.add(v); b.setAttribute('aria-pressed',String(S.tags.has(v))); show(v); refresh(); });
     $('pReset').onclick=()=>{ S.tags.clear(); pop.querySelectorAll('.tagb .chip').forEach(b=>b.setAttribute('aria-pressed','false')); $('tdesc').innerHTML=''; refresh(); };
@@ -1562,7 +1574,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.8 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.9 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('mtClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

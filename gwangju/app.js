@@ -1403,7 +1403,7 @@ $('btnDeal').onclick=openDeals;
 function upPrice(u){ const T=(u.tys||[]).filter(t=>t.top); if(!T.length) return null; const e=T.filter(t=>{ const a=parseFloat(t.ty); return a>=80&&a<90; }); const L=e.length?e:[[...T].sort((a,b)=>(b.gen||0)-(a.gen||0))[0]]; const t=[...L].sort((a,b)=>b.top-a.top)[0]; return {a:Math.floor(parseFloat(t.ty)), top:t.top}; }
 // v2.1.1 입주 그래프: 지난 입주(서비스 단지의 사용승인 연도·세대수) + 입주예정을 한 그래프에. 연도별·반기별, 최근 10년 평균선
 let UPM='y', UPSEL=null;
-const UP_POP=[1398538,'’25.7'];   // v2.1.5 실수요 추정 = 광주 주민등록인구 × 0.5%(업계에서 흔히 쓰는 연간 적정 입주 물량). 행정안전부 주민등록 인구통계 ’25.7
+const UP_POP0=[1398538,'’25.7'], upPop=()=>DATA.upPop||UP_POP0;   // v2.2.7 정기 수집한 최신 주민등록인구(DATA.upPop)가 있으면 그 값   // v2.1.5 실수요 추정 = 광주 주민등록인구 × 0.5%(업계에서 흔히 쓰는 연간 적정 입주 물량). 행정안전부 주민등록 인구통계 ’25.7
 function upBins(mode){ const k=ym=>{ const t=String(ym), y=t.slice(0,4); return mode==='y'?y:y+(+t.slice(4,6)<=6?'a':'b'); };
   const maxY=Math.max(NOWY+1,...UP.map(u=>+String(u.mvn).slice(0,4))), keys=[]; for(let y=2010;y<=maxY;y++){ if(mode==='y') keys.push(String(y)); else keys.push(y+'a',y+'b'); }
   const M=new Map(keys.map(x=>[x,{k:x,done:0,dn:0,up:0,un:0,pl:0,pn:0}]));
@@ -1427,7 +1427,7 @@ function upDraw(){ const el=$('upCh'); if(!el||typeof d3==='undefined') return; 
   const Y=UPM==='y'?B:upBins('y'), L10=Y.filter(o=>+o.k>=NOWY-10&&+o.k<NOWY), avg=L10.length?L10.reduce((a,o)=>a+o.done,0)/L10.length/(UPM==='y'?1:2):0;
   const lineLbl=(v,c,dy)=>svg.append('text').attr('class','ll '+c).attr('x',W-m.r-2).attr('y',y(v)+dy).attr('text-anchor','end').text(Math.round(v).toLocaleString());   // v2.2.2 선 위에 수치(오른쪽 끝 · 흰 테두리로 막대와 겹쳐도 읽힘)
   if(avg){ svg.append('line').attr('class','av').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(avg)).attr('y2',y(avg)); }
-  const dem=UP_POP[0]*0.005/(UPM==='y'?1:2); svg.append('line').attr('class','dm').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(dem)).attr('y2',y(dem));
+  const dem=upPop()[0]*0.005/(UPM==='y'?1:2); svg.append('line').attr('class','dm').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(dem)).attr('y2',y(dem));
   const near=avg&&Math.abs(y(avg)-y(dem))<16;
   const lg=$('upLg'); if(lg) lg.innerHTML=`<span><i style="background:none;border-top:2px dashed var(--over);height:0;vertical-align:3px"></i>최근 10년 평균</span><span><i style="background:none;border-top:2px dotted var(--ink);height:0;vertical-align:3px"></i>실수요</span>`;
   if(avg) lineLbl(avg,'avt',(near&&avg<dem)?13:-5); lineLbl(dem,'dmt',(near&&dem<=avg)?13:-5);
@@ -1451,7 +1451,7 @@ function openUpList(){ const ov=$('ovUpl'); ov.hidden=false;
       <div class="upch" id="upCh"></div>
       <div class="upleg"><span><i style="background:var(--muted);opacity:.45"></i>입주 완료</span><span><i style="background:var(--accent)"></i>입주예정</span><span><i style="background:var(--accent);opacity:.3"></i>사업승인 단계</span><span id="upLg" style="display:contents"></span></div><p class="sm" id="upInfo" style="margin:0;color:var(--ink)"></p></div>
     <div class="dlist">${body}</div>
-    <p class="note">출처: ${DATA.upSrc}. 입주예정은 청약홈 모집공고가 난 단지이고, 세대수는 단지 전체 세대수입니다. 사업승인 단계는 주택건설사업계획승인을 받았지만 모집공고가 없는 100세대 이상 단지입니다(후분양·임대·착공 전 포함). 실제 착공 여부를 자료로 확인할 수 없어 입주예정 세대수에 넣지 않았고, 입주 계획월은 사업자가 낸 값이라 늦어지거나 무산될 수 있습니다. 계획 공사기간이 30개월보다 짧으면 착공 계획월에 ${DATA.upDur||40}개월(공고 단지의 중위 공사기간)을 더했습니다. 입주 완료는 이 서비스에 있는 단지의 사용승인 연도와 세대수를 더한 값입니다. 분양가는 주택형별 최고가(발코니 확장·옵션 제외)입니다. 실수요는 광주 주민등록인구(${UP_POP[1]} ${UP_POP[0].toLocaleString()}명)의 0.5%로 본 한 해 적정 입주 물량입니다. 청약 미달은 1·2순위 접수가 일반공급보다 적었던 세대 수이고, 미분양은 광주시 월별 현황에 나온 단지만 숫자가 있습니다.</p>
+    <p class="note">출처: ${DATA.upSrc}. 입주예정은 청약홈 모집공고가 난 단지이고, 세대수는 단지 전체 세대수입니다. 사업승인 단계는 주택건설사업계획승인을 받았지만 모집공고가 없는 100세대 이상 단지입니다(후분양·임대·착공 전 포함). 실제 착공 여부를 자료로 확인할 수 없어 입주예정 세대수에 넣지 않았고, 입주 계획월은 사업자가 낸 값이라 늦어지거나 무산될 수 있습니다. 계획 공사기간이 30개월보다 짧으면 착공 계획월에 ${DATA.upDur||40}개월(공고 단지의 중위 공사기간)을 더했습니다. 입주 완료는 이 서비스에 있는 단지의 사용승인 연도와 세대수를 더한 값입니다. 분양가는 주택형별 최고가(발코니 확장·옵션 제외)입니다. 실수요는 광주 주민등록인구(${upPop()[1]} ${upPop()[0].toLocaleString()}명)의 0.5%로 본 한 해 적정 입주 물량입니다. 청약 미달은 1·2순위 접수가 일반공급보다 적었던 세대 수이고, 미분양은 광주시 월별 현황에 나온 단지만 숫자가 있습니다.</p>
   </div></div>`;
   $('ulClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
   ov.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{ UPM=b.dataset.m; UPSEL=UPM==='y'?String(NOWY+1):(NOWY+1)+'a'; ov.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b)); upDraw(); });
@@ -1562,7 +1562,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.6 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) v2.2.7 · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('mtClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

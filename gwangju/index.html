@@ -9,14 +9,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.3.7">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.3.8">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.3.7</title>
+<title>우리동네 입지분석(광주) v2.3.8</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -981,6 +981,22 @@ table.t.cmp thead th{vertical-align:top}
 .sdef{margin:0 0 6px;padding:0;font-size:12.5px;color:var(--muted)}
 .phd{margin-bottom:10px} .phd + .hx{margin-top:0} .phd + .hx .hxk{margin-top:0}
 .area.ea{cursor:default}
+/* ── v2.3.8 모바일 점검(연구원 ’26.11.14: 판정 표시가 태그와 겹침 · 모바일에서도 쓰기 쉽게) ── */
+.row .item{padding:12px 14px;align-items:center;row-gap:8px;cursor:pointer}
+.row .item:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row .item .mid{min-width:0}
+.row .item .brow{grid-column:1 / 4;display:flex;align-items:flex-end;gap:8px;min-width:0}   /* 카드 전체 폭: 좁은 화면에서도 태그가 한 줄에 서너 개 */
+.row .item .brow .tags{flex:1 1 auto;min-width:0;margin-top:0}
+.row .item .brow .vbtn{position:static;flex:none;margin:0 0 0 auto}
+.vbtn.vpill::after{content:'›';margin-left:5px;opacity:.6}                                   /* 누르면 근거가 열린다는 표시 */
+.phd .vbtn.vpill.fair,.phd .vbtn.vpill.hold{border:1px solid var(--line);background:var(--surface)}
+.ager{grid-template-columns:64px minmax(0,1fr) 122px} .ager .av{text-align:right;white-space:nowrap} .ager .av small{font-size:11.5px}   /* 막대 길이가 줄마다 달라 평균선이 어긋나던 것 */
+.fpop .pfoot{position:sticky;bottom:-12px;background:var(--surface);margin:8px -14px -12px;padding:8px 14px 12px;border-top:1px solid var(--line)} .fpop .pfoot .pf{margin-top:6px} .fpop .pfoot .tdesc{margin-top:0}
+.back.wide{width:auto;padding:0 12px;font-weight:600;font-size:13.5px}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+@media (max-width:900px){ .row .item{padding:12px} .sheet-handle{padding:15px 0 13px} .back.wide{height:38px} }
+@media (max-width:340px){ header.top .btn{padding:0 6px;font-size:12.5px} header.top .btn .badge-n{margin-left:2px} }   /* 폭 320px 화면: 비교 숫자가 옆 버튼에 닿던 것 */
+@media (max-width:900px){ .dual,.dual input{height:32px} .dual input::-webkit-slider-thumb{width:26px;height:26px} .dual input::-moz-range-thumb{width:24px;height:24px} .dual::before{left:12px;right:12px;top:15px} .hist{margin:0 12px} }
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -1086,7 +1102,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=60d1a071", DET=["data/d00.json.gz?v=12a87b49", "data/d01.json.gz?v=6bba2ecb", "data/d02.json.gz?v=6e38f2a4", "data/d03.json.gz?v=2894df4a", "data/d04.json.gz?v=97adf27b", "data/d05.json.gz?v=7f1de5eb", "data/d06.json.gz?v=a2a92e1b", "data/d07.json.gz?v=94b1e1f1", "data/d08.json.gz?v=d35b0120", "data/d09.json.gz?v=397b197b", "data/d10.json.gz?v=01cb3689", "data/d11.json.gz?v=25e25964", "data/d12.json.gz?v=b8aa3415", "data/d13.json.gz?v=d881176f", "data/d14.json.gz?v=46ba844d", "data/d15.json.gz?v=fb9e367a"], APP="app.js?v=b258a3a5", DASHF="data/rt/trend.json.gz?v=4bfd2f7c", TXF="data/rt/tx.json.gz?v=09f9773e";
+  var CORE="data/core.json.gz?v=b9386134", DET=["data/d00.json.gz?v=12a87b49", "data/d01.json.gz?v=6bba2ecb", "data/d02.json.gz?v=6e38f2a4", "data/d03.json.gz?v=2894df4a", "data/d04.json.gz?v=97adf27b", "data/d05.json.gz?v=7f1de5eb", "data/d06.json.gz?v=a2a92e1b", "data/d07.json.gz?v=94b1e1f1", "data/d08.json.gz?v=d35b0120", "data/d09.json.gz?v=397b197b", "data/d10.json.gz?v=01cb3689", "data/d11.json.gz?v=25e25964", "data/d12.json.gz?v=b8aa3415", "data/d13.json.gz?v=d881176f", "data/d14.json.gz?v=46ba844d", "data/d15.json.gz?v=6c552fd6"], APP="app.js?v=996698e8", DASHF="data/rt/trend.json.gz?v=7787dfd1", TXF="data/rt/tx.json.gz?v=09f9773e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

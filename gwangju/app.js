@@ -6,14 +6,14 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
 const eok = man => man==null ? '–' : (man/10000).toFixed(man>=100000?1:2).replace(/\.?0+$/,'') + '억';
 const fmtMan = v => v==null?'–':Math.round(v).toLocaleString()+'만원';
-const pct = v => `${v>0?'+':v<0?'−':''}${Math.abs(Math.round(v*100))}%`;
-const pct1 = v => `${v>0?'+':v<0?'−':''}${Math.abs(v*100).toFixed(1)}%`;
+const pct = v => { const r=Math.round(v*100); return `${r>0?'+':r<0?'−':''}${Math.abs(r)}%`; };   // v2.3.8 반올림해 0이면 부호 없이
+const pct1 = v => { const r=Math.round(v*1000)/10; return `${r>0?'+':r<0?'−':''}${Math.abs(r).toFixed(1)}%`; };
 const f1 = v => v==null?'–':(Math.round(v*10)/10).toFixed(1);
 const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4)), N = CX.length, NF = M.Nfinal;
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.3.7';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.3.8';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -56,6 +56,7 @@ CX.forEach(c => {
   c.tags = c.tags || [];
 });
 const BAND = {under:'저평가 단지',fair:'시세 수준',over:'고평가 단지',hold:'판정 보류'};
+const BANDS = {under:'저평가',fair:'시세 수준',over:'고평가',hold:'판정 보류'};   // v2.3.8 연구원 ’26.11.14(모바일에서 '고평가 단지 +22.0%'가 태그와 겹침): 판정 표시는 짧게
 const bandColor = b => ({under:'var(--under)',fair:'var(--fair)',over:'var(--over)',hold:'var(--muted)'})[b];
 
 /* ═════════ 상태 ═════════ */
@@ -495,7 +496,7 @@ document.querySelectorAll('.zrg').forEach(b=>b.onclick=()=>njFit(b.dataset.rg,b.
 
 /* ═════════ 패널: 목록 ═════════ */
 const gradeChip = c => { const g=gradeOf(c); return g==null ? `<span class="grade tent"><span>${c.rent&&!S.mine?'임대':'잠정'}</span></span>` : `<span class="grade" style="background:${gCol(g)};color:${gInk(g)}"><span>${g}<small>등급</small></span></span>`; };
-const bandBtn = c => `<button class="vbtn vpill ${c.band}" data-pid="${c.id}" aria-label="${BAND[c.band]} 상세">${BAND[c.band]}${c.gap!=null?' '+pct1(c.gap):''}</button>`;
+const bandBtn = c => `<button class="vbtn vpill ${c.band}" data-pid="${c.id}" aria-label="${BAND[c.band]} 상세">${BANDS[c.band]}${c.gap!=null?' '+pct1(c.gap):''}</button>`;
 function setSide(open){   // v1.7 연구원: 데스크톱에서 단지 목록 접기·펴기(지도 전체 보기)
   $('bodyG').classList.toggle('collapsed', !open); const t=$('sideTab'); t.textContent = open?'‹':'›'; t.title = open?'목록 접기':'목록 펼치기'; t.setAttribute('aria-label', open?'단지 목록 접기':'단지 목록 펼치기');
   setTimeout(()=>dispatchEvent(new Event('resize')), 30);
@@ -512,18 +513,18 @@ function renderPanel(){
     <span class="sortWrap"><select id="sort" aria-label="정렬"><option value="score">${S.mine?'내 점수순':'등급순'}</option>${S.mine?'<option value="gscore">등급순(등급 안에서 내 점수순)</option>':''}<option value="loc">입지점수순</option><option value="gap">저평가 큰 순</option><option value="price">가격 낮은 순</option><option value="turn">거래 활발 순</option></select></span>`;
   $('sort').value=S.sort; $('sort').onchange=e=>{S.sort=e.target.value; renderPanel();};
   $('pbody').innerHTML = list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`;
-  $('pbody').querySelectorAll('.item[data-id]').forEach(b=>b.onclick=()=>select(b.dataset.id));
+  $('pbody').querySelectorAll('.item[data-id]').forEach(b=>{ b.onclick=()=>select(b.dataset.id); b.onkeydown=e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===b){ e.preventDefault(); select(b.dataset.id); } }; });
   if ($('lmore')) $('lmore').onclick=()=>{ const y=$('pbody').scrollTop; LMORE+=300; renderPanel(); $('pbody').scrollTop=y; };
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPrice(b.dataset.pid); });
 }
 function itemHTML(c){
   const ri=repInfo(c), pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : ri.pt, r=ri.t||ri.b, sc=scoreOf(c);
-  return `<li class="row"><button class="item" data-id="${c.id}">
+  return `<li class="row"><div class="item" role="button" tabindex="0" data-id="${c.id}">
     ${gradeChip(c)}
-    <span style="min-width:0"><span class="nm${lwOf(c,10)?' lw':''}">${dn(c)}</span><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span>
-      <span class="tags">${tagsShow(c)}</span></span>
+    <span class="mid"><span class="nm${lwOf(c,10)?' lw':''}">${dn(c)}</span><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span></span>
     <span class="rt"><span class="score num">${S.mine&&c.pr?`<small class="prk">${c.pr}위</small> `:''}${f1(sc)}<small>점</small></span><span class="price">${r?`${typeLabel(r)} `:''}${(!(S.mine && S.mine.size!=='all')&&ri.src==='bp')?'분양 ':''}${eok(pt)}</span></span>
-  </button>${bandBtn(c)}</li>`;
+    <span class="brow"><span class="tags">${tagsShow(c)}</span>${bandBtn(c)}</span>
+  </div></li>`;   // v2.3.8 판정 표시가 태그와 겹치던 것: 카드를 div(role=button)로 바꿔 태그와 판정 표시를 한 줄(brow)에 나란히
 }
 async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) await window.__ensureDetail(_c); }
   const wasFolded=$('bodyG').classList.contains('collapsed');
@@ -810,7 +811,7 @@ function openUp(id){
 }
 function renderDetail(){
   const c=CX.find(x=>x.id===S.sel), g=gradeOf(c);
-  $('ptop').innerHTML = `<button class="back" id="back" aria-label="목록으로">‹</button><span></span><span></span>`;
+  $('ptop').innerHTML = `<button class="back wide" id="back" aria-label="목록으로">‹ 목록</button><span></span><span></span>`;
   $('back').onclick=()=>{S.view='list'; S.sel=null; drawMarkers(); renderPanel();};
   const areas = AREAS.map((a,i)=>{
     const v=c.area[a], open=S.openCat===a, full=c.afull[a];
@@ -925,12 +926,12 @@ async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await wi
   const myP=repPrice(c), alts=myP?CX.filter(x=>x.id!==c.id&&!x.rent&&x.total!=null).map(x=>({x,p:repPrice(x)})).filter(o=>o.p&&Math.abs(o.p/myP-1)<=.07).sort((a,b)=>b.x.total-a.x.total).slice(0,5).map(o=>o.x):[];
   const altSec=alts.length?`<section class="sec"><h2>같은 값으로 고를 수 있는 다른 단지</h2><p class="sdef">이 단지 ${repTxt(c)} · ${c.grade??'–'}등급 · ${c.total}점</p><ul class="plist">${alts.map(p=>`<li><button class="pl" data-go="${p.id}"><b>${dn(p)}</b><small>${p.grade??'–'}등급 · ${p.total}점 · ${p.y} · ${repTxt(p)}</small></button></li>`).join('')}</ul></section>`:'';
   ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="prT"><div class="dh"><h2 id="prT">가격 판정 근거</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
-    <div><div style="font-weight:700">${dn(c)}</div><span class="vpill ${c.band}" style="font-size:12.5px;padding:3px 10px">${BAND[c.band]}${c.gap!=null?' '+pct(c.gap):''}</span></div>
+    <div><div style="font-weight:700">${dn(c)}</div><span class="vpill ${c.band}" style="font-size:12.5px;padding:3px 10px">${BANDS[c.band]}${c.gap!=null?' '+pct(c.gap):''}</span></div>
     <div class="callout">${verdict2}</div>
     ${nbSec}
     ${pm.fair?`<section class="sec"><h2>비슷한 단지라면 받을 값 (만원/㎡)</h2>${(pm.rlv&&act)?`<p class="sdef">전세 ㎡당 ${fmtMan(pm.rlv)} · 매매의 ${Math.round(pm.rlv/act*100)}%</p>`:''}<div class="wf">${wf}</div></section>`:''}
     ${(pm.top||[]).length?`<section class="sec"><h2>값에 크게 작용한 요인</h2><dl class="kv">${(pm.top||[]).map(([n,v])=>`<dt>${n}</dt><dd class="${v>=0?'up':'dn'}">${pct(v)}</dd>`).join('')}</dl></section>`:''}
-    ${peers.length?`<section class="sec"><h2>조건이 비슷한 단지</h2><ul class="plist">${peers.map(p=>`<li><button class="pl" data-go="${p.id}"><b>${dn(p)}</b><small>${p.y} · ${p.u.toLocaleString()}세대 · ${repTxt(p)}</small></button><span class="vpill ${p.band}">${BAND[p.band]}</span></li>`).join('')}</ul></section>`:''}
+    ${peers.length?`<section class="sec"><h2>조건이 비슷한 단지</h2><ul class="plist">${peers.map(p=>`<li><button class="pl" data-go="${p.id}"><b>${dn(p)}</b><small>${p.y} · ${p.u.toLocaleString()}세대 · ${repTxt(p)}</small></button><span class="vpill ${p.band}">${BANDS[p.band]}</span></li>`).join('')}</ul></section>`:''}
     ${altSec}
     <p class="note">참고값입니다. 감정평가나 적정가격이 아니며 종합점수에 넣지 않습니다.</p>
   </div></div>`;
@@ -1014,7 +1015,7 @@ function openPop(k, btn){
     const HK=Object.keys(HINT), hi=k=>{ const i=HK.indexOf(k); return i<0?99:i; };
     const und=CX.some(c=>c.band==='under'), ordT0=[...(und?[['under','저평가 단지','good']]:[]), ...[...have.values()].filter(t=>t[2]==='good'), ...[...have.values()].filter(t=>!t[2]&&t[0]!=='naju'), ...[...have.values()].filter(t=>t[2]==='bad'), ...[...have.values()].filter(t=>t[2]==='pop')], ordT=ordT0.sort((a,b)=>hi(a[0])-hi(b[0]));   // 태그 순서: 좋은 점 → 단지 형태 → 아쉬운 점
     const N=t=>t==='under'?CX.filter(c=>c.band==='under').length:CX.filter(c=>c.tags.some(x=>x[0]===t)).length;
-    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div>${[['good','좋은 점'],['','단지 형태'],['bad','아쉬운 점'],['pop','동네 인구']].map(([k,l])=>{ const ts=ordT.filter(t=>(t[2]||'')===k); return ts.length?`<div class="tgl">${l}</div><div class="pbtns tagb">${ts.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div>`:''; }).join('')}<div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div>`;
+    pop.innerHTML=`<div class="pt">태그(여러 개 선택)</div><div class="pdef">여러 개를 고르면 모두 해당하는 단지만 보여 줍니다. 태그를 누르면 뜻이 아래에 나옵니다.</div>${[['good','좋은 점'],['','단지 형태'],['bad','아쉬운 점'],['pop','동네 인구']].map(([k,l])=>{ const ts=ordT.filter(t=>(t[2]||'')===k); return ts.length?`<div class="tgl">${l}</div><div class="pbtns tagb">${ts.map(t=>`<button class="chip ${t[2]||''}" data-v="${t[0]}" aria-pressed="${S.tags.has(t[0])}">${HINT[t[0]]?HINT[t[0]][0]:t[1]} <small>${N(t[0]).toLocaleString()}</small></button>`).join('')}</div>`:''; }).join('')}<div class="pfoot"><div class="tdesc" id="tdesc" aria-live="polite"></div><div class="pf"><button class="lnk" id="pReset">초기화</button><button class="btn primary sm" id="pDone">적용</button></div></div>`;   // v2.3.8 모바일: 태그가 많아도 뜻·적용 버튼이 늘 보이게 아래에 붙임
     const show=v=>{ const h=HINT[v]; $('tdesc').innerHTML=h?`<b>${h[0]}</b> ${h[1]}<small>${h[2]}</small>`:''; };
     pop.querySelectorAll('.tagb .chip').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; S.tags.has(v)?S.tags.delete(v):S.tags.add(v); b.setAttribute('aria-pressed',String(S.tags.has(v))); show(v); refresh(); });
     $('pReset').onclick=()=>{ S.tags.clear(); pop.querySelectorAll('.tagb .chip').forEach(b=>b.setAttribute('aria-pressed','false')); $('tdesc').innerHTML=''; refresh(); };
@@ -1037,6 +1038,7 @@ function openPop(k, btn){
     $('pReset').onclick=()=>{ r0.value=0; r1.value=mx; upd(true); };
   }
   $('pDone').onclick=()=>{ S.pop=null; pop.hidden=true; };
+  pop.style.maxHeight=Math.max(220, innerHeight-pop.getBoundingClientRect().top-10)+'px';   // v2.3.8 화면 아래로 넘치지 않게(모바일에서 창 끝이 잘리던 것)
 }
 document.querySelectorAll('.chip[data-pop]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPop(b.dataset.pop,b); });
 document.addEventListener('click',e=>{ const pop=$('fpop'); if (S.pop && !pop.contains(e.target)){ S.pop=null; pop.hidden=true; } });

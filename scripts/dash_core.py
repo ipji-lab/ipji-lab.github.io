@@ -105,11 +105,22 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
             p_now = recent(vm) or _med([t[1] for t in sorted(tb, key=lambda t: -t[3])[:3]])
             y1 = [t[1] for t in tb if M[max(0, N - 17)] <= t[0] <= M[max(0, N - 12)]]; p12 = _med(y1) if len(y1) >= 2 else None   # 1년 전 6개월 중위(거래가 적은 단지도 비교되게 넓힘)
             y3 = [t[1] for t in tb if M[max(0, N - 41)] <= t[0] <= M[max(0, N - 36)]]; p36 = _med(y3) if len(y3) >= 2 else None   # 3년 전 6개월 중위
-            peak = max(tb, key=lambda t: t[1]); last = max(tb, key=lambda t: t[3])
+            # v2.3.0 연구원(11.14): 고점이 거래 1건으로 잡혀 '고점 대비 %'가 과장됨(수완모아엘가 84㎡ ’22.1 8.99억 1건)
+            #   → 고점 = 3개월(그 달과 앞 두 달) 거래 3건 이상인 구간의 중위가 중 가장 높은 값. 그런 구간이 없으면 가장 비싼 1건(건수 1로 표시)
+            _bm = collections.defaultdict(list)
+            for t in tb: _bm[MI[t[0]]].append(t[1])
+            _best = None
+            for i in sorted(_bm):
+                _w = [p for j in (i - 2, i - 1, i) for p in _bm.get(j, [])]
+                if len(_w) >= 3:
+                    _m = _med(_w)
+                    if _best is None or _m > _best[0]: _best = (_m, M[i], len(_w))
+            if _best is None: _t = max(tb, key=lambda t: t[1]); _best = (_t[1], _t[0], 1)
+            last = max(tb, key=lambda t: t[3])
             d.update(p=p_now, c12=(round((p_now / p12 - 1) * 100, 1) if p12 and p_now else None), c36=(round((p_now / p36 - 1) * 100, 1) if p36 and p_now else None),
-                     peak=peak[1], pk=peak[0], vs=(round(p_now / peak[1] * 100) if p_now else None), last=[last[3], last[1], round(last[2], 1)])
+                     peak=_best[0], pk=_best[1], pkn=_best[2], vs=(round(p_now / _best[0] * 100) if p_now else None), last=[last[3], last[1], round(last[2], 1)])
         else:
-            d.update(p=None, c12=None, c36=None, peak=None, pk=None, vs=None, last=None)
+            d.update(p=None, c12=None, c36=None, peak=None, pk=None, pkn=None, vs=None, last=None)
         if sv:
             d["sv"] = sparse(sv); d["svn"] = round(sum(t[4] for t in sv)); ls = max(sv, key=lambda t: t[3]); d["svl"] = [ls[3], ls[1], round(ls[2], 1)]
         return d

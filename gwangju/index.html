@@ -9,14 +9,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.3.0">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.3.1">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.3.0</title>
+<title>우리동네 입지분석(광주) v2.3.1</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -968,7 +968,7 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.3.0</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.3.1</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -1062,7 +1062,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=d28dbaa9", DET=["data/d00.json.gz?v=3836e97f", "data/d01.json.gz?v=96124335", "data/d02.json.gz?v=d5db2439", "data/d03.json.gz?v=c27dca65", "data/d04.json.gz?v=f76a6887", "data/d05.json.gz?v=370a62b7", "data/d06.json.gz?v=54499cb6", "data/d07.json.gz?v=3528a06e", "data/d08.json.gz?v=0ba627e5", "data/d09.json.gz?v=b23a57ef", "data/d10.json.gz?v=1af1680d", "data/d11.json.gz?v=b6f8fbec", "data/d12.json.gz?v=e43fea85", "data/d13.json.gz?v=e2794874", "data/d14.json.gz?v=14b4c1dc", "data/d15.json.gz?v=66303511"], APP="app.js?v=c513541a", DASHF="data/rt/trend.json.gz?v=72db39bb", TXF="data/rt/tx.json.gz?v=09f9773e";
+  var CORE="data/core.json.gz?v=8503ba01", DET=["data/d00.json.gz?v=ee0234ab", "data/d01.json.gz?v=086627e6", "data/d02.json.gz?v=d19e8a02", "data/d03.json.gz?v=82eadd93", "data/d04.json.gz?v=afa01b07", "data/d05.json.gz?v=aea14227", "data/d06.json.gz?v=e245d11b", "data/d07.json.gz?v=0a81d825", "data/d08.json.gz?v=1bcedf08", "data/d09.json.gz?v=2bc609b2", "data/d10.json.gz?v=1c8dc35d", "data/d11.json.gz?v=aa3ccc1e", "data/d12.json.gz?v=4c41a4b9", "data/d13.json.gz?v=5cd6d8ae", "data/d14.json.gz?v=a332b70d", "data/d15.json.gz?v=04e6b076"], APP="app.js?v=dc7a1e12", DASHF="data/rt/trend.json.gz?v=6ddac281", TXF="data/rt/tx.json.gz?v=09f9773e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

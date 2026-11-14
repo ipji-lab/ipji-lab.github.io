@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.3.4';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.3.5';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -195,6 +195,7 @@ const HINT = {   // v1.1.3 연구원: 태그를 누르면 뜻을 보여 줌(엔�
   ageteen:['10대 많은 동네','이 단지가 속한 법정동의 10~19세 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
   ageyoung:['청년 많은 동네','이 단지가 속한 법정동의 20~39세 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
   ageold:['어르신 많은 동네','이 단지가 속한 법정동의 70세 이상 인구 비중이 광주 평균의 1.3배 이상인 동네입니다. 인구 3,000명 미만인 동은 붙이지 않습니다. 단지가 아니라 동 전체 기준이고, 점수에는 넣지 않습니다.','행정안전부 법정동별 연령별 주민등록 인구(매달 갱신)'],
+  wideb:['광폭 발코니','발코니 폭이 1.5m를 넘어 실제 쓰는 면적이 넓은 단지입니다. 건축물대장에 발코니 초과분이 적혀 있거나 공급면적이 전용의 1.4배 이상인 2001~2013년 준공 단지입니다.','건축물대장 전유공용면적'],
   lowdata:['자료 부족','평가 항목의 20% 넘게 자료가 없는 단지입니다. 새 택지의 초기 입주 단지처럼 주변 학교·교통 자료가 아직 없는 경우이며, 자료가 채워지면 등급이 달라질 수 있습니다.',''],
   pre:['입주 초기(대장 반영 전)','입주가 시작됐지만 건축물대장·공동주택관리정보에 아직 올라오지 않은 단지입니다. 세대수·동수는 청약 공고·시공사·보도 자료 기준이고, 주차·용적률·평형은 자료가 올라오면 채웁니다. 실거래가 쌓이기 전이라 등급이 바뀔 수 있습니다.','청약홈 분양정보 · 시공사·보도 자료(입주 시작 월) 기준입니다.'],
   mixu:['주상복합','아래층에 상가가 있는 주상복합 단지입니다.','K-apt 단지 분류 기준입니다.'],
@@ -574,9 +575,10 @@ function typeTable(c){   // v1.7.2 연구원(11.5): 전용면적은 정수 ㎡(�
   rows=[...G.values()].sort((a,b)=>a.a-b.a); if(!rows.length) return '';
   rows.forEach(g=>{ g.n=g.ts.reduce((s_,t)=>s_+(t.n||0),0); const L=g.ts.filter(t=>t.dt).sort((x,y)=>String(y.dt).localeCompare(String(x.dt)))[0]; g.last=L?L.last:null; g.dt=L?String(L.dt):null; });
   c.__ty=rows;
-  const hasU=rows.some(r=>r.u), all=c.udong||[], ymd=d=>d?`’${d.slice(0,2)}.${+d.slice(2,4)}`:'';
-  return `<h3 class="hx3">전용면적별 세대·동</h3><table class="t pt ty${hasU?' hu':''}"><thead><tr><th>전용</th>${hasU?'<th>세대</th>':''}<th>1년 거래</th><th>최근가</th></tr></thead><tbody>${rows.map((r,i)=>`<tr class="tyr" data-i="${i}"><td class="tya"><span class="num">${r.a}㎡</span>${r.ds&&r.ds.length?`<button class="tydb" data-i="${i}" aria-expanded="false" aria-label="${r.a}㎡가 있는 동 보기">동</button>`:''}</td>${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num tyn">${r.n}건</td><td class="num"><b class="px tyl">${r.last?tEokKo(r.last):'–'}</b><span class="pdt tyt">${ymd(r.dt)}</span></td></tr>
-    <tr class="tyd" data-i="${i}" hidden><td colspan="${hasU?4:3}"><div class="dongs">${(all.length?all:(r.ds||[])).map(d=>`<span class="dg${r.ds&&r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note tydn" style="margin:4px 0 0"></p></td></tr>`).join('')}</tbody></table><p class="note" style="margin:4px 0 0">세대·동: 공동주택 공시가격 · 거래: 국토교통부 실거래</p>`;
+  const sup=c.sup||[]; rows.forEach(g=>{ const v=sup.filter(s=>Math.floor(s[0])===g.a).sort((x,y)=>(y[2]||0)-(x[2]||0))[0]; g.sp=v?`${Math.round(v[1])}㎡`:null; });   // v2.3.5 연구원(11.14): 전용 옆에 공급면적(건축물대장)
+  const hasU=rows.some(r=>r.u), hasS=rows.some(r=>r.sp), all=c.udong||[], ymd=d=>d?`’${d.slice(0,2)}.${+d.slice(2,4)}`:'';
+  return `<h3 class="hx3">전용면적별 세대·동</h3><table class="t pt ty${hasU?' hu':''}${hasS?' hs':''}"><thead><tr><th>전용</th>${hasS?'<th>공급</th>':''}${hasU?'<th>세대</th>':''}<th>1년 거래</th><th>최근가</th></tr></thead><tbody>${rows.map((r,i)=>`<tr class="tyr" data-i="${i}"><td class="tya"><span class="num">${r.a}㎡</span>${r.ds&&r.ds.length?`<button class="tydb" data-i="${i}" aria-expanded="false" aria-label="${r.a}㎡가 있는 동 보기">동</button>`:''}</td>${hasS?`<td class="num">${r.sp||'–'}</td>`:''}${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num tyn">${r.n}건</td><td class="num"><b class="px tyl">${r.last?tEokKo(r.last):'–'}</b><span class="pdt tyt">${ymd(r.dt)}</span></td></tr>
+    <tr class="tyd" data-i="${i}" hidden><td colspan="${(hasU?4:3)+(hasS?1:0)}"><div class="dongs">${(all.length?all:(r.ds||[])).map(d=>`<span class="dg${r.ds&&r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note tydn" style="margin:4px 0 0"></p></td></tr>`).join('')}</tbody></table><p class="note" style="margin:4px 0 0">세대·동: 공동주택 공시가격${hasS?' · 공급면적: 건축물대장':''} · 거래: 국토교통부 실거래</p>`;
 }
 function tyFill(c){   // v1.7.2 표의 1년 거래·최근가를 매일 갱신되는 거래 목록(최근 3년 매매)으로 바꿔 씀 — 위 그래프·거래 목록과 같은 기준
   if(!TX||!TX.tx||!TX.tx[c.id]||!c.__ty) return; const f=TX.tx[c.id], off=txOff(), W=(TX.v||1)>=2?6:5, N=TD.months.length, by=new Map();
@@ -909,7 +911,8 @@ function priceChart(el, list){
 async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await window.__ensureDetail(_c); }
   // v2.3.3 연구원(11.14): 판정은 비슷한 단지와 견주는 것으로. 이용자가 궁금한 두 가지(주변 시세보다 얼마나 비싼가 · 같은 값의 다른 선택지)를 같은 화면에
   const c=CX.find(x=>x.id===id), pm=c.pm, ov=$('ovPrice'); if (!pm) return; ov.hidden=false;
-  const act=pm.act||0, A=pm.tier==='A', line=A?15:25, e84=v=>eok(v*84.9);
+  const act=pm.act||0, A=pm.tier==='A', line=A?15:25, man=v=>Math.round(v).toLocaleString()+'만';
+  const repTxt=x=>{ const i=repInfo(x); if(i.pt==null) return '–'; const ex=i.t?Math.floor(i.t.ex):(topEx(x)!=null?Math.floor(topEx(x)):null); return `${ex!=null?ex+'㎡ ':''}${eok(i.pt)}`; };   // v2.3.5: 84㎡가 없는 단지에 '84㎡ ○억'이 나오던 것 → 대표 평형의 실제 값
   let run=pm.base; const steps=[['평균 조건 시세',pm.base,null]].concat((pm.steps||[]).map(([l,d])=>{ run*=1+d; return [l,run,d]; }));
   const mx=Math.max(pm.fair||0, act, ...steps.map(s=>s[1]))*1.08;
   const bar=(v,col,m)=>`<span class="wfbar"><i style="left:0;width:${v/(m||mx)*100}%;background:${col}"></i></span>`;
@@ -919,17 +922,17 @@ async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await wi
   const verdict2 = c.band==='hold' ? `${pm.holdWhy||'견줄 거래가 없음'}이라 판정하지 않습니다.`
     : `비슷한 단지라면 ㎡당 <b>${fmtMan(pm.fair)}</b>, 이 단지는 <b>${fmtMan(act)}</b>${pm.sv?'(분양권)':''}으로 <b>${pct(c.gap)}</b>입니다. ±${line}% 안이면 적정입니다.`;
   const nbSec=(pm.nb&&act)?(()=>{ const [nv,nn,nr]=pm.nb, g=act/nv-1, m=Math.max(nv,act)*1.08;
-    return `<section class="sec"><h2>주변 시세와 견주면 (84㎡ 환산)</h2><p class="sdef">반경 ${nr}km 안 ${nn}곳 중앙값보다 <b>${pct(g)}</b></p><div class="wf"><div class="wfr"><span class="lab">주변 ${nn}곳 중앙값</span>${bar(nv,'var(--muted)',m)}<span class="val">${e84(nv)}</span></div><div class="wfr tot"><span class="lab">이 단지</span>${bar(act,'var(--ink)',m)}<span class="val">${e84(act)}</span></div></div></section>`; })():'';
-  const peers=(pm.peers||[]).map(i=>CX.find(x=>x.id===i)).filter(Boolean), p84=x=>(x.pm&&x.pm.act)?e84(x.pm.act):eok(x.p&&x.p.p84);
-  const alts=act?CX.filter(x=>x.id!==c.id&&!x.rent&&x.pm&&x.pm.act&&Math.abs(x.pm.act/act-1)<=.07&&x.total!=null).sort((a,b)=>b.total-a.total).slice(0,5):[];
-  const altSec=alts.length?`<section class="sec"><h2>같은 값으로 고를 수 있는 다른 단지</h2><p class="sdef">이 단지 ${c.grade}등급 · ${c.total}점</p><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>등급</th><th>종합</th><th>84㎡</th><th>연식</th></tr></thead><tbody>${alts.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${dn(p)}</button></td><td class="num">${p.grade??'–'}</td><td class="num">${p.total}</td><td class="num">${p84(p)}</td><td class="num">${p.y}</td></tr>`).join('')}</tbody></table></div></section>`:'';
+    return `<section class="sec"><h2>주변 시세와 견주면 (㎡당)</h2><p class="sdef">반경 ${nr}km 안 ${nn}곳 중앙값보다 <b>${pct(g)}</b></p><div class="wf"><div class="wfr"><span class="lab">주변 ${nn}곳 중앙값</span>${bar(nv,'var(--muted)',m)}<span class="val">${man(nv)}</span></div><div class="wfr tot"><span class="lab">이 단지</span>${bar(act,'var(--ink)',m)}<span class="val">${man(act)}</span></div></div></section>`; })():'';
+  const peers=(pm.peers||[]).map(i=>CX.find(x=>x.id===i)).filter(Boolean);
+  const myP=repPrice(c), alts=myP?CX.filter(x=>x.id!==c.id&&!x.rent&&x.total!=null).map(x=>({x,p:repPrice(x)})).filter(o=>o.p&&Math.abs(o.p/myP-1)<=.07).sort((a,b)=>b.x.total-a.x.total).slice(0,5).map(o=>o.x):[];
+  const altSec=alts.length?`<section class="sec"><h2>같은 값으로 고를 수 있는 다른 단지</h2><p class="sdef">이 단지 ${repTxt(c)} · ${c.grade??'–'}등급 · ${c.total}점</p><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>등급</th><th>종합</th><th>시세</th><th>연식</th></tr></thead><tbody>${alts.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${dn(p)}</button></td><td class="num">${p.grade??'–'}</td><td class="num">${p.total}</td><td class="num">${repTxt(p)}</td><td class="num">${p.y}</td></tr>`).join('')}</tbody></table></div></section>`:'';
   ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="prT"><div class="dh"><h2 id="prT">가격 판정 근거</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
     <div><div style="font-weight:700">${dn(c)}</div><span class="vpill ${c.band}" style="font-size:12.5px;padding:3px 10px">${BAND[c.band]}${c.gap!=null?' '+pct(c.gap):''}</span></div>
     <div class="callout">${verdict2}</div>
     ${nbSec}
     <section class="sec"><h2>비슷한 단지라면 받을 값 (만원/㎡)</h2>${(pm.rlv&&act)?`<p class="sdef">전세 ㎡당 ${fmtMan(pm.rlv)} · 매매의 ${Math.round(pm.rlv/act*100)}%</p>`:''}<div class="wf">${wf}</div></section>
     <section class="sec"><h2>값에 크게 작용한 요인</h2><dl class="kv">${(pm.top||[]).map(([n,v])=>`<dt>${n}</dt><dd class="${v>=0?'up':'dn'}">${pct(v)}</dd>`).join('')}</dl></section>
-    <section class="sec"><h2>조건이 비슷한 단지</h2><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>연식</th><th>세대</th><th>84㎡</th><th>판정</th></tr></thead><tbody>${peers.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${dn(p)}</button></td><td class="num">${p.y}</td><td class="num">${p.u.toLocaleString()}</td><td class="num">${p84(p)}</td><td><span class="vpill ${p.band}">${BAND[p.band]}</span></td></tr>`).join('')}</tbody></table></div></section>
+    <section class="sec"><h2>조건이 비슷한 단지</h2><div class="tblwrap"><table class="t"><thead><tr><th>단지</th><th>연식</th><th>세대</th><th>시세</th><th>판정</th></tr></thead><tbody>${peers.map(p=>`<tr><td><button class="btn" style="height:28px;padding:0 8px" data-go="${p.id}">${dn(p)}</button></td><td class="num">${p.y}</td><td class="num">${p.u.toLocaleString()}</td><td class="num">${repTxt(p)}</td><td><span class="vpill ${p.band}">${BAND[p.band]}</span></td></tr>`).join('')}</tbody></table></div></section>
     ${altSec}
     <p class="note">참고값입니다. 감정평가나 적정가격이 아니며 종합점수에 넣지 않습니다.</p>
   </div></div>`;

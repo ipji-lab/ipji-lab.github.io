@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.4.1';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.4.2';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -70,7 +70,8 @@ const cmpGlyph=k=>`<svg class="cg" width="16" height="8" viewBox="0 0 16 8" aria
 const CMPT=['var(--n1)','var(--n2)','var(--n3)','var(--n4)','var(--n5)','var(--n6)','var(--n7)','var(--n8)','var(--n1)','var(--n2)'], cmpNm=(k,t)=>`<span class="cnm" style="color:${CMPT[k]}">${t}</span>`;   // v1.7.7 연구원(11.6): 범례·말풍선 단지 이름을 선 색으로(글자용: 같은 색상, 바탕 대비 4.5:1 이상으로 밝기만 맞춤). 9·10번째는 선 모양(점선)으로 구분
 try { const v = JSON.parse(localStorage.getItem('dn10-cmp')||'null'); if (Array.isArray(v)) S.cmp = v.filter(id=>CX.some(c=>c.id===id)).slice(-CMP_MAX); } catch(e){}
 try { const m = /[#&]cmp=([^&]+)/.exec(location.hash); if (m) { const ids = decodeURIComponent(m[1]).split(',').filter(id=>CX.some(c=>c.id===id)); if (ids.length) { S.cmp = [...new Set([...S.cmp.filter(id=>!ids.includes(id)), ...ids])].slice(-CMP_MAX); try{ localStorage.setItem('dn10-cmp', JSON.stringify(S.cmp)); }catch(e){} S._cmpFromLink = ids.length; history.replaceState(null,'',location.pathname+location.search); } } } catch(e){}   // v1.9.0 연구원(11.9): 비교 단지를 주소(#cmp=)에 담아 다른 기기·다른 사람과 공유. 주소로 들어오면 그 단지들을 내 비교 목록에 더함   // v1.7.0 관심(비교) 단지 복원
-document.addEventListener('DOMContentLoaded',()=>{ const n=$('cmpN'); if(n) n.textContent=S.cmp.length; }); if(document.readyState!=='loading'){ const n=$('cmpN'); if(n) n.textContent=S.cmp.length; }
+const setCmpN=()=>{ const n=$('cmpN'); if(n){ n.textContent=S.cmp.length; n.hidden=!S.cmp.length; } };   // v2.4.2 비교 숫자: 0이면 숨김(좁은 화면에서 버튼 밖으로 나가던 것 정리)
+document.addEventListener('DOMContentLoaded',setCmpN); if(document.readyState!=='loading'){ setCmpN(); }
 
 /* ═════════ 내 조건: 예산·비용 (지방세법 제11조①8, 공인중개사법 시행규칙 제20조) ═════════ */
 function acqTaxRate(P){ if (P<=6e8) return 0.01; if (P<=9e8) return Math.round(((P/3e8)*2-3)/100*1e6)/1e6; return 0.03; }
@@ -764,8 +765,8 @@ function drawTypeChart(c, i, bk){
   }).catch(e=>{ el.innerHTML=`<p class="note">그래프 자료를 불러오지 못했습니다. (${e.message})</p>`; });
 }
 function ageCard(c){   // v2.2.9 동네 인구: 법정동 연령대 비중을 광주 평균과 나란히(점수에는 넣지 않음)
-  const a=c.xs&&c.xs.age; if(!a) return '';
-  const L=a.v.length===5?['20대 미만','20·30대','40·50대','60·70대','80세 이상']:['0~9세','10대','20·30대','70세 이상'], mx=Math.max(...a.v.map(v=>Math.max(v[0],v[1])));
+  const a=c.xs&&c.xs.ag; if(!a) return '';   // v2.4.2 연구원 ’26.11.14: 10살 단위 여덟 구간(10대 미만~70대 이상). 이름표는 자료(a.l)에서 받음
+  const L=a.l, mx=Math.max(...a.v.map(v=>Math.max(v[0],v[1])));
   return `<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">동네 인구 <span style="font-weight:400;color:var(--muted);font-size:12px">${c.dong} ${a.t.toLocaleString()}명 · ${ymTxt(a.ym)}</span></h2>
     <div class="agec">${a.v.map((v,i)=>`<div class="ager"><span class="al">${L[i]}</span><span class="ab"><i style="width:${(v[0]/mx*100).toFixed(1)}%"></i><em style="left:${(v[1]/mx*100).toFixed(1)}%"></em></span><span class="av"><b>${v[0].toFixed(1)}%</b> <small>광주 ${v[1].toFixed(1)}%</small></span></div>`).join('')}</div>
     <p class="note" style="margin:6px 0 0">막대는 이 동, 세로선은 광주 평균입니다. 단지가 아니라 동 전체 기준이고 점수에는 넣지 않습니다.</p></section>`;
@@ -1492,7 +1493,7 @@ function toggleCmp(id){
   const i=S.cmp.indexOf(id); if (i>=0) S.cmp.splice(i,1); else { if (S.cmp.length>=CMP_MAX) S.cmp.shift(); S.cmp.push(id);
     try{ const c=CX.find(x=>x.id===id); if(c && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'s/'+id, title:'★ '+c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){} }   // v2.1.0 별표(비교함 담기) 횟수
   saveCmp();
-  $('cmpN').textContent=S.cmp.length; drawMarkers(); if (S.view==='detail') renderDetail();
+  setCmpN(); drawMarkers(); if (S.view==='detail') renderDetail();
 }
 function openCmp(){
   const ov=$('ovCmp'); ov.hidden=false;

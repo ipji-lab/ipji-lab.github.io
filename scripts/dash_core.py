@@ -76,8 +76,15 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
     KEYS = collections.defaultdict(list)
     for k, ids in RTG.items():
         for i in set(ids): KEYS[i].append((k, CX[i]["u"] / sum(CX[j]["u"] for j in set(ids) if j in CX)))
+    def ush(cid, k, a, sh):   # v2.4.0 한 실거래 이름을 여러 단지가 나눠 쓸 때: 거래 평형이 한쪽 단지의 대장 평형(ua)에만 맞으면 그 단지 몫. 평형을 모르거나 여러 단지에 맞으면 세대수 비율(sh) 그대로
+        if sh >= 1 or k[0] == "#": return sh
+        ids = [j for j in set(RTG[k]) if j in CX]
+        if len(ids) < 2 or any(not CX[j].get("ua") for j in ids): return sh
+        el = [j for j in ids if any(abs(a - x) <= 0.15 for x in CX[j]["ua"])]
+        if not el: return sh
+        return CX[cid]["u"] / sum(CX[j]["u"] for j in el) if cid in el else 0.0
     def series(cid, src):
-        return [(m, p, a, d, sh) for k, sh in KEYS[cid] for m, p, a, d, *_ in src.get(k, [])]
+        return [(m, p, a, d, s) for k, sh in KEYS[cid] for m, p, a, d, *_ in src.get(k, []) if (s := ush(cid, k, a, sh)) > 0]
     def idx84(trs):   # 84㎡대(전용 76~95) 거래를 84.9㎡로 환산한 월 중위 + 월 거래 건수(세대수 비례 배분 합)
         mo = [None] * N; mc = [0] * N; by = collections.defaultdict(list)
         for mm, p, a, _, s in trs:
@@ -147,8 +154,9 @@ def build(rows, cxs, today, src_text, silv=None, start=None, excl_direct=False, 
         if n24 >= 8 and (c.get("q") is None or c["q"] >= LEAD_QMIN): dong_cx[c["hd"]].append(dict(id=cid, n=c["n"], u=c["u"], y=c["y"], g=c.get("g"), rep=rep, lp=lp, n24=n24))   # v1.7.6 거래활발도 조건
     tx = {}   # v1.5.9 연구원(11.4): 단지 상세 실거래 그래프의 개별 거래 점·거래 목록 = 최근 TX_MONTHS개월 매매·분양권 [달 번호, 일, 금액(만원), 전용㎡×100, 0 매매|1 분양권, 층] 최신순(호출 쪽에서 따로 저장). v1.7.0 층 추가(6칸)
     rtx = {}  # v1.7.0 전월세 개별 거래(최근 TX_MONTHS개월) [달 번호, 일, 보증금(만원), 월세(만원), 전용㎡×100, 층, 0 신규|1 갱신|2 미상]
-    def raw(cid, src):
-        return [t for k, _ in KEYS[cid] for t in src.get(k, [])]
+    def raw(cid, src):   # 매매·분양권 (달, 금액, 면적, 일, 층) · 전월세 (달, 보증금, 월세, 면적, …) — 면적 자리가 다름
+        ai = 3 if src is RNK else 2
+        return [t for k, sh in KEYS[cid] for t in src.get(k, []) if ush(cid, k, t[ai], sh) > 0]
     for cid in px:
         rs = [(MI[m], d % 100, p, round(a * 100), 0, fl) for m, p, a, d, fl in raw(cid, BYK) if MI[m] >= N - TX_MONTHS] + [(MI[m], d % 100, p, round(a * 100), 1, fl) for m, p, a, d, fl in raw(cid, SVK) if MI[m] >= N - TX_MONTHS]
         if rs: rs.sort(key=lambda t: (-t[0], -t[1], -t[2])); tx[cid] = [v for t in rs for v in t]

@@ -9,14 +9,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.3.3">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.3.4">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.3.3</title>
+<title>우리동네 입지분석(광주) v2.3.4</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -388,6 +388,7 @@ div.drow{cursor:default}
 .gate-note li{font-size:12.5px;line-height:1.6;color:var(--muted);padding-left:1.1em;text-indent:-1.1em}
 .gate-by{margin:12px 0 0!important;font-size:12.5px!important;color:var(--muted);text-align:center}
 .gate-by a,.mth .by a{color:var(--accent,#3182f6)}
+.gate-ver{position:absolute;right:14px;bottom:8px;font-size:10.5px;color:var(--muted);opacity:.7}
 .gate-card .gate-warn{background:var(--warn-bg);color:var(--warn-ink);border-radius:10px;padding:10px 12px;font-weight:700}
 .gate-x{position:absolute;top:14px;right:14px;width:36px;height:36px;border:0;border-radius:50%;background:var(--surface2);font-size:18px;cursor:pointer}
 .gate-ok{display:block;width:100%;margin-top:16px;border:0;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:16px;padding:14px;cursor:pointer}
@@ -956,8 +957,6 @@ table.t.cmp thead th{vertical-align:top}
 .by .vc{white-space:nowrap}
 @media (max-width:520px){.by .vc{display:block}}
 .by .vcn{margin-top:4px;color:var(--muted);font-size:11.5px}
-/* v2.3.0 연구원(11.14): 버전·평가일을 휴대폰에서도 항상 보이게(블로그 인용용) */
-@media (max-width:900px){ .brand{position:relative;padding-bottom:9px} .brand .brand-sub.bver{display:block;position:absolute;left:28px;bottom:-3px;margin:0;font-size:10px;line-height:1.1;white-space:nowrap} }
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -968,7 +967,7 @@ table.t.cmp thead th{vertical-align:top}
 <div class="app">
   <div style="position:relative;z-index:30">
     <header class="top">
-      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주 · v2.3.3</span></div>
+      <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
@@ -1040,6 +1039,7 @@ table.t.cmp thead th{vertical-align:top}
     </ul>
     <button class="gate-ok" id="gateOk">확인했습니다</button>
     <p class="gate-by">만든 사람 · <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a></p>
+    <span class="gate-ver" id="gateVer"></span>
   </div>
 </div>
 <script>
@@ -1062,7 +1062,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=8e4f881a", DET=["data/d00.json.gz?v=1d360dc2", "data/d01.json.gz?v=df9e2b4b", "data/d02.json.gz?v=94a32f15", "data/d03.json.gz?v=e48059cf", "data/d04.json.gz?v=db55154b", "data/d05.json.gz?v=ffd35adc", "data/d06.json.gz?v=8696555e", "data/d07.json.gz?v=93816c83", "data/d08.json.gz?v=c8fa18e1", "data/d09.json.gz?v=646a0068", "data/d10.json.gz?v=7ae5d176", "data/d11.json.gz?v=d0f60f6d", "data/d12.json.gz?v=07d23f3f", "data/d13.json.gz?v=d6f7f135", "data/d14.json.gz?v=1b4d7817", "data/d15.json.gz?v=bf4d5560"], APP="app.js?v=3ed4bb40", DASHF="data/rt/trend.json.gz?v=ac89b2c1", TXF="data/rt/tx.json.gz?v=09f9773e";
+  var CORE="data/core.json.gz?v=9bb5d8b8", DET=["data/d00.json.gz?v=2f043086", "data/d01.json.gz?v=ed4a702f", "data/d02.json.gz?v=07b9718c", "data/d03.json.gz?v=21672e02", "data/d04.json.gz?v=115f15b3", "data/d05.json.gz?v=f53f5159", "data/d06.json.gz?v=f0c9ff27", "data/d07.json.gz?v=50d5d138", "data/d08.json.gz?v=834cb29f", "data/d09.json.gz?v=cefb8ed8", "data/d10.json.gz?v=1fb4390e", "data/d11.json.gz?v=cee6b734", "data/d12.json.gz?v=8df0a354", "data/d13.json.gz?v=7e66d433", "data/d14.json.gz?v=38d7d8a9", "data/d15.json.gz?v=985cf160"], APP="app.js?v=bfacff96", DASHF="data/rt/trend.json.gz?v=9d89d7e3", TXF="data/rt/tx.json.gz?v=09f9773e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

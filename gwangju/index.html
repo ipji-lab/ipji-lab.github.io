@@ -9,14 +9,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.3.5">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.3.6">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.3.5</title>
+<title>우리동네 입지분석(광주) v2.3.6</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -964,6 +964,23 @@ table.t.cmp thead th{vertical-align:top}
 @media (max-width:520px){.by .vc{display:block}}
 .by .vcn{margin-top:4px;color:var(--muted);font-size:11.5px}
 
+/* v2.3.6 연구원(11.14) 화면 정리 */
+.area{padding:7px 12px;min-height:40px;grid-template-columns:96px 1fr auto 14px}          /* 영역별 점수: 한 줄(이름 · 막대 · 점수) */
+.area .s{white-space:nowrap} .area .s small{display:inline;margin-left:1px}
+.phd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}   /* 실거래가 제목 오른쪽에 판정 */
+.phd .vbtn{margin:0}
+.hxs{order:-1;align-self:flex-start;display:flex;align-items:center;gap:8px;max-width:100%}      /* 평형 선택 옆 세대수 */
+.hxh .hxs .hxsel{order:0;max-width:100%} .hxu{font-size:13px;color:var(--muted);white-space:nowrap}
+.wf .wfr.tot{display:grid}                                                                       /* 합계 줄에도 막대가 보이게(.tot 공통 규칙이 flex로 바꿔 막대 폭이 0이 되던 것) */
+.plist{list-style:none;margin:0;padding:0;display:grid;gap:6px}                                  /* 가격 판정 근거의 단지 목록: 휴대폰에서 표가 옆으로 잘리던 것 → 한 줄 카드 */
+.plist li{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.plist .pl{border:0;background:none;text-align:left;padding:0;font:inherit;color:inherit;cursor:pointer;min-width:0;flex:1}
+.plist .pl b{display:block;font-size:13.5px} .plist .pl small{display:block;font-size:12px;color:var(--muted);margin-top:1px}
+.plist .vpill{flex:none}
+.fpop{max-height:calc(100dvh - 140px);overflow-y:auto} .fpop .tagb{max-height:none;overflow:visible}   /* 태그가 늘어 '좋은 점' 묶음 안에서만 스크롤되며 잘려 보이던 것 → 창 전체가 스크롤 */
+.sdef{margin:0 0 6px;padding:0;font-size:12.5px;color:var(--muted)}
+.phd{margin-bottom:10px} .phd + .hx{margin-top:0} .phd + .hx .hxk{margin-top:0}
+
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
 </head>
@@ -991,7 +1008,7 @@ table.t.cmp thead th{vertical-align:top}
     <nav class="chips" aria-label="필터">
       <button class="chip dd" data-pop="grade" data-def="등급" aria-pressed="false"><span>등급</span> ▾</button>
       <button class="chip dd" data-pop="price" data-def="가격" aria-pressed="false"><span>가격</span> ▾</button>
-      <button class="chip dd" data-pop="py" data-def="평형" aria-pressed="false"><span>평형</span> ▾</button>
+      <button class="chip dd" data-pop="py" data-def="전용면적" aria-pressed="false"><span>전용면적</span> ▾</button>
       <button class="chip dd" data-pop="units" data-def="세대수" aria-pressed="false"><span>세대수</span> ▾</button>
       <button class="chip dd" data-pop="ageR" data-def="입주년차" aria-pressed="false"><span>입주년차</span> ▾</button>
       <button class="chip dd" data-pop="aS" data-def="교육환경" aria-pressed="false"><span>교육환경</span> ▾</button>
@@ -1068,7 +1085,7 @@ table.t.cmp thead th{vertical-align:top}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=340f5e7f", DET=["data/d00.json.gz?v=857618a5", "data/d01.json.gz?v=0ac2b528", "data/d02.json.gz?v=087802f7", "data/d03.json.gz?v=2acf1d12", "data/d04.json.gz?v=f95a00c5", "data/d05.json.gz?v=92b994fe", "data/d06.json.gz?v=bbd41b88", "data/d07.json.gz?v=5556e824", "data/d08.json.gz?v=7262d3cd", "data/d09.json.gz?v=75c0af13", "data/d10.json.gz?v=cc8edfbc", "data/d11.json.gz?v=645c5af0", "data/d12.json.gz?v=6a465f77", "data/d13.json.gz?v=092f5e25", "data/d14.json.gz?v=27b2acf9", "data/d15.json.gz?v=1ef7ce10"], APP="app.js?v=bf194a20", DASHF="data/rt/trend.json.gz?v=95bd14ab", TXF="data/rt/tx.json.gz?v=09f9773e";
+  var CORE="data/core.json.gz?v=19a58c47", DET=["data/d00.json.gz?v=b8333ddf", "data/d01.json.gz?v=9ac9bad0", "data/d02.json.gz?v=c3656a1e", "data/d03.json.gz?v=37906254", "data/d04.json.gz?v=4e429983", "data/d05.json.gz?v=cae7a206", "data/d06.json.gz?v=6ca7c3c3", "data/d07.json.gz?v=3d6c8516", "data/d08.json.gz?v=e4db717c", "data/d09.json.gz?v=62753835", "data/d10.json.gz?v=ed2479b5", "data/d11.json.gz?v=6edc5b5a", "data/d12.json.gz?v=30090724", "data/d13.json.gz?v=1697f102", "data/d14.json.gz?v=7b5ad75c", "data/d15.json.gz?v=a167e00c"], APP="app.js?v=7ca177a5", DASHF="data/rt/trend.json.gz?v=60f85c2e", TXF="data/rt/tx.json.gz?v=09f9773e";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

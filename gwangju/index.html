@@ -9,14 +9,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.4.4">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.4.5">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.4.4</title>
+<title>우리동네 입지분석(광주) v2.4.5</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1106,7 +1106,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=b1a724c7", DET=["data/d00.json.gz?v=a9b4fcd5", "data/d01.json.gz?v=e7844c2c", "data/d02.json.gz?v=51451554", "data/d03.json.gz?v=d23c905a", "data/d04.json.gz?v=b800783c", "data/d05.json.gz?v=cfeddb50", "data/d06.json.gz?v=5b239f20", "data/d07.json.gz?v=87e07699", "data/d08.json.gz?v=fb62b6a9", "data/d09.json.gz?v=b3c74de3", "data/d10.json.gz?v=5f53b5f9", "data/d11.json.gz?v=d6bff577", "data/d12.json.gz?v=df869a5a", "data/d13.json.gz?v=c0e1c14d", "data/d14.json.gz?v=fb6ed9e7", "data/d15.json.gz?v=b1370762"], APP="app.js?v=d108cbe2", DASHF="data/rt/trend.json.gz?v=f1c2662f", TXF="data/rt/tx.json.gz?v=d00e0248";
+  var CORE="data/core.json.gz?v=2592f262", DET=["data/d00.json.gz?v=b1afb91b", "data/d01.json.gz?v=abb191c9", "data/d02.json.gz?v=17595107", "data/d03.json.gz?v=c911fac6", "data/d04.json.gz?v=dbff42e2", "data/d05.json.gz?v=3e91ac1d", "data/d06.json.gz?v=f7d0390c", "data/d07.json.gz?v=ac7d216a", "data/d08.json.gz?v=f90e105d", "data/d09.json.gz?v=fc28419c", "data/d10.json.gz?v=f9b4c5cc", "data/d11.json.gz?v=a3638e49", "data/d12.json.gz?v=60006fe0", "data/d13.json.gz?v=62fec902", "data/d14.json.gz?v=c0a07133", "data/d15.json.gz?v=3725ea44"], APP="app.js?v=efda294c", DASHF="data/rt/trend.json.gz?v=429f9809", TXF="data/rt/tx.json.gz?v=d00e0248";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

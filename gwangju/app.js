@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.4.2';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.4.3';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -582,7 +582,7 @@ function typeTable(c){   // v1.7.2 연구원(11.5): 전용면적은 정수 ㎡(�
   const sup=c.sup||[]; rows.forEach(g=>{ const v=sup.filter(s=>Math.floor(s[0])===g.a).sort((x,y)=>(y[2]||0)-(x[2]||0))[0]; g.sp=v?`${Math.round(v[1])}㎡`:null; });   // v2.3.5 연구원(11.14): 전용 옆에 공급면적(건축물대장)
   const hasU=rows.some(r=>r.u), hasS=rows.some(r=>r.sp), all=c.udong||[], ymd=d=>d?`’${d.slice(0,2)}.${+d.slice(2,4)}`:'';
   return `<h3 class="hx3">전용면적별 세대·동</h3><table class="t pt ty${hasU?' hu':''}${hasS?' hs':''}"><thead><tr><th>전용</th>${hasS?'<th>공급</th>':''}${hasU?'<th>세대</th>':''}<th>1년 거래</th><th>최근가</th></tr></thead><tbody>${rows.map((r,i)=>`<tr class="tyr" data-i="${i}"><td class="tya"><span class="num">${r.a}㎡</span>${r.ds&&r.ds.length?`<button class="tydb" data-i="${i}" aria-expanded="false" aria-label="${r.a}㎡가 있는 동 보기">동</button>`:''}</td>${hasS?`<td class="num">${r.sp||'–'}</td>`:''}${hasU?`<td class="num">${r.u!=null?r.u.toLocaleString():'–'}</td>`:''}<td class="num tyn">${r.n}건</td><td class="num"><b class="px tyl">${r.last?tEokKo(r.last):'–'}</b><span class="pdt tyt">${ymd(r.dt)}</span></td></tr>
-    <tr class="tyd" data-i="${i}" hidden><td colspan="${(hasU?4:3)+(hasS?1:0)}"><div class="dongs">${(all.length?all:(r.ds||[])).map(d=>`<span class="dg${r.ds&&r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note tydn" style="margin:4px 0 0"></p></td></tr>`).join('')}</tbody></table><p class="note" style="margin:4px 0 0">세대·동: 공동주택 공시가격${hasS?' · 공급면적: 건축물대장':''} · 거래: 국토교통부 실거래</p>`;
+    <tr class="tyd" data-i="${i}" hidden><td colspan="${(hasU?4:3)+(hasS?1:0)}"><div class="dongs">${(all.length?all:(r.ds||[])).map(d=>`<span class="dg${r.ds&&r.ds.includes(d)?' on':''}">${d}</span>`).join('')}</div><p class="note tydn" style="margin:4px 0 0"></p></td></tr>`).join('')}</tbody></table><p class="note" style="margin:4px 0 0">세대·동: ${c.ub?'건축물대장 전유부':'공동주택 공시가격'}${hasS?' · 공급면적: 건축물대장':''} · 거래: 국토교통부 실거래</p>`;
 }
 function tyFill(c){   // v1.7.2 표의 1년 거래·최근가를 매일 갱신되는 거래 목록(최근 3년 매매)으로 바꿔 씀 — 위 그래프·거래 목록과 같은 기준
   if(!TX||!TX.tx||!TX.tx[c.id]||!c.__ty) return; const f=TX.tx[c.id], off=txOff(), W=(TX.v||1)>=2?6:5, N=TD.months.length, by=new Map();
@@ -911,7 +911,7 @@ function priceChart(el, list){
 async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await window.__ensureDetail(_c); }
   // v2.3.3 연구원(11.14): 판정은 비슷한 단지와 견주는 것으로. 이용자가 궁금한 두 가지(주변 시세보다 얼마나 비싼가 · 같은 값의 다른 선택지)를 같은 화면에
   const c=CX.find(x=>x.id===id), pm=c.pm, ov=$('ovPrice'); if (!pm) return; ov.hidden=false;
-  const act=pm.act||0, A=pm.tier==='A', line=A?15:25, man=v=>Math.round(v).toLocaleString()+'만';
+  const act=c.band==='hold'?0:(pm.act||0), A=pm.tier==='A', line=A?15:25, man=v=>Math.round(v).toLocaleString()+'만';
   const repTxt=x=>{ const i=repInfo(x); if(i.pt==null) return '–'; const ex=i.t?Math.floor(i.t.ex):(topEx(x)!=null?Math.floor(topEx(x)):null); return `${ex!=null?ex+'㎡ ':''}${eok(i.pt)}`; };   // v2.3.5: 84㎡가 없는 단지에 '84㎡ ○억'이 나오던 것 → 대표 평형의 실제 값
   let run=pm.base; const steps=[['평균 조건 시세',pm.base,null]].concat((pm.steps||[]).map(([l,d])=>{ run*=1+d; return [l,run,d]; }));
   const mx=Math.max(pm.fair||0, act, ...steps.map(s=>s[1]))*1.08;
@@ -919,7 +919,7 @@ async function openPrice(id){ { const _c=CX.find(x=>x.id===id); if (_c) await wi
   const wf=steps.map(([l,v,d],i)=>`<div class="wfr"><span class="lab">${l}${d!=null?` <span class="num" style="color:${d>=0?'var(--over)':'var(--under)'}">${pct(d)}</span>`:''}</span>${bar(v,i===0?'var(--muted)':'var(--accent)')}<span class="val">${Math.round(v).toLocaleString()}</span></div>`).join('')
     + `<div class="wfr tot"><span class="lab">비슷한 단지라면</span>${bar(pm.fair,'var(--ink)')}<span class="val">${Math.round(pm.fair).toLocaleString()}</span></div>`
     + (act?`<div class="wfr tot"><span class="lab">${pm.sv?'이 단지(분양권)':'이 단지'}</span>${bar(act,bandColor(c.band))}<span class="val">${Math.round(act).toLocaleString()}</span></div>`:'');
-  const HW={'임대 단지':'임대 단지라','비교 자료 부족':'견줄 자료가 부족해','최근 2년 매매(직거래 제외) 없음':'최근 2년 매매(직거래 제외)가 없어'};   // v2.3.7 '임대 단지이라'·'없음이라' 같은 어색한 조사 바로잡음
+  const HW={'임대 단지':'임대 단지라','비교 자료 부족':'견줄 자료가 부족해','최근 2년 매매(직거래 제외) 없음':'최근 2년 매매(직거래 제외)가 없어','최근 2년 매매 3건 미만':'최근 2년 매매(직거래 제외)가 3건 미만이라'};   // v2.3.7 '임대 단지이라'·'없음이라' 같은 어색한 조사 바로잡음
   const verdict2 = c.band==='hold' ? `${HW[pm.holdWhy]||'견줄 거래가 없어'} 판정하지 않습니다.`
     : `비슷한 단지라면 ㎡당 <b>${fmtMan(pm.fair)}</b>, 이 단지는 <b>${fmtMan(act)}</b>${pm.sv?'(분양권)':''}으로 <b>${pct(c.gap)}</b>입니다. ±${line}% 안이면 적절로 봅니다.`;
   const nbSec=(pm.nb&&act)?(()=>{ const [nv,nn,nr]=pm.nb, g=act/nv-1, m=Math.max(nv,act)*1.08;

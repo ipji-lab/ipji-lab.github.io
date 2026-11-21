@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.7.1';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.7.2';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -165,7 +165,11 @@ const GHL={price:'㎡당 실거래가',px:'자리값',px1:'자리값',small:'소
 const evShort=d=>{ const p=String(d||'').split('-'); return p.length===3?`’${p[0].slice(2)}.${+p[1]}.${+p[2]}`:''; };
 function ghHTML(c){ const L=X&&X.gh&&X.gh[c.id]; if(!Array.isArray(L)||!L.length) return '';
   return '<b>등급 이력</b>'+L.slice(-3).reverse().map(r=>`<span>${xEsc(evShort(r[0]))} ${+r[1]}→${+r[2]}등급${GHL[r[3]]?' · '+GHL[r[3]]:''}</span>`).join(''); }
-function mgOf(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)||!(v[0]>0)) return null; return {w:+v[0], man:+v[0]*84/10000, med:(+X.mg.med||0)*84/10000}; }
+// 관리비 환산 면적: 84㎡형(전용 80~86㎡)이 있으면 84㎡, 없으면 대표 면적(topEx) — 소형·대형만 있는 단지에 84㎡ 환산값을 보이지 않게
+function mgA(c){ const ut=(Array.isArray(c.ut)?c.ut:[]).filter(r=>Array.isArray(r)&&r[0]>0&&r[1]>0); if(!ut.length||ut.some(r=>r[0]>=80&&r[0]<86)) return 84;
+  const t=+topEx(c); return t>0?Math.round(t):84; }
+function mgOf(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)||!(v[0]>0)) return null; const Y=(X.mg.ym||[]).map(String).sort(), yl=y=>`’${y.slice(2,4)}.${+y.slice(4,6)}`, A=mgA(c);
+  return {A, w:+v[0], man:+v[0]*A/10000, med:(+X.mg.med||0)*A/10000, per:Y.length?(Y.length>1?`${yl(Y[0])}~${yl(Y[Y.length-1])} 평균`:yl(Y[0])):''}; }
 function xSrc(){ if(!X) return []; const o=[]; const ym=y=>`’${String(y).slice(2,4)}.${+String(y).slice(4,6)}`;
   if(X.sl) o.push('초등학교 학생 수: 학교알리미 공시(교육부·한국교육학술정보원, ’26.10 받음) · 학교 위치: 전국초중등학교위치표준데이터');
   if(X.mg&&X.mg.ym&&X.mg.ym.length) o.push(`관리비: 공동주택 관리비 공개 자료(국토교통부 K-apt, 공공데이터포털) ${ym(X.mg.ym[0])}${X.mg.ym.length>1?'~'+ym(X.mg.ym[X.mg.ym.length-1]):''} 부과분`);
@@ -173,16 +177,16 @@ function xSrc(){ if(!X) return []; const o=[]; const ym=y=>`’${String(y).slice
 function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료를 아직 못 받았으면 받은 뒤에)
   if(!X){ xLoad().then(x=>{ if(x && S.view==='detail' && S.sel===c.id) xFill(c); }); return; }
   const g=document.getElementById('xGh'); if(g){ const h=ghHTML(c); g.innerHTML=h; g.hidden=!h; }
-  const m=mgOf(c), f=document.getElementById('xMgF'); if(f && m){ f.innerHTML=`<span class="fl">관리비 · 84㎡</span><b class="fv num">월 ${m.man.toFixed(1)}만원</b>${m.med?`<span class="fs">광주 중위 ${m.med.toFixed(1)}만</span>`:''}`; f.classList.add('mg'); }
+  const m=mgOf(c), f=document.getElementById('xMgF'); if(f && m){ f.innerHTML=`<span class="fl">관리비 · ${m.A}㎡</span><b class="fv num">월 ${m.man.toFixed(1)}만원</b><span class="fs">${m.per}${m.med?` · 중위 ${m.med.toFixed(1)}만`:''}</span>`; f.classList.add('mg'); }
   document.querySelectorAll('[data-schg]').forEach(b=>{ const n=b.querySelector('.fv')&&b.querySelector('.fv').textContent; if(!b.dataset.schg && n && X.sch && X.sch[n]){ b.dataset.schg=n; b.disabled=false; const fs=b.querySelector('.fs'); if(fs) fs.textContent+=' ›'; } });   // 자료가 늦게 오면 그때 누를 수 있게
   const ul=document.getElementById('xSrcUl'); if(ul && !ul.dataset.x){ ul.dataset.x='1'; xSrc().forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); }); } }
 // 단지 상세 핵심 정보(한눈에): 세대수·입주·주차·용적률·초등학교·관리비(없으면 건폐율)
 function factsHTML(c){
   const ym=c.ym?String(c.ym):'', pk=pkU(c), m=/^\s*(\S+초)까지\s*(?:도보 약 (\d+)분)?/.exec((c.raw&&c.raw.S1t)||''), sn=m?m[1]:null, sk=sn&&X&&X.sch&&X.sch[sn]?sn:null;
   const cell=(l,v,s,a='')=>`<div class="fc"${a}><span class="fl">${l}</span><b class="fv num">${v}</b>${s?`<span class="fs">${s}</span>`:''}</div>`;
-  return `<div class="facts">${cell('세대수',`${c.u.toLocaleString()}세대`)}${cell('입주',ym?`${ym.slice(0,4)}.${ym.slice(4)}`:`${c.y}년`,c.age>0?`${c.age}년차`:'올해 입주')}${cell('주차',pk!=null?`세대당 ${pk}대`:'미확인')}${cell('용적률',c.far?`${Math.round(c.far)}%`:'미확인',c.far&&c.fe?'추정':'')}`
+  return `<div class="facts">${cell('세대수',`${c.u.toLocaleString()}세대`)}${cell('입주',ym?`${ym.slice(0,4)}.${ym.slice(4)}`:`${c.y}년`,c.age>0?`${c.age}년차`:'올해 입주')}${cell('주차',pk!=null?`세대당 ${pk}대`:'미확인')}${cell('용적률·건폐율',`${c.far?Math.round(c.far)+'%':'–'} · ${c.bcr?c.bcr+'%':'–'}`,c.far&&c.fe?'용적률 추정':'')}`
     + (sn?`<button type="button" class="fc fbtn" data-schg="${xEsc(sk||'')}"${sk?'':' disabled'}><span class="fl">초등학교</span><b class="fv">${xEsc(sn)}</b><span class="fs">${m[2]?'도보 '+m[2]+'분':''}${sk?' ›':''}</span></button>`:cell('초등학교','미확인'))
-    + `<div class="fc" id="xMgF">${c.bcr?`<span class="fl">건폐율</span><b class="fv num">${c.bcr}%</b>`:'<span class="fl">관리비</span><b class="fv">–</b>'}</div></div>`; }
+    + `<div class="fc" id="xMgF"><span class="fl">관리비 · ${mgA(c)}㎡</span><b class="fv">–</b></div></div>`; }
 // 최근 본 단지(이 기기 안에만 저장, 서버로 보내지 않음)
 const RC_K='dn10-recent';
 function rcLoad(){ try{ const v=JSON.parse(localStorage.getItem(RC_K)||'[]'); return Array.isArray(v)?v.filter(id=>typeof id==='string'&&CXI.has(id)).slice(0,8):[]; }catch(e){ return []; } }
@@ -195,6 +199,7 @@ function suggRecent(){ const box=$('sugg'), L=rcLoad(); if(!L.length){ box.hidde
 function toast(t){ let el=document.getElementById('toast'); if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); document.body.appendChild(el); }
   el.textContent=t; el.classList.add('on'); clearTimeout(el.__t); el.__t=setTimeout(()=>el.classList.remove('on'),1900); }
 const CAN_SHARE=!!navigator.share && matchMedia('(pointer:coarse)').matches;
+const LINK_ICON='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>';
 // 단지 상세 바로가기 탭: 스크롤하면 지금 보는 부분 표시 · 단지 이름이 위에 붙음
 function dtabsInit(){ const pb=$('pbody'), nav=$('dtabs'); if(!nav){ pb.onscroll=null; return; }
   const bs=[...nav.querySelectorAll('[data-go]')].filter(b=>{ const ok=!!document.getElementById(b.dataset.go); if(!ok) b.remove(); return ok; });
@@ -977,19 +982,16 @@ function renderDetail(){
   const priceTop = bpi ? `<div class="ptop3"><span class="v num">분양가 ${eok(bpi.top)}원</span><span class="s">전용 ${Math.floor(bpi.ex)}㎡ 분양 최고가 · 최근 1년 매매 없음</span></div>`
     : (mt?'':`<div class="ptop3"><span class="s">${c.rent?'임대 단지라 매매 거래가 없습니다':'최근 1년 매매 거래가 없습니다'}</span></div>`);
   $('pbody').innerHTML = `<div class="detail">
-    <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><span class="stc" id="stc"></span><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
+    <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><span class="stc" id="stc"></span><button class="star sh" id="dShare" aria-label="${CAN_SHARE?'이 단지 공유':'이 단지 링크 복사'}" title="${CAN_SHARE?'이 단지 공유':'이 단지 링크 복사'}">${LINK_ICON}</button><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
       <div class="dstat" id="dstat" hidden></div>
-      <div class="dmeta">${c.gu} ${c.addr||''}${c.b?` · ${c.b}`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
-      ${factsHTML(c)}
-      <div class="tags" style="margin-top:6px">${tagsShow(c)}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}
-      <div class="dact"><button class="btn sm" id="dCopy">${CAN_SHARE?'공유':'주소 복사'}</button><button class="btn sm" id="dPrint">인쇄</button></div></div>
+      <div class="dmeta daddr"><span>${c.gu} ${c.addr||''}</span>${c.addr?'<button type="button" class="lnk" id="dAddr">주소 복사</button>':''}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}</div>
     <nav class="dtabs" id="dtabs" aria-label="상세 바로가기"><span class="dtt">${dn(c)}${g!=null?` · ${g}등급`:''}</span><span class="dtb"><button type="button" data-go="dsSum">요약</button><button type="button" data-go="dsArea">점수</button><button type="button" data-go="dsPrice">실거래</button><button type="button" data-go="dsTr">교통</button><button type="button" data-go="dsTown">동네</button></span></nav>
     <section class="hero" id="dsSum">
       <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ if (c.rent&&!S.mine) return `<span class="nw">임대 단지 · 순위 제외</span><span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="ghist" id="xGh" hidden></div>
-      
     </section>
+    <div class="dinfo">${factsHTML(c)}${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
     <section class="sec" id="dsArea"><h2>영역별 점수</h2><div>${areas}</div></section>
@@ -1013,12 +1015,12 @@ function renderDetail(){
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
   $('star').onclick=()=>{ const was=S.cmp.includes(c.id); toggleCmp(c.id); toast(was?'비교함에서 뺐습니다':'비교함에 담았습니다'); }; statFill(c.id);
-  $('dCopy').onclick=async()=>{ const u=cxUrl(c.id);   // 이 단지 주소(#c=단지번호): 휴대폰은 공유 창, 컴퓨터는 복사
+  $('dShare').onclick=async()=>{ const u=cxUrl(c.id);   // 이 단지 링크(#c=단지번호): 휴대폰은 공유 창, 컴퓨터는 복사
     if(CAN_SHARE){ try{ await navigator.share({title:dn(c)+' · 우리동네 입지분석', url:u}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
-    const ok=await copyTxt(u); toast(ok?'주소를 복사했습니다':'복사하지 못했습니다'); };
+    const ok=await copyTxt(u); toast(ok?'이 단지 링크를 복사했습니다':'복사하지 못했습니다'); };
+  if($('dAddr')) $('dAddr').onclick=async()=>{ const ok=await copyTxt(`광주 ${c.gu} ${c.addr} ${c.n}`); toast(ok?'주소를 복사했습니다':'복사하지 못했습니다'); };   // 지번 주소 + 단지 이름(지도 앱에 붙여 넣기)
   $('pbody').querySelectorAll('[data-schg]').forEach(b=>b.onclick=()=>{ if(b.dataset.schg) schOpen(b.dataset.schg); });
   dtabsInit();
-  $('dPrint').onclick=()=>window.print();   // v2.5.0 임장 메모 인쇄: 인쇄 모양은 theme.css 끝 @media print
 }
 function priceChart(el, list){
   // v1.2.4: 점·선이 축 밖으로 나가지 않게 여백·클립, 점(월)에 마우스·터치하면 그 달 가격 표시
@@ -1745,7 +1747,7 @@ function openMethod(){
     <section class="mb"><h3><span>3</span>등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>은 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
     <section class="mb"><h3><span>4</span>보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
     <section class="mb"><h3><span>5</span>기준의 근거</h3><p class="sm"><b>[공식]</b> 법령·공식 통계 · <b>[연구]</b> 논문 · <b>[자료]</b> 광주 자료 분석 · <b>[판단]</b> 근거를 찾지 못해 정한 값</p><details class="mi"><summary>근거 목록 펼치기</summary>${basisL}</details></section>
-    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details>${X?`<details class="mi"><summary>관리비 · 초등학교로 찾기 · 등급 이력</summary>${X.mg?`<p class="sm"><b>관리비</b> 공용관리비·개별사용료(난방·전기·수도 등)·장기수선충당금을 더한 고지서 총액을 단지 전용면적 합으로 나눠 84㎡로 환산한 값입니다. 최근 공개된 ${X.mg.ym.length}개월 평균이고, 관리비 공개 대상이 아닌 단지는 비웁니다.</p>`:''}<p class="sm"><b>초등학교로 찾기</b> 통학구역으로 배정되는 초등학교만 찾습니다. 중학교는 다니는 초등학교의 학교군 안에서, 고등학교는 출신 중학교 기준 배정 가능 고교 안에서 추첨하므로 넣지 않습니다.</p><p class="sm"><b>등급 이력</b> 지금 평가 기준을 쓰기 시작한 뒤로 등급이 바뀐 평가일과 원인입니다.</p></details>`:''}<details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.concat(xSrc()).map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
+    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details>${X?`<details class="mi"><summary>관리비 · 초등학교로 찾기 · 등급 이력</summary>${X.mg?`<p class="sm"><b>관리비</b> 공용관리비·개별사용료(난방·전기·수도 등)·장기수선충당금을 더한 고지서 총액을 단지 전용면적 합으로 나눠 전용 84㎡로 환산한 값입니다. 다 공개된 최근 달 기준이라 계절에 따라 달라지고(겨울 난방비), 관리비 공개 대상이 아닌 단지는 비웁니다. 중위는 광주 단지 가운데값입니다.</p>`:''}<p class="sm"><b>초등학교로 찾기</b> 통학구역으로 배정되는 초등학교만 찾습니다. 중학교는 다니는 초등학교의 학교군 안에서, 고등학교는 출신 중학교 기준 배정 가능 고교 안에서 추첨하므로 넣지 않습니다.</p><p class="sm"><b>등급 이력</b> 지금 평가 기준을 쓰기 시작한 뒤로 등급이 바뀐 평가일과 원인입니다.</p></details>`:''}<details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.concat(xSrc()).map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
     <section class="warn"><h3>주의사항</h3><ul>
       <li>공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 특정 단지의 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li><b>일러두기</b> 면적은 전용면적(㎡)이 기준입니다. 괄호 안 'OO평형'은 흔히 부르는 공급면적 기준 평형을 참고로 적은 것으로, 전용면적 × 0.4로 어림해 단지의 실제 평형과 1~2평 다를 수 있습니다.</li>

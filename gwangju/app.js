@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.5.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.6.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -63,8 +63,18 @@ const bandColor = b => ({under:'var(--under)',fair:'var(--fair)',over:'var(--ove
 
 /* ═════════ 상태 ═════════ */
 const RMAX = { p:Math.min(20, Math.ceil(Math.max(...CX.flatMap(c=>c.types.map(t=>t.med/10000))))), py:Math.max(...CX.flatMap(c=>c.types.map(t=>t.py))), ex:Math.ceil(Math.max(...CX.flatMap(c=>c.types.map(t=>t.ex)))), u:Math.ceil(Math.max(...CX.map(c=>c.u))/100)*100, age:Math.max(...CX.map(c=>c.age)) };
+// v2.6.0 브라우저에 저장해 둔 '내 조건'을 읽을 때 정해진 항목·형식만 받음(숫자는 숫자로, 고르는 값은 목록 안에서만) — 저장값이 화면에 글자 그대로 들어가는 것을 막음
+function mineClean(v){ if(!v||typeof v!=='object'||Array.isArray(v)) return null; const o={}, num=(x,lo,hi)=>{ const n=+x; return Number.isFinite(n)?Math.max(lo,Math.min(hi,n)):undefined; }, pick=(x,L)=>L.includes(x)?x:undefined;
+  const put=(k,x)=>{ if(x!==undefined) o[k]=x; };
+  put('cash',num(v.cash,0,1e7)); put('loan',num(v.loan,0,1e7)); put('inc',num(v.inc,0,1e7)); put('debt',num(v.debt,0,1e7)); put('rate',num(v.rate,0,30)); put('yrs',num(v.yrs,1,50)); put('age',num(v.age,0,120)); put('maxP',num(v.maxP,0,1e13)); put('loanCalc',num(v.loanCalc,0,1e7)); if(/^\d{4}$/.test(String(v.cby))) o.cby=String(v.cby); put('csex',pick(v.csex,['남','여']));
+  put('marry',pick(v.marry,['single','new','married'])); put('prod',pick(v.prod,['bank','didim','bogeum','gap','manual'])); put('size',pick(v.size,['S','M','L','all']));
+  if(typeof v.child==='boolean') o.child=v.child; if(typeof v.first==='boolean') o.first=v.first; if(typeof v.baby==='boolean') o.baby=v.baby;
+  o.hub=(v.hub==null||v.hub==='')?null:(num(v.hub,0,50)??null);
+  if(Array.isArray(v.kids)) o.kids=v.kids.slice(0,8).map(k=>({by:/^\d{4}$/.test(String(k&&k.by))?String(k.by):'', sex:pick(k&&k.sex,['남','여'])||''}));
+  if(v.w&&typeof v.w==='object'){ o.w={}; for(const a of ['L','S','J','T','D','C','Q']){ const n=num(v.w[a],0,100); if(n!==undefined) o.w[a]=n; } }
+  return o; }
 const S = { sel:null, band:'all', py:null, units:null, ageR:null, grades:new Set(), tags:new Set(), amin:{}, sort:'score', cmp:[], mine:null, openCat:null, view:'list', pop:null };
-try { const v = JSON.parse(localStorage.getItem('dn10-mine')||'null'); if (v) S.mineDraft = v; } catch(e){}
+try { const v = mineClean(JSON.parse(localStorage.getItem('dn10-mine')||'null')); if (v) S.mineDraft = v; } catch(e){}
 const CMP_MAX=10, CMPC=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)','var(--c7)','var(--c8)','var(--c1)','var(--c2)'], CMPD=[null,null,null,null,null,null,null,null,'5 3','5 3'];   // v1.7.6 연구원(11.6): 비교 단지 4 → 10곳. 색 = 기본 범주 8색(밝은·어두운 화면 따로, #ovCmp), 9·10번째는 1·2번 색 + 점선(색만으로 구분하지 않게)
 const cmpGlyph=k=>`<svg class="cg" width="16" height="8" viewBox="0 0 16 8" aria-hidden="true"><line x1="1.5" y1="4" x2="14.5" y2="4" style="stroke:${CMPC[k]}" stroke-width="3" stroke-linecap="round"${CMPD[k]?` stroke-dasharray="${CMPD[k]}"`:''}/></svg>`;
 const CMPT=['var(--n1)','var(--n2)','var(--n3)','var(--n4)','var(--n5)','var(--n6)','var(--n7)','var(--n8)','var(--n1)','var(--n2)'], cmpNm=(k,t)=>`<span class="cnm" style="color:${CMPT[k]}">${t}</span>`;   // v1.7.7 연구원(11.6): 범례·말풍선 단지 이름을 선 색으로(글자용: 같은 색상, 바탕 대비 4.5:1 이상으로 밝기만 맞춤). 9·10번째는 선 모양(점선)으로 구분
@@ -95,8 +105,9 @@ function favBase(id){ const c=CX.find(x=>x.id===id); if(!c) return; const iso=ks
 function favDrop(id){ if(favLoad()[id]){ delete FAV[id]; favSave(); } }
 function favDelta(id){   // {g:[이전,지금]|null, n:새 거래 건수} · 변동이 없거나 기준이 없으면 null
   const c=CX.find(x=>x.id===id), s=favLoad()[id]; if(!c||!s) return null;
-  const g=(s[0]!=null&&c.grade!=null&&s[0]!==c.grade)?[s[0],c.grade]:null; let n=0;
-  if(s[2]!=null){ const now=favCnt(id,s[1]); if(now!=null) n=Math.max(0,now-s[2]); }
+  const g0=Number.isInteger(s[0])&&s[0]>=1&&s[0]<=9?s[0]:null; if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s[1]))) return null;   // v2.6.0 저장값 형식 확인
+  const g=(g0!=null&&c.grade!=null&&g0!==c.grade)?[g0,c.grade]:null; let n=0;
+  if(Number.isFinite(s[2])){ const now=favCnt(id,s[1]); if(now!=null) n=Math.max(0,Math.round(now-s[2])); }
   return (g||n)?{g,n}:null; }
 const favTxt=d=>[d.g?`${d.g[0]}→${d.g[1]}등급`:'', d.n?`새 거래 ${d.n}건`:''].filter(Boolean).join(' · ');
 function favLine(){   // 목록 맨 위 한 줄: 변동이 있는 관심 단지(최대 3곳) — 누르면 그 단지 상세
@@ -106,6 +117,44 @@ function favInit(){   // 별표가 있으면 거래 목록을 받아 기준을 �
   if(!S.cmp.length) return; loadTx().then(()=>{ const F=favLoad(); let ch=0;
     for(const id of S.cmp){ const s=F[id]; if(!s){ favBase(id); } else if(s[2]==null){ s[2]=favCnt(id,s[1]); ch=1; } }
     if(ch) favSave(); if(S.view==='list') renderPanel(); }).catch(()=>{}); }
+// ── v2.6.0 부가 자료(연구원 ’26.11.21): 학교 찾기·등급 이력·어린이집·관리비. 등급 자료와 다른 파일(data/x.json.gz)이고 점수·등급에는 쓰지 않음
+let X=null, XP=null;
+function xLoad(){ if(X) return Promise.resolve(X); if(XP) return XP; if(!(window.__loadGz&&window.__X)) return Promise.resolve(null);
+  XP=window.__loadGz(window.__X).then(d=>{ X=(d&&typeof d==='object')?d:null; return X; }).catch(()=>{ XP=null; return null; }); return XP; }
+const xEsc=t=>String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]);
+const SCHL={e:'배정 단지',m:'배정 가능 단지',h:'배정 가능 단지'};
+const schNorm=q=>q.replace(/\s+/g,'').replace(/여자중학교$/,'여중').replace(/여자고등학교$/,'여고').replace(/초등학교$/,'초').replace(/중학교$/,'중').replace(/고등학교$/,'고').replace(/학교$/,'');
+function schFind(q){   // 학교 이름 일부로 찾기: 앞에서 맞는 것 먼저, 최대 4곳 [{t(초·중·고), n(이름), L([[단지번호, 도보 분]])}]
+  if(!X||!X.sch) return []; const k=schNorm(q); if(k.length<2) return []; const A=[],B=[];
+  for(const t of ['e','m','h']){ const I=X.sch[t]||{}; for(const n in I){ const L=I[n].filter(r=>CXI.has(r[0])); if(!L.length) continue; if(n.startsWith(k)) A.push({t,n,L}); else if(n.includes(k)) B.push({t,n,L}); } }
+  return A.concat(B).slice(0,4); }
+const CXI=new Set(CX.map(c=>c.id));
+function schSet(h){ S.sch=h?{t:h.t, n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); if(h){ fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c))); sheetTo('half'); } }
+const schMin=c=>{ const v=S.sch&&S.sch.m.get(c.id); return v==null?'도보권 밖':'도보 '+v+'분'; };
+function schLine(){ if(!S.sch) return ''; return `<div class="favl schl"><b>${xEsc(S.sch.n)}</b>${SCHL[S.sch.t]} ${visible().length.toLocaleString()}곳<button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
+function fitCx(L){ if(!L.length) return; try{
+  if (typeof NV!=='undefined' && NV){ const b=new naver.maps.LatLngBounds(); L.forEach(c=>b.extend(new naver.maps.LatLng(c.lat,c.lon))); const mobile=matchMedia('(max-width:900px)').matches;
+    if(L.length===1){ flyTo(L[0]); return; } NV.fitBounds(b, mobile?{top:70,right:24,bottom:Math.round(window.innerHeight*0.55),left:24}:{top:40,right:70,bottom:40,left:Math.min(330,NV.getSize().width*0.38)}); return; }
+  const ps=L.map(c=>proj([c.lon,c.lat])), x0=d3.min(ps,p=>p[0]),x1=d3.max(ps,p=>p[0]),y0=d3.min(ps,p=>p[1]),y1=d3.max(ps,p=>p[1]), k=Math.min(8,.6*Math.min(W/Math.max(1,x1-x0),H/Math.max(1,y1-y0)));
+  svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2-k*(x0+x1)/2, H/2-k*(y0+y1)/2).scale(k)); }catch(e){} }
+const GHL={price:'㎡당 실거래가',px:'자리값',px1:'자리값',small:'소단지 조건',old:'연식 조건',unit:'소형 조건',nopx:'매매 없음',rentpx:'임대',unsold2:'미분양',mktup:'시장 평가',newmkt:'신축 시세',rank:'점수 순위',v:'기준 변경'};
+const evShort=d=>{ const p=String(d||'').split('-'); return p.length===3?`’${p[0].slice(2)}.${+p[1]}.${+p[2]}`:''; };
+function ghHTML(c){ const L=X&&X.gh&&X.gh[c.id]; if(!Array.isArray(L)||!L.length) return '';
+  return '<b>등급 이력</b>'+L.slice(-3).reverse().map(r=>`<span>${xEsc(evShort(r[0]))} ${+r[1]}→${+r[2]}등급${GHL[r[3]]?' · '+GHL[r[3]]:''}</span>`).join(''); }
+function ccTxt(c){ const v=X&&X.cc&&X.cc.by&&X.cc.by[c.id]; if(!Array.isArray(v)) return ''; const [n5,n10,p5,p10,nm]=v.map(x=>typeof x==='number'?x:0), pub=p=>p?`(국공립 ${p}곳)`:'';
+  if(n10>0) return n5>0?`어린이집 도보 5분 ${n5}곳${pub(p5)} · 10분 ${n10}곳${pub(p10)}`:`어린이집 도보 10분 ${n10}곳${pub(p10)}`;
+  return nm?`어린이집 도보 10분 안 없음 · 가장 가까운 곳 ${nm}분`:''; }
+function mgTxt(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)||!(v[0]>0)) return ''; const w=+v[0], med=+X.mg.med||0;
+  return `관리비 ㎡당 월 ${w.toLocaleString()}원 · 84㎡ 약 ${(w*84/10000).toFixed(1)}만원${med?` · 광주 중위 ${med.toLocaleString()}원`:''}`; }
+function xSrc(){ if(!X) return []; const o=[]; const ym=y=>`’${String(y).slice(2,4)}.${+String(y).slice(4,6)}`;
+  if(X.cc) o.push(`어린이집 수: 어린이집 기본정보(교육부·한국사회보장정보원, 어린이집정보공개포털) ’${String(X.cc.asof).slice(2,4)}.${+String(X.cc.asof).slice(5,7)} 말 · 위치는 주소로 다시 구함`);
+  if(X.mg&&X.mg.ym&&X.mg.ym.length) o.push(`관리비: 공동주택 관리비 공개 자료(국토교통부 K-apt, 공공데이터포털) ${ym(X.mg.ym[0])}${X.mg.ym.length>1?'~'+ym(X.mg.ym[X.mg.ym.length-1]):''} 부과분`);
+  return o; }
+function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료를 아직 못 받았으면 받은 뒤에)
+  if(!X){ xLoad().then(x=>{ if(x && S.view==='detail' && S.sel===c.id) xFill(c); }); return; }
+  const set=(id,t,html)=>{ const el=document.getElementById(id); if(!el) return; if(html) el.innerHTML=t; else el.textContent=t; el.hidden=!t; };
+  set('xGh',ghHTML(c),true); set('xMg',mgTxt(c)); set('xCc',ccTxt(c));
+  const ul=document.getElementById('xSrcUl'); if(ul && !ul.dataset.x){ ul.dataset.x='1'; xSrc().forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); }); } }
 const setCmpN=()=>{ const n=$('cmpN'); if(n){ n.textContent=S.cmp.length; n.hidden=!S.cmp.length; } };   // v2.4.2 비교 숫자: 0이면 숨김(좁은 화면에서 버튼 밖으로 나가던 것 정리)
 document.addEventListener('DOMContentLoaded',setCmpN); if(document.readyState!=='loading'){ setCmpN(); }
 
@@ -141,6 +190,7 @@ function tagsShow(c){   // v1.1 연구원: 태그는 최대 4개, 왼쪽부터 �
 }
 function pkU(c){ const k=c.k||{}; const t=k.pt||((k.pg||0)+(k.pu||0)); return t&&c.u ? Math.round(t/c.u*100)/100 : null; }   // v1.1 세대당 주차대수
 function passes(c){
+  if (S.sch && !S.sch.m.has(c.id)) return false;   // v2.6.0 학교로 찾기
   if (S.band!=='all' && c.band!==S.band) return false;
   if (S.units && (c.u<S.units[0] || c.u>S.units[1])) return false;
   if (S.ageR && (c.age<S.ageR[0] || c.age>S.ageR[1])) return false;
@@ -209,6 +259,7 @@ const gradeOf = c => S.locMode ? c.locG : c.grade;   // v1.4.1: 내 조건 모�
 const scoreOf = c => S.mine ? c.ps : scoreOf0(c);
 function visible(){
   const list=CX.filter(passes), key=S.sort;
+  if (key==='sch' && S.sch){ const m=S.sch.m, v=c=>{ const x=m.get(c.id); return x==null?1e6:x; }; return list.sort((a,b)=> v(a)-v(b) || (gradeOf(a)??10)-(gradeOf(b)??10) || (scoreOf(b)??-1)-(scoreOf(a)??-1)); }   // v2.6.0 통학 가까운 순
   list.sort((a,b)=> key==='score' ? (S.mine ? ((b.final-a.final) || (b.ps??-1)-(a.ps??-1)) : ((b.final-a.final) || (gradeOf(a)??10)-(gradeOf(b)??10) || (scoreOf(b)??-1)-(scoreOf(a)??-1))) : key==='gscore' ? ((b.final-a.final) || (gradeOf(a)??10)-(gradeOf(b)??10) || (b.ps??-1)-(a.ps??-1)) : key==='loc' ? ((b.loc??b.locTent??-1)-(a.loc??a.locTent??-1)) : key==='gap' ? ((a.gap??9)-(b.gap??9)) : key==='price' ? ((repPrice(a)??1e9)-(repPrice(b)??1e9)) : key==='turn' ? ((b.qr??-1)-(a.qr??-1)) : 0);
   return list;
 }
@@ -547,11 +598,12 @@ const inVB=c=>!VB || (c.lat>=VB[0] && c.lat<=VB[2] && c.lon>=VB[1] && c.lon<=VB[
 function renderPanel(){
   syncHash();
   if (S.view==='detail' && S.sel) return renderDetail();
-  const all=visible(), list=all.filter(inVB), nf=list.filter(c=>c.final).length;
-  $('ptop').innerHTML = `<span class="cnt">${VB&&list.length<all.length?'지도 안 ':''}<b class="num">${list.length.toLocaleString()}</b>곳${S.mine?(S.mine.prod==='gap'?' · 갭 '+eok(S.mine.cash)+' 안':` · 예산 ${eok(S.mine.maxP/10000)} 이하`):''}</span>
-    <span class="sortWrap"><select id="sort" aria-label="정렬"><option value="score">${S.mine?'내 점수순':'등급순'}</option>${S.mine?'<option value="gscore">등급순(등급 안에서 내 점수순)</option>':''}<option value="loc">입지점수순</option><option value="gap">저평가 큰 순</option><option value="price">가격 낮은 순</option><option value="turn">거래 활발 순</option></select></span>`;
+  const all=visible(), list=S.sch?all:all.filter(inVB), nf=list.filter(c=>c.final).length;   // v2.6.0 학교로 찾을 때는 지도 범위와 상관없이 그 학교 단지를 모두 보여 줌
+  $('ptop').innerHTML = `<span class="cnt">${!S.sch&&VB&&list.length<all.length?'지도 안 ':''}<b class="num">${list.length.toLocaleString()}</b>곳${S.mine?(S.mine.prod==='gap'?' · 갭 '+eok(S.mine.cash)+' 안':` · 예산 ${eok(S.mine.maxP/10000)} 이하`):''}</span>
+    <span class="sortWrap"><select id="sort" aria-label="정렬">${S.sch?'<option value="sch">통학 가까운 순</option>':''}<option value="score">${S.mine?'내 점수순':'등급순'}</option>${S.mine?'<option value="gscore">등급순(등급 안에서 내 점수순)</option>':''}<option value="loc">입지점수순</option><option value="gap">저평가 큰 순</option><option value="price">가격 낮은 순</option><option value="turn">거래 활발 순</option></select></span>`;
   $('sort').value=S.sort; $('sort').onchange=e=>{S.sort=e.target.value; renderPanel();};
-  $('pbody').innerHTML = favLine() + (list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`);
+  $('pbody').innerHTML = schLine() + favLine() + (list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`);
+  if ($('schX')) $('schX').onclick=()=>schSet(null);
   $('pbody').querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>select(b.dataset.fav)); if ($('favX')) $('favX').onclick=()=>{ S.cmp.forEach(favBase); renderPanel(); };
   $('pbody').querySelectorAll('.item[data-id]').forEach(b=>{ b.onclick=()=>select(b.dataset.id); b.onkeydown=e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===b){ e.preventDefault(); select(b.dataset.id); } }; });
   if ($('lmore')) $('lmore').onclick=()=>{ const y=$('pbody').scrollTop; LMORE+=300; renderPanel(); $('pbody').scrollTop=y; };
@@ -561,7 +613,7 @@ function itemHTML(c){
   const ri=repInfo(c), pt = S.mine && S.mine.size!=='all' ? bandPrice(c) : ri.pt, r=ri.t||ri.b, sc=scoreOf(c);
   return `<li class="row"><div class="item" role="button" tabindex="0" data-id="${c.id}">
     ${gradeChip(c)}
-    <span class="mid"><span class="nm${lwOf(c,10)?' lw':''}">${dn(c)}</span><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년</span></span>
+    <span class="mid"><span class="nm${lwOf(c,10)?' lw':''}">${dn(c)}</span><span class="sub">${c.gu} · ${c.u.toLocaleString()}세대 · ${c.y}년${S.sch?` · <b class="schm">${schMin(c)}</b>`:''}</span></span>
     <span class="rt"><span class="score num">${S.mine&&c.pr?`<small class="prk">${c.pr}위</small> `:''}${f1(sc)}<small>점</small></span><span class="price">${r?`${typeLabel(r)} `:''}${(!(S.mine && S.mine.size!=='all')&&ri.src==='bp')?'분양 ':''}${eok(pt)}</span></span>
     <span class="brow"><span class="tags">${tagsShow(c)}</span>${bandBtn(c)}</span>
   </div></li>`;   // v2.3.8 판정 표시가 태그와 겹치던 것: 카드를 div(role=button)로 바꿔 태그와 판정 표시를 한 줄(brow)에 나란히
@@ -876,11 +928,13 @@ function renderDetail(){
       <div class="dstat" id="dstat" hidden></div>
       <div class="dmeta">${c.gu} ${c.addr||''} · ${c.u.toLocaleString()}세대 · ${c.ym?String(c.ym).slice(0,4)+'.'+String(c.ym).slice(4):c.y} 사용승인 · ${c.b||''}</div>
       <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
+      <div class="dmeta" id="xMg" hidden></div><div class="dmeta" id="xCc" hidden></div>
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}
       <div class="dact"><button class="btn sm" id="dCopy">주소 복사</button><button class="btn sm" id="dPrint">인쇄</button><span class="sm" id="dCopyMsg" aria-live="polite"></span></div></div>
     <section class="hero">
       <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ if (c.rent&&!S.mine) return `<span class="nw">임대 단지 · 순위 제외</span><span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
+      <div class="ghist" id="xGh" hidden></div>
       
     </section>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
@@ -897,10 +951,11 @@ function renderDetail(){
     <section class="card pnone"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
     ${flags.length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">확인이 필요한 점</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}</div></section>`:''}<p class="note">공공데이터로 자동 계산한 참고 정보입니다. 매수 전에는 현장과 공식 자료로 직접 확인해 주세요.</p>
     ${reportBtn(c)}
-    <details class="src"><summary>자료 출처</summary><ul class="note" style="margin:6px 0 0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></details>
+    <details class="src"><summary>자료 출처</summary><ul class="note" id="xSrcUl" style="margin:6px 0 0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></details>
     <section class="pmemo"><h2>현장 메모</h2><i></i><i></i><i></i><i></i></section>
     <p class="pfoot">우리동네 입지분석(광주) · ${cxUrl(c.id)} · 평가일 ${evLbl()}</p>
   </div>`;
+  xFill(c);
   $('pbody').querySelectorAll('.area').forEach(b=>b.onclick=()=>{S.openCat=S.openCat===b.dataset.cat?null:b.dataset.cat; renderDetail();});
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
@@ -999,13 +1054,18 @@ function sheetTo(st){ if (!matchMedia('(max-width:900px)').matches) return; shee
 })();
 
 /* ═════════ 검색 ═════════ */
+$('q').addEventListener('focus',()=>{ xLoad(); });   // v2.6.0 학교 이름 찾기용 자료를 미리 받음
 $('q').addEventListener('input',e=>{
   const q=e.target.value.trim(), box=$('sugg');
   if (!q){ box.hidden=true; return; }
-  const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,8);
-  box.innerHTML = hits.length ? hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('') : '<div class="empty" style="padding:12px">검색 결과 없음</div>';
+  const sh=schFind(q);   // v2.6.0 학교 이름으로 찾기(초 = 배정 학교, 중·고 = 배정 가능성이 높은 학교)
+  const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,sh.length?6:8);
+  box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn">${xEsc(h.n)}</span><span class="sgm">${SCHL[h.t]} ${h.L.length.toLocaleString()}곳</span></button>`).join('')
+    + hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('')) || '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;
   box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; select(b.dataset.id); });
+  box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; e.target.blur(); schSet(sh[+b.dataset.sch]); });
+  if(!X && q.length>=2) xLoad().then(x=>{ if(x && $('q').value.trim()===q) $('q').dispatchEvent(new Event('input')); });   // 자료가 늦게 오면 한 번 다시 찾음
 });
 document.addEventListener('click',e=>{ if(!e.target.closest('.search')) $('sugg').hidden=true; });
 $('q').addEventListener('keydown',e=>{ if(e.key==='Escape'){ e.target.value=''; $('sugg').hidden=true; } });   // v1.7.0
@@ -1099,13 +1159,15 @@ function renderBanner(){
 
 /* ═════════ 내 조건으로 찾기: 예산 + 영역 가중치(개인 점수는 도시 등급을 바꾸지 않음) ═════════ */
 const MW = AREAS.map(a=>[a, AN[a], Math.round(M.areaW[a]*100)]);
-// v1.4.1 대출 상품 규칙표(기준 ’26.10 · 2차 자료 정리값 — 신청 전 기금e든든(nhuf.molit.go.kr)·한국주택금융공사(hf.go.kr)·은행에서 확인). 단위 만원
-// 출처: 금융위 가계부채 관리방안(’25.6.27) 요약 2차 자료, 스트레스 DSR 3단계(’25.7~, 지방 주담대 0.75%p 유예 ’26.12까지), 디딤돌·보금자리론 안내 요약(’26.8~10)
+// v1.4.1 대출 상품 규칙표(신청 전 기금e든든(nhuf.molit.go.kr)·한국주택금융공사(hf.go.kr)·은행에서 확인). 단위 만원
+// v2.6.0 ’26.11.21 다시 확인(기준 ’26.11): 디딤돌 한도가 ’25.6.27 대책 전 값(2.5억·3억·4억·5억)으로 남아 있던 것을 지금 값(2억·2.4억·3.2억·4억)으로 고침 · 신생아 특례 주택가격 9억 · 2자녀 이상 · 만 30세 이상 미혼 단독세대주(60㎡·3억·1.5억) · 전용 85㎡ 초과 제외
+//   기본 금리: 시중은행 4.9%(한국은행 예금은행 주담대 평균 ’26.9월 4.88%) · 디딤돌 3.3%(연 2.85~4.15%, 지방 −0.2%p의 가운데) · 보금자리론 5.2%(’26.11.9 고시, 30년 만기 아낌e 기준)
+// 출처: 기금e든든 디딤돌·신생아 특례 안내(’26.11.21 열람) · 한국주택금융공사 보금자리론 금리 고시 보도(’26.11.2) · 금융위 지방 주담대 스트레스 DSR 2단계(0.75%p) ’26년 말까지 연장(’26.6.18)
 const LOAN = {
-  asof:'’26.10',
-  bank:{n:'시중은행 주담대', ltv:0.70, ltvFirst:0.80, cap:null, priceMax:null, inc:null, rate:4.0, dsr:0.40, stress:0.75, desc:'집값의 70%까지(생애최초 80%). 연소득을 넣으면 DSR 40%로 한도를 다시 계산합니다(심사금리 +0.75%p).'},
-  didim:{n:'디딤돌(주택도시기금)', ltv:0.70, ltvFirst:0.80, cap:25000, capFirst:30000, capNew:40000, capBaby:50000, priceMax:50000, priceMaxNew:60000, inc:6000, incFirst:7000, incNew:8500, incBaby:13000, rate:3.0, dti:0.60, desc:'집값 5억 이하(신혼·신생아 6억), 부부합산 연소득 6천만원 이하(생애최초 7천·신혼 8.5천·신생아 1.3억). 한도 2.5억(생애최초 3억·신혼 4억·신생아 5억), DTI 60%. 만 30세 미만 미혼 단독세대주는 안 됩니다.'},
-  bogeum:{n:'보금자리론', ltv:0.70, ltvFirst:0.80, cap:36000, capFirst:42000, priceMax:60000, inc:7000, incNew:8500, incChild:9000, rate:4.0, dti:0.60, desc:'집값 6억 이하, 부부합산 연소득 7천만원 이하(신혼 8.5천·자녀 있으면 9천). 한도 3.6억(생애최초 4.2억), DTI 60%.'},
+  asof:'’26.11',
+  bank:{n:'시중은행 주담대', ltv:0.70, ltvFirst:0.80, cap:null, priceMax:null, inc:null, rate:4.9, dsr:0.40, stress:0.75, desc:'집값의 70%까지(생애최초 80%). 연소득을 넣으면 DSR 40%로 한도를 다시 계산합니다(심사금리 +0.75%p).'},
+  didim:{n:'디딤돌(주택도시기금)', ltv:0.70, ltvFirst:0.80, cap:20000, capFirst:24000, capNew:32000, capBaby:40000, capSolo:15000, capSoloFirst:20000, priceMax:50000, priceMaxNew:60000, priceMaxBaby:90000, priceMaxSolo:30000, inc:6000, incFirst:7000, incNew:8500, incBaby:13000, rate:3.3, dti:0.60, desc:'전용 85㎡ 이하, 집값 5억 이하(신혼·2자녀 6억, 신생아 9억). 부부합산 연소득 6천만원 이하(생애최초·2자녀 7천, 신혼 8.5천, 신생아 1.3억). 한도 2억(생애최초 2.4억, 신혼·2자녀 3.2억, 신생아 4억), DTI 60%. 미혼 단독세대주는 만 30세부터 되고 전용 60㎡·3억 이하, 한도 1.5억(생애최초 2억)입니다.'},
+  bogeum:{n:'보금자리론', ltv:0.70, ltvFirst:0.80, cap:36000, capFirst:42000, priceMax:60000, inc:7000, incNew:8500, incChild:9000, rate:5.2, dti:0.60, desc:'집값 6억 이하, 부부합산 연소득 7천만원 이하(신혼 8.5천·자녀 있으면 9천). 한도 3.6억(생애최초 4.2억), DTI 60%.'},
   gap:{n:'갭투자(전세 끼고)', desc:'전세를 끼고 삽니다. 매매가에서 전세가를 뺀 돈이 보유 현금 안인 단지만 보여 줍니다.'},
   manual:{n:'직접 입력', desc:'은행에서 들은 대출 가능액을 그대로 넣습니다.'}};
 const pmtY=(P,rate,yrs)=>{ const r=rate/100/12, n=yrs*12; return r>0?P*r/(1-Math.pow(1+r,-n))*12:P/yrs; };   // 원리금균등 연 상환액
@@ -1115,10 +1177,13 @@ function loanCap(m, P){   // 상품 규칙으로 집값 P(원)일 때 빌릴 수
   if (m.prod==='gap') return {cap:0, msg};
   const yrs=m.yrs||30, rate=(m.rate||L.rate);
   const baby = kidsOf(m).some(k=>(new Date().getFullYear()-k.by)<=2) || (m.child&&(m.kids||[]).some(k=>k.by&&(new Date().getFullYear()-k.by)<=2)), newly = m.marry==='new';
+  const kn=kidsOf(m).length, multi=kn>=2, solo=m.prod==='didim'&&m.marry==='single'&&!kn&&!baby;   // v2.6.0 미성년 자녀 2명 이상 · 미혼에 자녀가 없으면 단독세대주로 봄(세대원이 있으면 일반 기준)
   let ltv = (m.first?L.ltvFirst:L.ltv), cap = Infinity, ok=true;
-  if (L.priceMax){ const pm=(newly||baby)&&L.priceMaxNew?L.priceMaxNew:L.priceMax; if (P>pm*10000){ ok=false; msg.push(`집값 ${eok(pm)} 초과 → ${L.n} 불가`); } }
-  if (L.cap){ cap = (baby&&L.capBaby?L.capBaby:newly&&L.capNew?L.capNew:m.first&&L.capFirst?L.capFirst:L.cap)*10000; }
-  if (L.inc && m.inc){ const lim=baby&&L.incBaby?L.incBaby:newly&&L.incNew?L.incNew:(m.child&&L.incChild)?L.incChild:(m.first&&L.incFirst)?L.incFirst:L.inc; if (m.inc>lim){ ok=false; msg.push(`연소득 ${eok(lim)} 초과 → ${L.n} 소득 요건 밖`); } }
+  if (L.priceMax){ const pm=solo&&L.priceMaxSolo?L.priceMaxSolo:baby&&L.priceMaxBaby?L.priceMaxBaby:(newly||baby||multi)&&L.priceMaxNew?L.priceMaxNew:L.priceMax; if (P>pm*10000){ ok=false; msg.push(`집값 ${eok(pm)} 초과 → ${L.n} 불가`); } }
+  if (L.cap){ cap = (solo&&L.capSolo?(m.first&&L.capSoloFirst?L.capSoloFirst:L.capSolo):baby&&L.capBaby?L.capBaby:(newly||multi)&&L.capNew?L.capNew:m.first&&L.capFirst?L.capFirst:L.cap)*10000; }
+  if (m.prod==='didim' && m.size==='L'){ ok=false; msg.push('디딤돌은 전용 85㎡ 이하 주택만 됩니다'); }
+  if (solo){ if (m.size==='M'){ ok=false; msg.push('미혼 단독세대주는 디딤돌로 전용 60㎡ 이하만 살 수 있습니다'); } else if (!(m.age&&m.age<30)) msg.push('미혼 단독세대주 기준(전용 60㎡·3억 이하, 한도 '+eok(m.first?L.capSoloFirst:L.capSolo)+')'); }
+  if (L.inc && m.inc){ const lim=baby&&L.incBaby?L.incBaby:newly&&L.incNew?L.incNew:(m.child&&L.incChild)?L.incChild:((m.first||multi)&&L.incFirst)?L.incFirst:L.inc; if (m.inc>lim){ ok=false; msg.push(`연소득 ${eok(lim)} 초과 → ${L.n} 소득 요건 밖`); } }
   if (m.prod==='didim' && m.marry==='single' && m.age && m.age<30){ ok=false; msg.push('만 30세 미만 미혼 단독세대주는 디딤돌 불가'); }
   if (!ok) return {cap:0, msg};
   let c = Math.min(cap, ltv*P);
@@ -1146,7 +1211,7 @@ function openMine(){
 
       <section class="blk"><h3><span>1</span>나와 가족</h3>
         ${money('mAge','내 나이(만)',d.age,'세')}
-        <div class="fld"><span class="lb">혼인</span>${opt('mMarry',[['single','미혼'],['new','신혼','혼인 7년 이내'],['married','기혼','7년 넘음']],d.marry,3)}</div>
+        <div class="fld"><span class="lb">혼인</span>${opt('mMarry',[['single','미혼'],['new','신혼','7년 이내·결혼 예정'],['married','기혼','7년 넘음']],d.marry,3)}</div>
         <div class="fld"><span class="lb">자녀</span>${opt('mChild',[['0','없음'],['1','있음']],d.child?1:0,2)}</div>
         <div id="mKids" ${d.child?'':'hidden'}>${d.kids.map(kidRow).join('')}<button type="button" class="add" id="kAdd" ${d.kids.length>=3?'hidden':''}>＋ 자녀 추가</button></div>
         <p class="hint" id="mChildNote"></p>
@@ -1623,7 +1688,7 @@ function openMethod(){
     <section class="mb"><h3><span>3</span>등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>은 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
     <section class="mb"><h3><span>4</span>보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
     <section class="mb"><h3><span>5</span>기준의 근거</h3><p class="sm"><b>[공식]</b> 법령·공식 통계 · <b>[연구]</b> 논문 · <b>[자료]</b> 광주 자료 분석 · <b>[판단]</b> 근거를 찾지 못해 정한 값</p><details class="mi"><summary>근거 목록 펼치기</summary>${basisL}</details></section>
-    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details><details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
+    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details>${X?`<details class="mi"><summary>관리비 · 어린이집 수 · 등급 이력</summary>${X.mg?`<p class="sm"><b>관리비</b> 공용관리비와 장기수선충당금 월부과액을 더해 단지 전용면적 합으로 나눈 값입니다. 전기·수도·난방 같은 세대 사용료는 뺍니다. 최근 공개된 ${X.mg.ym.length}개월 평균이고, 관리비 공개 대상이 아닌 단지는 비웁니다.</p>`:''}${X.cc?`<p class="sm"><b>어린이집 수</b> 단지 경계에서 도보 5분·10분 안에 운영 중인 어린이집 수입니다(분당 60m, 휴지 제외). 교육 영역의 어린이집·유치원 항목과 자료가 달라 값이 다를 수 있습니다.</p>`:''}<p class="sm"><b>등급 이력</b> 지금 평가 기준을 쓰기 시작한 뒤로 등급이 바뀐 평가일과 원인입니다.</p></details>`:''}<details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.concat(xSrc()).map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
     <section class="warn"><h3>주의사항</h3><ul>
       <li>공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 특정 단지의 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li><b>일러두기</b> 면적은 전용면적(㎡)이 기준입니다. 괄호 안 'OO평형'은 흔히 부르는 공급면적 기준 평형을 참고로 적은 것으로, 전용면적 × 0.4로 어림해 단지의 실제 평형과 1~2평 다를 수 있습니다.</li>
@@ -1658,7 +1723,7 @@ function goHome(e){ if(e) e.preventDefault();
   ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend','ovDeal','ovUpl'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
   document.querySelectorAll('.ov,[role="dialog"]').forEach(o=>{ const w=o.closest('[id^="ov"]'); if(w) w.hidden=true; });
   const q=$('q'); if(q) q.value=''; const sg=$('sugg'); if(sg) sg.hidden=true;
-  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false});
+  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false,sch:null});
   S.grades.clear(); S.tags.clear(); document.querySelectorAll('.chip[data-f]').forEach(x=>x.setAttribute('aria-pressed','false'));
   const pp=$('fpop'); if (pp) pp.hidden=true;
   renderMacro(); refresh(); $('pbody').scrollTop=0; sheetTo('peek'); $('zfit').click();
@@ -1778,7 +1843,7 @@ let rt; addEventListener('resize',()=>{clearTimeout(rt); rt=setTimeout(()=>{if(!
 const GC_CODE='ipji';   // 연구원 가입(11.9) · 설정 'Allow adding visitor counts' 켬 확인
 const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null, VC_AT=0;
 if(GC_ON){ window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈(대시보드에는 /gwangju 로 보임)
-  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`);
+  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.v5.js'; sc.integrity='sha384-atnOLvQb9t+jTSipvd75X2yginT4PjVbqDdlJAmxMm+wYElFmeR6EmLP5bYeoRVQ'; sc.crossOrigin='anonymous';   /* v2.6.0 버전 고정 + 내용 확인값: 파일이 바뀌면 브라우저가 실행하지 않음 */ sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`);
   sc.onload=()=>{ try{ const d=kstDay(); if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'d/'+d, title:'방문 '+d, event:true}); if(START_C) window.goatcounter.count({path:'in/c', title:'단지 주소로 들어옴', event:true}); GCQ.splice(0).forEach(v=>window.goatcounter.count(v)); }catch(e){} };   // v2.4.6 한국 날짜별 방문 이벤트(바닥글 '오늘 N명'용, 하루에 경로 1개). 본인 제외(#toggle-goatcounter)는 count()가 알아서 건너뜀
   document.head.append(sc); }
 const STC=new Map();   // v2.1.0 단지별 조회 수·별표 수(방문 집계 도구의 공개 카운터). 0이거나 못 받으면 표시하지 않음
@@ -1801,5 +1866,6 @@ function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어
 }
 // v2.5.0 시작 마무리(방문 집계 변수까지 준비된 뒤에 실행): 단지 주소로 들어오면 그 단지를 엶 · 주소가 바뀌면 따라감 · 관심 단지 기준 채움
 if (START_C) select(START_C);
-addEventListener('hashchange',()=>{ const m=/^#c=([^&]+)/.exec(location.hash); if(!m) return; const id=decodeURIComponent(m[1]); if(id!==S.sel && CX.some(c=>c.id===id)) select(id); });
+addEventListener('hashchange',()=>{ try{ const m=/^#c=([^&]+)/.exec(location.hash); if(!m) return; const id=decodeURIComponent(m[1]); if(id!==S.sel && CX.some(c=>c.id===id)) select(id); }catch(e){} });   // v2.6.0 잘못된 주소(%가 깨진 글자)여도 오류 없이 넘어감
 favInit();
+setTimeout(xLoad, 1800);   // v2.6.0 부가 자료(학교 찾기·등급 이력·어린이집·관리비)는 첫 화면이 뜬 뒤에 받음

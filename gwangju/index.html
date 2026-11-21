@@ -10,14 +10,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.5.0">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.6.0">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.5.0</title>
+<title>우리동네 입지분석(광주) v2.6.0</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1041,6 +1041,22 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
   .pmemo i{display:block;height:6mm;border-bottom:1px solid #ccc}
   .pfoot{display:block;font-size:9px;color:#444}
 }
+/* v2.6.0 학교로 찾기 · 등급 이력 · 관리비·어린이집 줄 */
+.favl.schl{background:var(--surface2)}
+.favl.schl b{color:var(--ink);margin-right:5px}
+.item .sub .schm{font-weight:600;color:var(--accent)}
+.ghist{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.ghist b{font-weight:600;color:var(--ink);margin-right:6px}
+.ghist span{display:inline-block;margin-right:10px;white-space:nowrap}
+#xMg,#xCc{overflow-wrap:anywhere}
+@media print{   /* 인쇄(임장 메모): 관리비·어린이집은 한 줄로 잇고 등급 이력은 뺌 — 한 장에 들어가게 */
+  #xMg,#xCc{display:inline;font-size:10px}
+  .detail .dmeta{line-height:1.28!important}
+  .pmemo i{height:5mm}
+  #xMg[hidden],#xCc[hidden]{display:none}
+  #xMg:not([hidden])+#xCc:not([hidden])::before{content:' · '}
+  .ghist{display:none!important}
+}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -1054,7 +1070,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
       <div class="brand" role="link" tabindex="0" title="첫 화면으로" style="cursor:pointer"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#3182f6"/><path d="M6 12.5 12 7.5l6 5V18h-4v-3.5h-4V18H6z" fill="#fff"/></svg>우리동네 입지분석<span class="brand-sub">광주</span></div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="단지명 또는 동 이름 검색" autocomplete="off" aria-label="단지 검색">
+        <input id="q" type="search" placeholder="단지·동·학교 검색" autocomplete="off" aria-label="단지 검색">
         <div class="sugg" id="sugg" hidden></div>
       </div>
       <div class="hbtns">
@@ -1146,14 +1162,14 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=1ac4f7b9", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5";
-  function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
+  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=b959e584", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5", XF="data/x.json.gz?v=56eb3d73";   /* XF = 부가 자료(ops/aux_build.py 가 채움) */
+  function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.integrity='sha384-DT0Ls0mO7JmjTnT+oBuMhEJzYJO1zUqzuuMXNdnOmOQRIpN2BgSjvBV/j50NngIT'; s.crossOrigin='anonymous'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     return ff().then(function(f){ return f.strFromU8(f.gunzipSync(new Uint8Array(buf))); });
   }
   function load(u){ return fetch(u).then(function(r){ if(!r.ok) throw new Error(u+' '+r.status); return r.arrayBuffer(); }).then(gunzip).then(JSON.parse); }
-  window.__loadGz=load; window.__DASH=DASHF; window.__TX=TXF;
+  window.__loadGz=load; window.__DASH=DASHF; window.__TX=TXF; window.__X=XF;
   var cache={};
   window.__ensureDetail=function(c){
     if (c.raw) return Promise.resolve();   // v1.4.0: it는 core로 옮겨 raw로 판단

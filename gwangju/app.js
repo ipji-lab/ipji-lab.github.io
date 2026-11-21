@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.4.5';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.4.6';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -1730,21 +1730,29 @@ let rt; addEventListener('resize',()=>{clearTimeout(rt); rt=setTimeout(()=>{if(!
 
 // ── 방문자 집계(v1.7.8, 연구원 11.9 '일일 방문자수') ─────────────────────────
 // GoatCounter(goatcounter.com): 쿠키·브라우저 저장 없음, IP는 8시간 메모리에서만(저장 안 함), 하루 단위 고유 방문 집계. GC_CODE = 연구원이 가입해 받은 사이트 코드(예: 'ipji' → ipji.goatcounter.com)
-// 운영 주소(ipji-lab.github.io)에서만 보냄. 주소 끝에 #toggle-goatcounter 를 붙이면 그 브라우저는 집계에서 빠짐(연구원 본인용). 바닥글에 '어제 N명 · 지금까지 N명'(설정 'Allow adding visitor counts' 필요, 응답은 최대 4시간 캐시)
+// 운영 주소(ipji-lab.github.io)에서만 보냄. 주소 끝에 #toggle-goatcounter 를 붙이면 그 브라우저는 집계에서 빠짐(연구원 본인용). 바닥글에 '방문 오늘 N명 · 누적 N명'(설정 'Allow adding visitor counts' 필요, 응답은 최대 4시간 캐시)
 const GC_CODE='ipji';   // 연구원 가입(11.9) · 설정 'Allow adding visitor counts' 켬 확인
-const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null;
+const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null, VC_AT=0;
+const kstDay=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);   // 한국 날짜(기기 시간대와 무관)
 if(GC_ON){ window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈(대시보드에는 /gwangju 로 보임)
-  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`); document.head.append(sc); }
+  const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`);
+  sc.onload=()=>{ try{ const d=kstDay(); if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'d/'+d, title:'방문 '+d, event:true}); }catch(e){} };   // v2.4.6 한국 날짜별 방문 이벤트(바닥글 '오늘 N명'용, 하루에 경로 1개). 본인 제외(#toggle-goatcounter)는 count()가 알아서 건너뜀
+  document.head.append(sc); }
 const STC=new Map();   // v2.1.0 단지별 조회 수·별표 수(방문 집계 도구의 공개 카운터). 0이거나 못 받으면 표시하지 않음
 function statFill(id){ if(!GC_ON) return; const put=v=>{ const el=document.getElementById('dstat'); if(!el||S.sel!==id) return; el.textContent=v[0]?'조회 '+v[0]:''; el.hidden=!v[0]; const st=document.getElementById('stc'); if(st) st.textContent=v[1]||''; };
   if(STC.has(id)) return put(STC.get(id));
   const get=p=>fetch(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent(p)}.json`).then(r=>r.ok?r.json():null).then(j=>{ const n=j&&j.count!=null?String(j.count).replace(/\D/g,''):''; return +n>0?(+n).toLocaleString():''; }).catch(()=>'');
   Promise.all([get('c/'+id), get('s/'+id)]).then(v=>{ STC.set(id,v); put(v); }); }
-function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어 창을 열 때마다 채움(숫자는 한 번만 받아 둠)
-  const el=document.getElementById('vc'); if(!el||!GC_ON) return; if(VC_TXT!==null){ el.textContent=VC_TXT; return; }
-  const kst=d=>new Date(d.getTime()+9*3600e3).toISOString().slice(0,10), y=kst(new Date(Date.now()-864e5));
-  const get=u=>fetch(u,{cache:'force-cache'}).then(r=>(r.ok||r.status===404)?r.json():null).catch(()=>null);   // 방문이 없는 날은 404 + {count:'0'}
-  Promise.all([get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json?start=${y}&end=${y}`), get(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent('/gwangju')}.json`)   /* v2.1.0 TOTAL은 단지 조회·별표 이벤트까지 더해져 방문자 수가 부풀려짐 → 페이지 방문만 */]).then(([a,b])=>{
-    const parts=[]; if(a&&a.count!=null) parts.push(`어제 ${a.count}명`); if(b&&b.count!=null) parts.push(`지금까지 ${b.count}명`);
+function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어 창을 열 때마다 채움(1분 안에 다시 열면 받아 둔 값)
+  const el=document.getElementById('vc'); if(!el||!GC_ON) return; if(VC_TXT!==null){ el.textContent=VC_TXT; if(Date.now()-VC_AT<6e4) return; }
+  VC_AT=Date.now();
+  // v2.4.6 연구원(’26.11.21) '오늘 N명 · 누적 N명'. 이전 '어제 N명'은 틀린 값이었음: 공개 카운터의 start·end는 날짜(UTC)만 받고 end 날짜는 그날 첫 1시간(한국 09시대)까지만 세어,
+  //   start=end=어제로는 하루가 아니라 1시간만 잡혔음(실제 5명인 날 0명 표시). 한국 날짜 하루는 날짜별 이벤트 'd/<한국 날짜>'의 카운터로 셈(위 GC_ON 블록에서 보냄)
+  //   주소 끝 b=10분 단위 값: 카운터는 방문이 없을 때의 응답(404)을 4시간 붙들어, 그날 첫 방문 직후에 물으면 0이 오래 남음(’26.11.21 실제 확인) → 10분마다 새 주소로 받음
+  //   누적은 페이지 방문만(v2.1.0: TOTAL은 단지 조회·별표 이벤트까지 더해져 부풀려짐)
+  const b10=Math.floor(Date.now()/6e5);
+  const get=p=>fetch(`https://${GC_CODE}.goatcounter.com/counter/${encodeURIComponent(p)}.json?b=${b10}`).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{ const n=j&&j.count!=null?+String(j.count).replace(/\D/g,''):0; return n>0?n:0; });
+  Promise.all([get('d/'+kstDay()), get('/gwangju')]).then(([a,b])=>{
+    const parts=[]; if(a) parts.push(`오늘 ${a.toLocaleString()}명`); if(b) parts.push(`누적 ${b.toLocaleString()}명`);   // 0이거나 못 받으면 그 숫자는 표시하지 않음
     VC_TXT=parts.length?' · 방문 '+parts.join(' · '):''; const e2=document.getElementById('vc'); if(e2) e2.textContent=VC_TXT; });
 }

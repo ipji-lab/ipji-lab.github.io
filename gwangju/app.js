@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.6.1';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.7.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -117,45 +117,96 @@ function favInit(){   // 별표가 있으면 거래 목록을 받아 기준을 �
   if(!S.cmp.length) return; loadTx().then(()=>{ const F=favLoad(); let ch=0;
     for(const id of S.cmp){ const s=F[id]; if(!s){ favBase(id); } else if(s[2]==null){ s[2]=favCnt(id,s[1]); ch=1; } }
     if(ch) favSave(); if(S.view==='list') renderPanel(); }).catch(()=>{}); }
-// ── v2.6.0 부가 자료(연구원 ’26.11.21): 학교 찾기·등급 이력·어린이집·관리비. 등급 자료와 다른 파일(data/x.json.gz)이고 점수·등급에는 쓰지 않음
+// ── v2.7.0 부가 자료(연구원 ’26.11.21): 초등학교로 찾기·학교 정보·등급 이력·관리비. 등급 자료와 다른 파일(data/x.json.gz)이고 점수·등급에는 쓰지 않음
 let X=null, XP=null;
 function xLoad(){ if(X) return Promise.resolve(X); if(XP) return XP; if(!(window.__loadGz&&window.__X)) return Promise.resolve(null);
-  XP=window.__loadGz(window.__X).then(d=>{ X=(d&&typeof d==='object')?d:null; return X; }).catch(()=>{ XP=null; return null; }); return XP; }
+  XP=window.__loadGz(window.__X).then(d=>{ X=(d&&typeof d==='object')?d:null; try{ if(X && typeof NV!=='undefined' && NV) nvSch(); }catch(e){} return X; }).catch(()=>{ XP=null; return null; }); return XP; }
 const xEsc=t=>String(t??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch]);
-const SCHL={e:'배정 단지',m:'배정 가능 단지',h:'배정 가능 단지'};
-const schNorm=q=>q.replace(/\s+/g,'').replace(/여자중학교$/,'여중').replace(/여자고등학교$/,'여고').replace(/초등학교$/,'초').replace(/중학교$/,'중').replace(/고등학교$/,'고').replace(/학교$/,'');
-function schFind(q){   // 학교 이름 일부로 찾기: 앞에서 맞는 것 먼저, 최대 4곳 [{t(초·중·고), n(이름), L([[단지번호, 도보 분]])}]
-  if(!X||!X.sch) return []; const k=schNorm(q); if(k.length<2) return []; const A=[],B=[];
-  for(const t of ['e','m','h']){ const I=X.sch[t]||{}; for(const n in I){ const L=I[n].filter(r=>CXI.has(r[0])); if(!L.length) continue; if(n.startsWith(k)) A.push({t,n,L}); else if(n.includes(k)) B.push({t,n,L}); } }
-  return A.concat(B).slice(0,4); }
+// 학교 정식 이름(’남초’ → ’광주남초’, ’제일고’ → ’광주제일고’): 빌드가 index.html 에 넣은 이름표로 화면에 보이는 글자만 바꿈(계산에는 쓰지 않음)
+const SNM=(window.__SNM&&typeof window.__SNM==='object'&&!Array.isArray(window.__SNM))?window.__SNM:{};
+const SNRE=(()=>{ const k=Object.keys(SNM).filter(x=>/^[가-힣A-Za-z0-9]+$/.test(x)&&typeof SNM[x]==='string'&&/^[가-힣A-Za-z0-9]+$/.test(SNM[x])).sort((a,b)=>b.length-a.length); return k.length?new RegExp('(^|[^가-힣])('+k.join('|')+')','g'):null; })();
+const sFix=t=>(SNRE&&typeof t==='string')?t.replace(SNRE,(m,a,b)=>a+SNM[b]):t;
+function snmFix(x){ if(!SNRE) return;
+  if(!x.__snmh && (x.hi||x.lo)){ x.__snmh=1; ['hi','lo'].forEach(f=>{ if(Array.isArray(x[f])) x[f]=x[f].map(r=>Array.isArray(r)?[r[0],sFix(r[1])]:r); }); }
+  if(x.raw && !x.__snm){ x.__snm=1; for(const k in x.raw) x.raw[k]=sFix(x.raw[k]); } }
+CX.forEach(c=>{ ['ms','hs'].forEach(f=>(c[f]||[]).forEach(r=>{ if(r&&SNM[r[0]]) r[0]=SNM[r[0]]; })); snmFix(c); });
+if (window.__ensureDetail){ const _ed=window.__ensureDetail; window.__ensureDetail=c=>Promise.resolve(_ed(c)).then(()=>{ CX.forEach(snmFix); }); }
 const CXI=new Set(CX.map(c=>c.id));
-function schSet(h){ S.sch=h?{t:h.t, n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); if(h){ sheetTo('half'); setTimeout(()=>{ if(S.sch) fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c))); }, 380); } }   // v2.6.1 목록 판이 자리 잡은 뒤에 지도를 맞춤(먼저 맞추면 판에 가려지거나 다른 지도 이동과 겹침)
+// 초등학교로 찾기: 초등학교는 통학구역으로 배정되므로 '배정 단지'가 정해짐. 중·고는 학교군 안 추첨이라 넣지 않음
+const schNorm=q=>q.replace(/\s+/g,'').replace(/초등학교$/,'초').replace(/학교$/,'');
+function schFind(q){   // 이름 일부로 찾기: 앞에서 맞는 것 먼저(’남초’ → ’광주남초’도), 최대 3곳 [{n(정식 이름), L([[단지번호, 도보 분]])}]
+  if(!X||!X.sch) return []; const k=schNorm(q); if(k.length<2) return []; const A=[],B=[];
+  for(const n in X.sch){ const L=(X.sch[n]||[]).filter(r=>CXI.has(r[0])); if(!L.length) continue; if(n.startsWith(k)||n.startsWith('광주'+k)) A.push({n,L}); else if(n.includes(k)) B.push({n,L}); }
+  return A.concat(B).slice(0,3); }
+function schSet(h){ S.sch=h?{n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); try{ if(typeof NV!=='undefined'&&NV) nvSch(); }catch(e){}
+  if(h){ sheetTo('half'); setTimeout(()=>{ if(S.sch) fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c)).concat(schPt(S.sch.n))); }, 380); } }   // 목록 판이 자리 잡은 뒤에 지도를 맞춤(학교 위치도 함께)
+function schOpen(n){ const L=((X&&X.sch&&X.sch[n])||[]).filter(r=>CXI.has(r[0])); if(L.length) schSet({n,L}); }
+const schPt=n=>{ const v=X&&X.sl&&X.sl[n]; return Array.isArray(v)?[{lat:+v[0],lon:+v[1],mla:+v[0],mlo:+v[1]}]:[]; };
 const schMin=c=>{ const v=S.sch&&S.sch.m.get(c.id); return v==null?'도보권 밖':'도보 '+v+'분'; };
-function schLine(){ if(!S.sch) return ''; return `<div class="favl schl"><b>${xEsc(S.sch.n)}</b>${SCHL[S.sch.t]} ${visible().length.toLocaleString()}곳<button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
+const SCH_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z" fill="currentColor"/><path d="M6 10.6V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.4l-6 3.3-6-3.3Z" fill="currentColor" opacity=".72"/></svg>';
+function schInfo(n){ const v=X&&X.sl&&X.sl[n]; if(!Array.isArray(v)) return ''; const t=[]; if(+v[2]>0) t.push(`학생 ${(+v[2]).toLocaleString()}명`); if(+v[3]>0) t.push(`학급당 ${(+v[3]).toFixed(1)}명`); return t.join(' · '); }
+function schLine(){ if(!S.sch) return ''; const inf=schInfo(S.sch.n);
+  return `<div class="schc"><span class="schi">${SCH_ICON}</span><div class="schb"><b>${xEsc(S.sch.n)}</b><span>배정 단지 ${visible().length.toLocaleString()}곳${inf?' · '+xEsc(inf):''}</span></div><button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
 function fitCx(L){ if(!L.length) return; try{
   if (typeof NV!=='undefined' && NV){ const b=new naver.maps.LatLngBounds(); L.forEach(c=>b.extend(new naver.maps.LatLng(c.lat,c.lon))); const mobile=matchMedia('(max-width:900px)').matches;
-    if(L.length===1){ flyTo(L[0]); return; } const mr=$('nmap').getBoundingClientRect(), sr=$('side').getBoundingClientRect(), cover=Math.max(0,Math.min(Math.round(mr.bottom-sr.top), Math.round(mr.height*0.6)));   // v2.6.1 휴대폰: 목록 판이 지도를 가린 높이만큼만 아래를 비움(화면 높이의 55%로 잡아 지도보다 커져서 확대가 안 됐음)
+    if(L.length===1){ flyTo(L[0]); return; } const mr=$('nmap').getBoundingClientRect(), sr=$('side').getBoundingClientRect(), cover=Math.max(0,Math.min(Math.round(mr.bottom-sr.top), Math.round(mr.height*0.6)));   // v2.6.1 휴대폰: 목록 판이 지도를 가린 높이만큼만 아래를 비움
     NV.fitBounds(b, mobile?{top:20,right:56,bottom:cover+16,left:20}:{top:40,right:70,bottom:40,left:Math.min(330,NV.getSize().width*0.38)}); return; }
   const ps=L.map(c=>proj([c.lon,c.lat])), x0=d3.min(ps,p=>p[0]),x1=d3.max(ps,p=>p[0]),y0=d3.min(ps,p=>p[1]),y1=d3.max(ps,p=>p[1]), k=Math.min(8,.6*Math.min(W/Math.max(1,x1-x0),H/Math.max(1,y1-y0)));
   svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2-k*(x0+x1)/2, H/2-k*(y0+y1)/2).scale(k)); }catch(e){} }
+// 지도의 초등학교 표시: 단지가 보이는 확대 단계에서 모두, 학교로 찾는 중에는 그 학교를 늘 표시. 누르면 그 학교로 찾기
+const NVS=new Map();
+function nvSch(){ if(typeof NV==='undefined'||!NV||!X||!X.sl) return; const z=NV.getZoom(), sel=S.sch&&S.sch.n;
+  for(const n in X.sl){ const v=X.sl[n]; if(!Array.isArray(v)||!X.sch||!X.sch[n]) continue; const show=z>NDZ||n===sel, on=n===sel; let m=NVS.get(n);
+    if(!show){ if(m&&m.getMap()) m.setMap(null); continue; }
+    if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(+v[0],+v[1]), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}, zIndex:60}); naver.maps.Event.addListener(m,'click',()=>schOpen(n)); NVS.set(n,m); m.__on=null; }
+    if(m.__on!==on){ m.__on=on; m.setIcon({content:`<div class="nsch${on?' on':''}" title="${xEsc(n)} · 배정 단지 보기">${SCH_ICON}<span>${xEsc(n)}</span></div>`, anchor:new naver.maps.Point(13,13)}); m.setZIndex(on?1500:60); }
+    if(!m.getMap()) m.setMap(NV); } }
 const GHL={price:'㎡당 실거래가',px:'자리값',px1:'자리값',small:'소단지 조건',old:'연식 조건',unit:'소형 조건',nopx:'매매 없음',rentpx:'임대',unsold2:'미분양',mktup:'시장 평가',newmkt:'신축 시세',rank:'점수 순위',v:'기준 변경'};
 const evShort=d=>{ const p=String(d||'').split('-'); return p.length===3?`’${p[0].slice(2)}.${+p[1]}.${+p[2]}`:''; };
 function ghHTML(c){ const L=X&&X.gh&&X.gh[c.id]; if(!Array.isArray(L)||!L.length) return '';
   return '<b>등급 이력</b>'+L.slice(-3).reverse().map(r=>`<span>${xEsc(evShort(r[0]))} ${+r[1]}→${+r[2]}등급${GHL[r[3]]?' · '+GHL[r[3]]:''}</span>`).join(''); }
-function ccTxt(c){ const v=X&&X.cc&&X.cc.by&&X.cc.by[c.id]; if(!Array.isArray(v)) return ''; const [n5,n10,p5,p10,nm]=v.map(x=>typeof x==='number'?x:0), pub=p=>p?`(국공립 ${p}곳)`:'';
-  if(n10>0) return n5>0?`어린이집 도보 5분 ${n5}곳${pub(p5)} · 10분 ${n10}곳${pub(p10)}`:`어린이집 도보 10분 ${n10}곳${pub(p10)}`;
-  return nm?`어린이집 도보 10분 안 없음 · 가장 가까운 곳 ${nm}분`:''; }
-function mgTxt(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)||!(v[0]>0)) return ''; const w=+v[0], med=+X.mg.med||0;
-  return `관리비 ㎡당 월 ${w.toLocaleString()}원 · 84㎡ 약 ${(w*84/10000).toFixed(1)}만원${med?` · 광주 중위 ${med.toLocaleString()}원`:''}`; }
+function mgOf(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)||!(v[0]>0)) return null; return {w:+v[0], man:+v[0]*84/10000, med:(+X.mg.med||0)*84/10000}; }
 function xSrc(){ if(!X) return []; const o=[]; const ym=y=>`’${String(y).slice(2,4)}.${+String(y).slice(4,6)}`;
-  if(X.cc) o.push(`어린이집 수: 어린이집 기본정보(교육부·한국사회보장정보원, 어린이집정보공개포털) ’${String(X.cc.asof).slice(2,4)}.${+String(X.cc.asof).slice(5,7)} 말 · 위치는 주소로 다시 구함`);
+  if(X.sl) o.push('초등학교 학생 수: 학교알리미 공시(교육부·한국교육학술정보원, ’26.10 받음) · 학교 위치: 전국초중등학교위치표준데이터');
   if(X.mg&&X.mg.ym&&X.mg.ym.length) o.push(`관리비: 공동주택 관리비 공개 자료(국토교통부 K-apt, 공공데이터포털) ${ym(X.mg.ym[0])}${X.mg.ym.length>1?'~'+ym(X.mg.ym[X.mg.ym.length-1]):''} 부과분`);
   return o; }
 function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료를 아직 못 받았으면 받은 뒤에)
   if(!X){ xLoad().then(x=>{ if(x && S.view==='detail' && S.sel===c.id) xFill(c); }); return; }
-  const set=(id,t,html)=>{ const el=document.getElementById(id); if(!el) return; if(html) el.innerHTML=t; else el.textContent=t; el.hidden=!t; };
-  set('xGh',ghHTML(c),true); set('xMg',mgTxt(c)); set('xCc',ccTxt(c));
+  const g=document.getElementById('xGh'); if(g){ const h=ghHTML(c); g.innerHTML=h; g.hidden=!h; }
+  const m=mgOf(c), f=document.getElementById('xMgF'); if(f && m){ f.innerHTML=`<span class="fl">관리비 · 84㎡</span><b class="fv num">월 ${m.man.toFixed(1)}만원</b>${m.med?`<span class="fs">광주 중위 ${m.med.toFixed(1)}만</span>`:''}`; f.classList.add('mg'); }
+  document.querySelectorAll('[data-schg]').forEach(b=>{ const n=b.querySelector('.fv')&&b.querySelector('.fv').textContent; if(!b.dataset.schg && n && X.sch && X.sch[n]){ b.dataset.schg=n; b.disabled=false; const fs=b.querySelector('.fs'); if(fs) fs.textContent+=' ›'; } });   // 자료가 늦게 오면 그때 누를 수 있게
   const ul=document.getElementById('xSrcUl'); if(ul && !ul.dataset.x){ ul.dataset.x='1'; xSrc().forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); }); } }
+// 단지 상세 핵심 정보(한눈에): 세대수·입주·주차·용적률·초등학교·관리비(없으면 건폐율)
+function factsHTML(c){
+  const ym=c.ym?String(c.ym):'', pk=pkU(c), m=/^\s*(\S+초)까지\s*(?:도보 약 (\d+)분)?/.exec((c.raw&&c.raw.S1t)||''), sn=m?m[1]:null, sk=sn&&X&&X.sch&&X.sch[sn]?sn:null;
+  const cell=(l,v,s,a='')=>`<div class="fc"${a}><span class="fl">${l}</span><b class="fv num">${v}</b>${s?`<span class="fs">${s}</span>`:''}</div>`;
+  return `<div class="facts">${cell('세대수',`${c.u.toLocaleString()}세대`)}${cell('입주',ym?`${ym.slice(0,4)}.${ym.slice(4)}`:`${c.y}년`,c.age>0?`${c.age}년차`:'올해 입주')}${cell('주차',pk!=null?`세대당 ${pk}대`:'미확인')}${cell('용적률',c.far?`${Math.round(c.far)}%`:'미확인',c.far&&c.fe?'추정':'')}`
+    + (sn?`<button type="button" class="fc fbtn" data-schg="${xEsc(sk||'')}"${sk?'':' disabled'}><span class="fl">초등학교</span><b class="fv">${xEsc(sn)}</b><span class="fs">${m[2]?'도보 '+m[2]+'분':''}${sk?' ›':''}</span></button>`:cell('초등학교','미확인'))
+    + `<div class="fc" id="xMgF">${c.bcr?`<span class="fl">건폐율</span><b class="fv num">${c.bcr}%</b>`:'<span class="fl">관리비</span><b class="fv">–</b>'}</div></div>`; }
+// 최근 본 단지(이 기기 안에만 저장, 서버로 보내지 않음)
+const RC_K='dn10-recent';
+function rcLoad(){ try{ const v=JSON.parse(localStorage.getItem(RC_K)||'[]'); return Array.isArray(v)?v.filter(id=>typeof id==='string'&&CXI.has(id)).slice(0,8):[]; }catch(e){ return []; } }
+function rcAdd(id){ try{ localStorage.setItem(RC_K,JSON.stringify([id].concat(rcLoad().filter(x=>x!==id)).slice(0,8))); }catch(e){} }
+function suggRecent(){ const box=$('sugg'), L=rcLoad(); if(!L.length){ box.hidden=true; return; }
+  box.innerHTML=`<div class="sgt"><span>최근 본 단지</span><button type="button" id="rcX">지우기</button></div>`+L.map(id=>{ const c=CX.find(x=>x.id===id); return `<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`; }).join('');
+  box.hidden=false; box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{ box.hidden=true; $('q').value=''; $('q').blur(); select(b.dataset.id); });
+  $('rcX').onclick=e=>{ e.stopPropagation(); try{ localStorage.removeItem(RC_K); }catch(_){} box.hidden=true; }; }
+// 알림(잠깐 떴다 사라지는 한 줄)
+function toast(t){ let el=document.getElementById('toast'); if(!el){ el=document.createElement('div'); el.id='toast'; el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite'); document.body.appendChild(el); }
+  el.textContent=t; el.classList.add('on'); clearTimeout(el.__t); el.__t=setTimeout(()=>el.classList.remove('on'),1900); }
+const CAN_SHARE=!!navigator.share && matchMedia('(pointer:coarse)').matches;
+// 단지 상세 바로가기 탭: 스크롤하면 지금 보는 부분 표시 · 단지 이름이 위에 붙음
+function dtabsInit(){ const pb=$('pbody'), nav=$('dtabs'); if(!nav){ pb.onscroll=null; return; }
+  const bs=[...nav.querySelectorAll('[data-go]')].filter(b=>{ const ok=!!document.getElementById(b.dataset.go); if(!ok) b.remove(); return ok; });
+  const topIn=el=>el.getBoundingClientRect().top-pb.getBoundingClientRect().top+pb.scrollTop;
+  bs.forEach(b=>b.onclick=()=>{ const el=document.getElementById(b.dataset.go); if(el) pb.scrollTo({top:Math.max(0,topIn(el)-nav.offsetHeight-8), behavior:'smooth'}); });
+  let raf=0; pb.onscroll=()=>{ if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; if(!nav.isConnected) return; const y=pb.scrollTop+nav.offsetHeight+16; let cur=bs[0];
+    for(const b of bs){ const el=document.getElementById(b.dataset.go); if(el && topIn(el)<=y) cur=b; }
+    bs.forEach(b=>{ const on=b===cur; b.classList.toggle('on',on); b.setAttribute('aria-current',on?'true':'false'); }); const tb=nav.previousElementSibling; nav.classList.toggle('stuck', !!tb && pb.scrollTop+6 >= topIn(tb)+tb.offsetHeight); }); };   // 단지 이름 줄이 위로 지나가면 탭 위에 이름을 붙임
+  pb.onscroll(); }
+let VDET=null;
+function vdetSet(){ const on=S.view==='detail'&&!!S.sel; if(on===VDET) return; VDET=on; document.body.classList.toggle('vdet',on);
+  if (matchMedia('(max-width:900px)').matches && typeof NV!=='undefined' && NV) setTimeout(()=>{ try{ NV.autoResize(); }catch(e){} },30); }
 const setCmpN=()=>{ const n=$('cmpN'); if(n){ n.textContent=S.cmp.length; n.hidden=!S.cmp.length; } };   // v2.4.2 비교 숫자: 0이면 숨김(좁은 화면에서 버튼 밖으로 나가던 것 정리)
 document.addEventListener('DOMContentLoaded',setCmpN); if(document.readyState!=='loading'){ setCmpN(); }
 
@@ -191,7 +242,7 @@ function tagsShow(c){   // v1.1 연구원: 태그는 최대 4개, 왼쪽부터 �
 }
 function pkU(c){ const k=c.k||{}; const t=k.pt||((k.pg||0)+(k.pu||0)); return t&&c.u ? Math.round(t/c.u*100)/100 : null; }   // v1.1 세대당 주차대수
 function passes(c){
-  if (S.sch && !S.sch.m.has(c.id)) return false;   // v2.6.0 학교로 찾기
+  if (S.sch && !S.sch.m.has(c.id)) return false;   // 초등학교로 찾기
   if (S.band!=='all' && c.band!==S.band) return false;
   if (S.units && (c.u<S.units[0] || c.u>S.units[1])) return false;
   if (S.ageR && (c.age<S.ageR[0] || c.age>S.ageR[1])) return false;
@@ -518,7 +569,7 @@ function drawMarkers(){
 const UP = DATA.up||[];
 const ymTxt = ym => `’${String(ym).slice(2,4)}.${+String(ym).slice(4,6)}`;
 function drawUp(){
-  if (!gUp) return;
+  if (!gUp) return; gUp.style('display', S.sch?'none':null);
   gUp.selectAll('g.up').data(UP,u=>u.id).join(e=>{
     const g=e.append('g').attr('class','up').attr('tabindex',0).attr('role','button');
     g.append('rect').attr('class','upb'); g.append('text').attr('class','upt'); g.append('title');
@@ -597,8 +648,9 @@ let VB=null, VBT=null, LMORE=150;
 function setVB(b){ VB=b; clearTimeout(VBT); VBT=setTimeout(()=>{ if (!(S.view==='detail' && S.sel)){ LMORE=150; renderPanel(); } },120); }
 const inVB=c=>!VB || (c.lat>=VB[0] && c.lat<=VB[2] && c.lon>=VB[1] && c.lon<=VB[3]);
 function renderPanel(){
-  syncHash();
+  syncHash(); vdetSet();
   if (S.view==='detail' && S.sel) return renderDetail();
+  $('pbody').onscroll=null;
   const all=visible(), list=S.sch?all:all.filter(inVB), nf=list.filter(c=>c.final).length;   // v2.6.0 학교로 찾을 때는 지도 범위와 상관없이 그 학교 단지를 모두 보여 줌
   $('ptop').innerHTML = `<span class="cnt">${!S.sch&&VB&&list.length<all.length?'지도 안 ':''}<b class="num">${list.length.toLocaleString()}</b>곳${S.mine?(S.mine.prod==='gap'?' · 갭 '+eok(S.mine.cash)+' 안':` · 예산 ${eok(S.mine.maxP/10000)} 이하`):''}</span>
     <span class="sortWrap"><select id="sort" aria-label="정렬">${S.sch?'<option value="sch">통학 가까운 순</option>':''}<option value="score">${S.mine?'내 점수순':'등급순'}</option>${S.mine?'<option value="gscore">등급순(등급 안에서 내 점수순)</option>':''}<option value="loc">입지점수순</option><option value="gap">저평가 큰 순</option><option value="price">가격 낮은 순</option><option value="turn">거래 활발 순</option></select></span>`;
@@ -623,7 +675,7 @@ async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) aw
   const wasFolded=$('bodyG').classList.contains('collapsed');
   if (wasFolded) setSide(true);           // v0.7.5 연구원: 목록을 접은 상태에서 단지를 누르면 목록을 펼쳐 상세를 보여줌
   FAVSHOW=null; if (S.cmp.includes(id)){ const d=favDelta(id); if(d) FAVSHOW={id, t:favTxt(d)}; favBase(id); }
-  S.sel=id; S.view='detail'; DHL=null; drawMarkers(); renderPanel();
+  S.sel=id; S.view='detail'; DHL=null; rcAdd(id); drawMarkers(); renderPanel();
   const c=CX.find(x=>x.id===id);
   if(c) gcEv({path:'c/'+c.id, title:c.n+' ('+c.gu+' '+c.dong+')', event:true});   // v2.0.4 단지별 조회 수(이벤트, 쿠키 없음) · v2.1.0 경로를 단지 번호로(이름이 같은 단지 구분)
   if (c && !opts.noFly) { if (wasFolded) setTimeout(()=>flyTo(c), 260); else flyTo(c); }
@@ -927,12 +979,12 @@ function renderDetail(){
   $('pbody').innerHTML = `<div class="detail">
     <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><span class="stc" id="stc"></span><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
       <div class="dstat" id="dstat" hidden></div>
-      <div class="dmeta">${c.gu} ${c.addr||''} · ${c.u.toLocaleString()}세대 · ${c.ym?String(c.ym).slice(0,4)+'.'+String(c.ym).slice(4):c.y} 사용승인 · ${c.b||''}</div>
-      <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
-      <div class="dmeta" id="xMg" hidden></div><div class="dmeta" id="xCc" hidden></div>
+      <div class="dmeta">${c.gu} ${c.addr||''}${c.b?` · ${c.b}`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
+      ${factsHTML(c)}
       <div class="tags" style="margin-top:6px">${tagsShow(c)}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}
-      <div class="dact"><button class="btn sm" id="dCopy">주소 복사</button><button class="btn sm" id="dPrint">인쇄</button><span class="sm" id="dCopyMsg" aria-live="polite"></span></div></div>
-    <section class="hero">
+      <div class="dact"><button class="btn sm" id="dCopy">${CAN_SHARE?'공유':'주소 복사'}</button><button class="btn sm" id="dPrint">인쇄</button></div></div>
+    <nav class="dtabs" id="dtabs" aria-label="상세 바로가기"><span class="dtt">${dn(c)}${g!=null?` · ${g}등급`:''}</span><span class="dtb"><button type="button" data-go="dsSum">요약</button><button type="button" data-go="dsArea">점수</button><button type="button" data-go="dsPrice">실거래</button><button type="button" data-go="dsTr">교통</button><button type="button" data-go="dsTown">동네</button></span></nav>
+    <section class="hero" id="dsSum">
       <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ if (c.rent&&!S.mine) return `<span class="nw">임대 단지 · 순위 제외</span><span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="ghist" id="xGh" hidden></div>
@@ -940,16 +992,16 @@ function renderDetail(){
     </section>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${m[2]}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
-    <section class="sec"><h2>영역별 점수</h2><div>${areas}</div></section>
-    <section class="card"><div class="phd"><h2 style="font-size:14px;margin:0;font-weight:700">실거래가</h2>${bandBtn(c)}</div>
+    <section class="sec" id="dsArea"><h2>영역별 점수</h2><div>${areas}</div></section>
+    <section class="card" id="dsPrice"><div class="phd"><h2 style="font-size:14px;margin:0;font-weight:700">실거래가</h2>${bandBtn(c)}</div>
       ${priceTop}
       <div class="hx" id="hx"><p class="note">실거래 그래프를 불러오는 중…</p></div>
       ${typeTable(c)}
       <div id="jsold">${jsHTML(c)}</div></section>
     ${S.mine?(()=>{const pi=personalItems(c,S.mine); const j=c.js&&c.js.rep; const gapTxt=(S.mine.prod==='gap'&&j&&j[1]&&j[3])?`갭: ${j[0]}㎡ 매매 중위 ${eok(j[3])} − 전세 중위 ${eok(j[1])} = ${eok(j[3]-j[1])}`:''; return `<section class="card mine"><h2 style="font-size:14px;margin:0;font-weight:700">내 조건으로 본 이 단지 <span class="tagref">개인 참고</span></h2><div class="lines"><p><b>내 점수 ${f1(c.ps)}점${c.pr?` · 내 조건에 맞는 ${S.mineN}곳 중 ${c.pr}위`:''}</b> · 등급은 그대로 ${c.grade!=null?c.grade+'등급':(c.rent?'임대':'잠정')}입니다(내 점수는 순위용이며 등급을 바꾸지 않습니다)</p>${pi.note.map(t=>`<p>${t}</p>`).join('')}${gapTxt?`<p>${gapTxt}</p>`:''}${pi.note.length?'':'<p>직장·자녀 조건을 넣지 않아 비중만 바꿔 계산했습니다.</p>'}</div></section>`;})():''}
-    ${(c.xs.tr||[]).filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통·지형 한눈에</h2><dl class="kv trk">${c.xs.tr.filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
+    ${(c.xs.tr||[]).filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).length?`<section class="card" id="dsTr"><h2 style="font-size:14px;margin:0;font-weight:700">교통·지형 한눈에</h2><dl class="kv trk">${c.xs.tr.filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
     ${ageCard(c)}
-    <section class="card pnone"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
+    <section class="card pnone" id="dsTown"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
     ${flags.length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">확인이 필요한 점</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}</div></section>`:''}<p class="note">공공데이터로 자동 계산한 참고 정보입니다. 매수 전에는 현장과 공식 자료로 직접 확인해 주세요.</p>
     ${reportBtn(c)}
     <details class="src"><summary>자료 출처</summary><ul class="note" id="xSrcUl" style="margin:6px 0 0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></details>
@@ -960,8 +1012,12 @@ function renderDetail(){
   $('pbody').querySelectorAll('.area').forEach(b=>b.onclick=()=>{S.openCat=S.openCat===b.dataset.cat?null:b.dataset.cat; renderDetail();});
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
-  $('star').onclick=()=>toggleCmp(c.id); statFill(c.id);
-  $('dCopy').onclick=async()=>{ const ok=await copyTxt(cxUrl(c.id)); const m=$('dCopyMsg'); if(m) m.textContent=ok?'복사했습니다':'복사하지 못했습니다'; };   // v2.5.0 이 단지 주소(#c=단지번호)
+  $('star').onclick=()=>{ const was=S.cmp.includes(c.id); toggleCmp(c.id); toast(was?'비교함에서 뺐습니다':'비교함에 담았습니다'); }; statFill(c.id);
+  $('dCopy').onclick=async()=>{ const u=cxUrl(c.id);   // 이 단지 주소(#c=단지번호): 휴대폰은 공유 창, 컴퓨터는 복사
+    if(CAN_SHARE){ try{ await navigator.share({title:dn(c)+' · 우리동네 입지분석', url:u}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+    const ok=await copyTxt(u); toast(ok?'주소를 복사했습니다':'복사하지 못했습니다'); };
+  $('pbody').querySelectorAll('[data-schg]').forEach(b=>b.onclick=()=>{ if(b.dataset.schg) schOpen(b.dataset.schg); });
+  dtabsInit();
   $('dPrint').onclick=()=>window.print();   // v2.5.0 임장 메모 인쇄: 인쇄 모양은 theme.css 끝 @media print
 }
 function priceChart(el, list){
@@ -1055,13 +1111,13 @@ function sheetTo(st){ if (!matchMedia('(max-width:900px)').matches) return; shee
 })();
 
 /* ═════════ 검색 ═════════ */
-$('q').addEventListener('focus',()=>{ xLoad(); });   // v2.6.0 학교 이름 찾기용 자료를 미리 받음
+$('q').addEventListener('focus',e=>{ xLoad(); if(!e.target.value.trim()) suggRecent(); });   // 빈 검색창을 누르면 최근 본 단지
 $('q').addEventListener('input',e=>{
   const q=e.target.value.trim(), box=$('sugg');
-  if (!q){ box.hidden=true; return; }
-  const sh=schFind(q);   // v2.6.0 학교 이름으로 찾기(초 = 배정 학교, 중·고 = 배정 가능성이 높은 학교)
+  if (!q){ suggRecent(); return; }
+  const sh=schFind(q);   // 초등학교 이름으로 찾기
   const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,sh.length?6:8);
-  box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn">${xEsc(h.n)}</span><span class="sgm">${SCHL[h.t]} ${h.L.length.toLocaleString()}곳</span></button>`).join('')
+  box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn"><span class="sgi">${SCH_ICON}</span>${xEsc(h.n)}</span><span class="sgm">배정 단지 ${h.L.length.toLocaleString()}곳</span></button>`).join('')
     + hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('')) || '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;
   box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; select(b.dataset.id); });
@@ -1689,7 +1745,7 @@ function openMethod(){
     <section class="mb"><h3><span>3</span>등급은 이렇게 정합니다</h3>${gradeBar()}<p class="sm"><b>자리값</b>은 ㎡당 실거래가에서 연식·세대수·주차 같은 건물 몫을 뺀, 시장이 그 자리에 매기는 값입니다. 점수가 높아도 시장이 인정하지 않으면 등급이 내려가고, 시장이 확실히 높게 쳐주면 한 단계 올라갑니다.</p>${ctab}</section>
     <section class="mb"><h3><span>4</span>보정 감점</h3><p class="sm">시장에서 할인되는 단지 특성입니다. 항목마다 상한이 있고 합계에는 상한이 없습니다. 단지 점수 100점 기준입니다.</p>${ptab}</section>
     <section class="mb"><h3><span>5</span>기준의 근거</h3><p class="sm"><b>[공식]</b> 법령·공식 통계 · <b>[연구]</b> 논문 · <b>[자료]</b> 광주 자료 분석 · <b>[판단]</b> 근거를 찾지 못해 정한 값</p><details class="mi"><summary>근거 목록 펼치기</summary>${basisL}</details></section>
-    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details>${X?`<details class="mi"><summary>관리비 · 어린이집 수 · 등급 이력</summary>${X.mg?`<p class="sm"><b>관리비</b> 공용관리비와 장기수선충당금 월부과액을 더해 단지 전용면적 합으로 나눈 값입니다. 전기·수도·난방 같은 세대 사용료는 뺍니다. 최근 공개된 ${X.mg.ym.length}개월 평균이고, 관리비 공개 대상이 아닌 단지는 비웁니다.</p>`:''}${X.cc?`<p class="sm"><b>어린이집 수</b> 단지 경계에서 도보 5분·10분 안에 운영 중인 어린이집 수입니다(분당 60m, 휴지 제외). 교육 영역의 어린이집·유치원 항목과 자료가 달라 값이 다를 수 있습니다.</p>`:''}<p class="sm"><b>등급 이력</b> 지금 평가 기준을 쓰기 시작한 뒤로 등급이 바뀐 평가일과 원인입니다.</p></details>`:''}<details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.concat(xSrc()).map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
+    <section class="mb"><h3><span>6</span>계산식 · 결측 처리 · 자료 출처</h3><details class="mi"><summary>계산식</summary><p class="sm">${M.formula}</p><p class="sm"><b>보정</b> ${M.mRule}</p><p class="sm"><b>등급 조건</b> ${M.capRule}</p></details><details class="mi"><summary>결측 처리 · 측정 한계</summary><p class="sm">${M.missRule}</p><p class="sm"><b>점수 밖 참고 정보</b> 실거래가, 고평가·저평가, 전세가율, 도시철도 2호선 예정역은 점수에 넣지 않습니다.</p><ul class="sm">${M.caveats.map(x=>`<li>${x}</li>`).join('')}</ul><p class="sm"><b>쓰지 않는 자료</b></p><ul class="sm">${M.notUsed.map(x=>`<li>${x}</li>`).join('')}</ul></details>${X?`<details class="mi"><summary>관리비 · 초등학교로 찾기 · 등급 이력</summary>${X.mg?`<p class="sm"><b>관리비</b> 공용관리비·개별사용료(난방·전기·수도 등)·장기수선충당금을 더한 고지서 총액을 단지 전용면적 합으로 나눠 84㎡로 환산한 값입니다. 최근 공개된 ${X.mg.ym.length}개월 평균이고, 관리비 공개 대상이 아닌 단지는 비웁니다.</p>`:''}<p class="sm"><b>초등학교로 찾기</b> 통학구역으로 배정되는 초등학교만 찾습니다. 중학교는 다니는 초등학교의 학교군 안에서, 고등학교는 출신 중학교 기준 배정 가능 고교 안에서 추첨하므로 넣지 않습니다.</p><p class="sm"><b>등급 이력</b> 지금 평가 기준을 쓰기 시작한 뒤로 등급이 바뀐 평가일과 원인입니다.</p></details>`:''}<details class="mi"><summary>자료 출처</summary><ul class="sm">${M.sources.concat(xSrc()).map(x=>`<li>${x}</li>`).join('')}</ul></details></section>
     <section class="warn"><h3>주의사항</h3><ul>
       <li>공공데이터를 정해진 규칙으로 가공한 참고 정보입니다. 특정 단지의 매수·매도 권유나 투자 자문이 아닙니다.</li>
       <li><b>일러두기</b> 면적은 전용면적(㎡)이 기준입니다. 괄호 안 'OO평형'은 흔히 부르는 공급면적 기준 평형을 참고로 적은 것으로, 전용면적 × 0.4로 어림해 단지의 실제 평형과 1~2평 다를 수 있습니다.</li>
@@ -1724,7 +1780,7 @@ function goHome(e){ if(e) e.preventDefault();
   ['ovMine','ovCmp','ovMethod','ovPrice','ovTrend','ovDeal','ovUpl'].forEach(id=>{ const o=$(id); if(o) o.hidden=true; });
   document.querySelectorAll('.ov,[role="dialog"]').forEach(o=>{ const w=o.closest('[id^="ov"]'); if(w) w.hidden=true; });
   const q=$('q'); if(q) q.value=''; const sg=$('sugg'); if(sg) sg.hidden=true;
-  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false,sch:null});
+  Object.assign(S,{band:'all',py:null,units:null,ageR:null,priceR:null,far:null,bcr:null,qR:null,pkR:null,hint:null,pop:null,sort:'score',view:'list',sel:null,macroMin:false,sch:null}); try{ if(typeof NV!=='undefined'&&NV) nvSch(); }catch(e){}
   S.grades.clear(); S.tags.clear(); document.querySelectorAll('.chip[data-f]').forEach(x=>x.setAttribute('aria-pressed','false'));
   const pp=$('fpop'); if (pp) pp.hidden=true;
   renderMacro(); refresh(); $('pbody').scrollTop=0; sheetTo('peek'); $('zfit').click();
@@ -1763,7 +1819,7 @@ function nvInit(){
   NvLayer.prototype.onRemove=function(){ this.el.remove(); };
   NVL=new NvLayer(); NVL.setMap(NV);
   let lastZ=null; naver.maps.Event.addListener(NV,'idle',()=>{ const z=NV.getZoom(); if (z!==lastZ || z>NDZ){ lastZ=z; nvMarkers(); } nvView(); });   // v3.0.1: 단지 단계에서는 이동이 끝날 때도 화면 안 마커만 갱신 · v3.0.10 목록 = 지금 보는 지도 안 단지
-  naver.maps.Event.once(NV,'idle',()=>{ if (!S.sel && NV.getZoom()>NGZ) NV.setZoom(NGZ,false); });   // v1.2.2 첫 화면은 시군구 평균
+  naver.maps.Event.once(NV,'idle',()=>{ if (!S.sel && !S.sch && NV.getZoom()>NGZ) NV.setZoom(NGZ,false); });   /* v2.6.1 뒤: 학교로 찾는 중에는 건드리지 않음(화면이 뒤에 떠 있다가 처음 움직일 때 학교 확대가 되돌려지던 경우) */   // v1.2.2 첫 화면은 시군구 평균
   $('zin').onclick=()=>NV.setZoom(NV.getZoom()+1,true);
   $('zout').onclick=()=>NV.setZoom(NV.getZoom()-1,true);
   $('zfit').onclick=()=>nvFit(null); document.querySelectorAll('.zrg').forEach(b=>b.onclick=()=>nvFit(b.dataset.rg,b.dataset.gu));
@@ -1795,14 +1851,14 @@ function nvMarkers(){
       m.setIcon({content:`<div class="ndg" style="background:${gCol(gr)};color:${gInk(gr)}"><b>${d.k}</b><span>${aggLab(d)}</span></div>`, anchor:new naver.maps.Point(-off[0],-off[1])});
       m.setZIndex(100+d.n); m.setMap(NV); });
     if (lv==='gu') setTimeout(nvClampGu,60);
-    nvUp(false);
+    nvUp(false); nvSch();
     return;
   }
   // v3.0.1 최적화: 지도 화면과 주변 여백 안 단지만 그림 · v3.0.10 한 겹 HTML로 한 번에
   const bd=NV.getBounds(), sw=bd.getSW(), ne=bd.getNE(), dy=(ne.lat()-sw.lat())*0.35, dx=(ne.lng()-sw.lng())*0.35;
   const inV=c=>c.mla>=sw.lat()-dy && c.mla<=ne.lat()+dy && c.mlo>=sw.lng()-dx && c.mlo<=ne.lng()+dx;
   const VC=CX.filter(c=>inV(c)||c.id===S.sel);
-  nvUp(true);
+  nvUp(!S.sch); nvSch();   // 학교로 찾는 중에는 입주예정 표시를 숨김(그 학교에 배정되는 것처럼 보였음)
   if (!NVL) return;
   const prj=NVL.getProjection(); if(!prj) return;
   const ord=VC.sort((a,b)=>(b.id===S.sel)-(a.id===S.sel) || vis.has(b.id)-vis.has(a.id) || (gradeOf(a)??10)-(gradeOf(b)??10) || (scoreOf(b)??-1)-(scoreOf(a)??-1));

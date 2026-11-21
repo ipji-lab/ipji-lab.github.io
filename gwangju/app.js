@@ -12,8 +12,8 @@ const f1 = v => v==null?'–':(Math.round(v*10)/10).toFixed(1);
 const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4)), N = CX.length, NF = M.Nfinal;
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
-const reportBtn = c => REPORT.url ? `<section class="card" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.4.6';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
+const APPV='v2.5.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -70,6 +70,42 @@ const cmpGlyph=k=>`<svg class="cg" width="16" height="8" viewBox="0 0 16 8" aria
 const CMPT=['var(--n1)','var(--n2)','var(--n3)','var(--n4)','var(--n5)','var(--n6)','var(--n7)','var(--n8)','var(--n1)','var(--n2)'], cmpNm=(k,t)=>`<span class="cnm" style="color:${CMPT[k]}">${t}</span>`;   // v1.7.7 연구원(11.6): 범례·말풍선 단지 이름을 선 색으로(글자용: 같은 색상, 바탕 대비 4.5:1 이상으로 밝기만 맞춤). 9·10번째는 선 모양(점선)으로 구분
 try { const v = JSON.parse(localStorage.getItem('dn10-cmp')||'null'); if (Array.isArray(v)) S.cmp = v.filter(id=>CX.some(c=>c.id===id)).slice(-CMP_MAX); } catch(e){}
 try { const m = /[#&]cmp=([^&]+)/.exec(location.hash); if (m) { const ids = decodeURIComponent(m[1]).split(',').filter(id=>CX.some(c=>c.id===id)); if (ids.length) { S.cmp = [...new Set([...S.cmp.filter(id=>!ids.includes(id)), ...ids])].slice(-CMP_MAX); try{ localStorage.setItem('dn10-cmp', JSON.stringify(S.cmp)); }catch(e){} S._cmpFromLink = ids.length; history.replaceState(null,'',location.pathname+location.search); } } } catch(e){}   // v1.9.0 연구원(11.9): 비교 단지를 주소(#cmp=)에 담아 다른 기기·다른 사람과 공유. 주소로 들어오면 그 단지들을 내 비교 목록에 더함   // v1.7.0 관심(비교) 단지 복원
+// ── v2.5.0 단지 바로가기 주소(연구원 ’26.11.21): 주소 끝 #c=단지번호 로 그 단지 상세를 바로 엶. 상세를 열면 주소창도 그 단지 주소로 바뀜(뒤로 가기 기록은 늘리지 않음)
+let START_C=null; try { const m=/[#&]c=([^&]+)/.exec(location.hash); if (m){ const id=decodeURIComponent(m[1]); if (CX.some(c=>c.id===id)) START_C=id; } } catch(e){}
+function syncHash(){ try{ const want=(S.view==='detail'&&S.sel)?'#c='+encodeURIComponent(S.sel):'', cur=location.hash;
+  if (want){ if (cur!==want) history.replaceState(null,'',location.pathname+location.search+want); }
+  else if (/^#c=/.test(cur)) history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+const cxUrl=id=>location.origin+location.pathname+'#c='+encodeURIComponent(id);
+async function copyTxt(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(e){ try{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); return ok; }catch(e2){ return false; } } }
+const kstDay=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);   // 한국 날짜(기기 시간대와 무관)
+const GCQ=[];   // 집계 스크립트가 올라오기 전에 생긴 이벤트를 잠시 담아 둠(단지 주소로 바로 들어오면 스크립트보다 단지가 먼저 열림)
+function gcEv(v){ try{ if(!GC_ON) return; if(window.goatcounter && window.goatcounter.count) window.goatcounter.count(v); else GCQ.push(v); }catch(e){} }
+// ── v2.5.0 관심 단지 변동(기기 안에서만): 별표한 단지를 지난번 본 뒤 등급이 바뀌었거나 새 거래가 신고됐는지 ──
+// 저장 'dn10-seen' = {단지번호: [등급, 본 날(YYYY-MM-DD), 그날 기준 최근 FAV_D일 매매·분양권 건수]}. 서버로 보내지 않음
+// 새 거래 = 같은 구간(본 날의 FAV_D일 전부터)의 지금 건수 − 그때 건수. 계약일이 본 날보다 앞이어도 늦게 신고된 거래를 잡음(신고 기한 30일). 해제로 줄면 0
+const FAV_K='dn10-seen', FAV_D=120; let FAV=null, FAVSHOW=null;
+function favLoad(){ if(FAV) return FAV; try{ const v=JSON.parse(localStorage.getItem(FAV_K)||'{}'); FAV=(v&&typeof v==='object'&&!Array.isArray(v))?v:{}; }catch(e){ FAV={}; } return FAV; }
+function favSave(){ try{ localStorage.setItem(FAV_K, JSON.stringify(FAV)); }catch(e){} }
+function favCnt(id, iso){   // iso 날의 FAV_D일 전부터 지금까지 매매·분양권 건수. 거래 목록을 아직 못 받았으면 null
+  if(!TX||!TX.tx) return null; const f=TX.tx[id]; if(!f) return 0;
+  const d0=new Date(iso+'T00:00:00Z'); d0.setUTCDate(d0.getUTCDate()-FAV_D);
+  const m0=+TX.m0.slice(0,4)*12+ +TX.m0.slice(5,7)-1, lim=(d0.getUTCFullYear()*12+d0.getUTCMonth()-m0)*32+d0.getUTCDate(), W=(TX.v||1)>=2?6:5; let n=0;
+  for(let q=0;q<f.length;q+=W) if(f[q]*32+f[q+1]>=lim) n++; return n; }
+function favBase(id){ const c=CX.find(x=>x.id===id); if(!c) return; const iso=kstDay(); favLoad()[id]=[c.grade??null, iso, favCnt(id,iso)]; favSave(); }   // 지금 상태를 '본 것'으로
+function favDrop(id){ if(favLoad()[id]){ delete FAV[id]; favSave(); } }
+function favDelta(id){   // {g:[이전,지금]|null, n:새 거래 건수} · 변동이 없거나 기준이 없으면 null
+  const c=CX.find(x=>x.id===id), s=favLoad()[id]; if(!c||!s) return null;
+  const g=(s[0]!=null&&c.grade!=null&&s[0]!==c.grade)?[s[0],c.grade]:null; let n=0;
+  if(s[2]!=null){ const now=favCnt(id,s[1]); if(now!=null) n=Math.max(0,now-s[2]); }
+  return (g||n)?{g,n}:null; }
+const favTxt=d=>[d.g?`${d.g[0]}→${d.g[1]}등급`:'', d.n?`새 거래 ${d.n}건`:''].filter(Boolean).join(' · ');
+function favLine(){   // 목록 맨 위 한 줄: 변동이 있는 관심 단지(최대 3곳) — 누르면 그 단지 상세
+  if(!S.cmp.length) return ''; const L=S.cmp.map(id=>[id,favDelta(id)]).filter(x=>x[1]); if(!L.length) return '';
+  return `<div class="favl"><b>관심 단지</b>${L.slice(0,3).map(([id,d])=>{ const c=CX.find(x=>x.id===id); return `<button data-fav="${id}">${dnParts(c)[1]||c.n} <span>${favTxt(d)}</span></button>`; }).join('')}${L.length>3?`<span class="more">외 ${L.length-3}곳</span>`:''}<button class="x" id="favX" aria-label="모두 확인함" title="모두 확인함">✕</button></div>`; }
+function favInit(){   // 별표가 있으면 거래 목록을 받아 기준을 채우고(처음이면 지금을 기준으로) 목록 줄을 다시 그림
+  if(!S.cmp.length) return; loadTx().then(()=>{ const F=favLoad(); let ch=0;
+    for(const id of S.cmp){ const s=F[id]; if(!s){ favBase(id); } else if(s[2]==null){ s[2]=favCnt(id,s[1]); ch=1; } }
+    if(ch) favSave(); if(S.view==='list') renderPanel(); }).catch(()=>{}); }
 const setCmpN=()=>{ const n=$('cmpN'); if(n){ n.textContent=S.cmp.length; n.hidden=!S.cmp.length; } };   // v2.4.2 비교 숫자: 0이면 숨김(좁은 화면에서 버튼 밖으로 나가던 것 정리)
 document.addEventListener('DOMContentLoaded',setCmpN); if(document.readyState!=='loading'){ setCmpN(); }
 
@@ -509,12 +545,14 @@ let VB=null, VBT=null, LMORE=150;
 function setVB(b){ VB=b; clearTimeout(VBT); VBT=setTimeout(()=>{ if (!(S.view==='detail' && S.sel)){ LMORE=150; renderPanel(); } },120); }
 const inVB=c=>!VB || (c.lat>=VB[0] && c.lat<=VB[2] && c.lon>=VB[1] && c.lon<=VB[3]);
 function renderPanel(){
+  syncHash();
   if (S.view==='detail' && S.sel) return renderDetail();
   const all=visible(), list=all.filter(inVB), nf=list.filter(c=>c.final).length;
   $('ptop').innerHTML = `<span class="cnt">${VB&&list.length<all.length?'지도 안 ':''}<b class="num">${list.length.toLocaleString()}</b>곳${S.mine?(S.mine.prod==='gap'?' · 갭 '+eok(S.mine.cash)+' 안':` · 예산 ${eok(S.mine.maxP/10000)} 이하`):''}</span>
     <span class="sortWrap"><select id="sort" aria-label="정렬"><option value="score">${S.mine?'내 점수순':'등급순'}</option>${S.mine?'<option value="gscore">등급순(등급 안에서 내 점수순)</option>':''}<option value="loc">입지점수순</option><option value="gap">저평가 큰 순</option><option value="price">가격 낮은 순</option><option value="turn">거래 활발 순</option></select></span>`;
   $('sort').value=S.sort; $('sort').onchange=e=>{S.sort=e.target.value; renderPanel();};
-  $('pbody').innerHTML = list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`;
+  $('pbody').innerHTML = favLine() + (list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`);
+  $('pbody').querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>select(b.dataset.fav)); if ($('favX')) $('favX').onclick=()=>{ S.cmp.forEach(favBase); renderPanel(); };
   $('pbody').querySelectorAll('.item[data-id]').forEach(b=>{ b.onclick=()=>select(b.dataset.id); b.onkeydown=e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===b){ e.preventDefault(); select(b.dataset.id); } }; });
   if ($('lmore')) $('lmore').onclick=()=>{ const y=$('pbody').scrollTop; LMORE+=300; renderPanel(); $('pbody').scrollTop=y; };
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); openPrice(b.dataset.pid); });
@@ -531,9 +569,10 @@ function itemHTML(c){
 async function select(id, opts={}){ { const _c=CX.find(x=>x.id===id); if (_c) await window.__ensureDetail(_c); }
   const wasFolded=$('bodyG').classList.contains('collapsed');
   if (wasFolded) setSide(true);           // v0.7.5 연구원: 목록을 접은 상태에서 단지를 누르면 목록을 펼쳐 상세를 보여줌
+  FAVSHOW=null; if (S.cmp.includes(id)){ const d=favDelta(id); if(d) FAVSHOW={id, t:favTxt(d)}; favBase(id); }
   S.sel=id; S.view='detail'; DHL=null; drawMarkers(); renderPanel();
   const c=CX.find(x=>x.id===id);
-  try{ if(c && typeof GC_ON!=='undefined' && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'c/'+c.id, title:c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){}   // v2.0.4 단지별 조회 수(이벤트, 쿠키 없음) · v2.1.0 경로를 단지 번호로(이름이 같은 단지 구분)
+  if(c) gcEv({path:'c/'+c.id, title:c.n+' ('+c.gu+' '+c.dong+')', event:true});   // v2.0.4 단지별 조회 수(이벤트, 쿠키 없음) · v2.1.0 경로를 단지 번호로(이름이 같은 단지 구분)
   if (c && !opts.noFly) { if (wasFolded) setTimeout(()=>flyTo(c), 260); else flyTo(c); }
   sheetTo('half'); $('pbody').scrollTop=0;
 }
@@ -767,7 +806,7 @@ function drawTypeChart(c, i, bk){
 function ageCard(c){   // v2.2.9 동네 인구: 법정동 연령대 비중을 광주 평균과 나란히(점수에는 넣지 않음)
   const a=c.xs&&c.xs.ag; if(!a) return '';   // v2.4.2 연구원 ’26.11.14: 10살 단위 여덟 구간(10대 미만~70대 이상). 이름표는 자료(a.l)에서 받음
   const L=a.l, mx=Math.max(...a.v.map(v=>Math.max(v[0],v[1])));
-  return `<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">동네 인구 <span style="font-weight:400;color:var(--muted);font-size:12px">${c.dong} ${a.t.toLocaleString()}명 · ${ymTxt(a.ym)}</span></h2>
+  return `<section class="card pnone"><h2 style="font-size:14px;margin:0;font-weight:700">동네 인구 <span style="font-weight:400;color:var(--muted);font-size:12px">${c.dong} ${a.t.toLocaleString()}명 · ${ymTxt(a.ym)}</span></h2>
     <div class="agec">${a.v.map((v,i)=>`<div class="ager"><span class="al">${L[i]}</span><span class="ab"><i style="width:${(v[0]/mx*100).toFixed(1)}%"></i><em style="left:${(v[1]/mx*100).toFixed(1)}%"></em></span><span class="av"><b>${v[0].toFixed(1)}%</b> <small>광주 ${v[1].toFixed(1)}%</small></span></div>`).join('')}</div>
     <p class="note" style="margin:6px 0 0">막대는 이 동, 세로선은 광주 평균입니다. 단지가 아니라 동 전체 기준이고 점수에는 넣지 않습니다.</p></section>`;
 }
@@ -837,7 +876,8 @@ function renderDetail(){
       <div class="dstat" id="dstat" hidden></div>
       <div class="dmeta">${c.gu} ${c.addr||''} · ${c.u.toLocaleString()}세대 · ${c.ym?String(c.ym).slice(0,4)+'.'+String(c.ym).slice(4):c.y} 사용승인 · ${c.b||''}</div>
       <div class="dmeta">${c.far?`용적률 ${Math.round(c.far)}%${c.fe?'(추정)':''}`:'용적률 미확인'}${c.bcr?` · 건폐율 ${c.bcr}%`:''}${c.offi?' · 같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>
-      <div class="tags" style="margin-top:6px">${tagsShow(c)}</div></div>
+      <div class="tags" style="margin-top:6px">${tagsShow(c)}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}
+      <div class="dact"><button class="btn sm" id="dCopy">주소 복사</button><button class="btn sm" id="dPrint">인쇄</button><span class="sm" id="dCopyMsg" aria-live="polite"></span></div></div>
     <section class="hero">
       <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ if (c.rent&&!S.mine) return `<span class="nw">임대 단지 · 순위 제외</span><span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
@@ -854,15 +894,19 @@ function renderDetail(){
     ${S.mine?(()=>{const pi=personalItems(c,S.mine); const j=c.js&&c.js.rep; const gapTxt=(S.mine.prod==='gap'&&j&&j[1]&&j[3])?`갭: ${j[0]}㎡ 매매 중위 ${eok(j[3])} − 전세 중위 ${eok(j[1])} = ${eok(j[3]-j[1])}`:''; return `<section class="card mine"><h2 style="font-size:14px;margin:0;font-weight:700">내 조건으로 본 이 단지 <span class="tagref">개인 참고</span></h2><div class="lines"><p><b>내 점수 ${f1(c.ps)}점${c.pr?` · 내 조건에 맞는 ${S.mineN}곳 중 ${c.pr}위`:''}</b> · 등급은 그대로 ${c.grade!=null?c.grade+'등급':(c.rent?'임대':'잠정')}입니다(내 점수는 순위용이며 등급을 바꾸지 않습니다)</p>${pi.note.map(t=>`<p>${t}</p>`).join('')}${gapTxt?`<p>${gapTxt}</p>`:''}${pi.note.length?'':'<p>직장·자녀 조건을 넣지 않아 비중만 바꿔 계산했습니다.</p>'}</div></section>`;})():''}
     ${(c.xs.tr||[]).filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">교통·지형 한눈에</h2><dl class="kv trk">${c.xs.tr.filter(([k,v])=>!(k==='버스'&&/반영$/.test(String(v)))).map(([k,v])=>`<dt>${k}</dt><dd>${String(v).replace(' (자가용 기준)',' <small>(자가용 기준)</small>')}</dd>`).join('')}</dl></section>`:''}
     ${ageCard(c)}
-    <section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
+    <section class="card pnone"><h2 style="font-size:14px;margin:0;font-weight:700">미래 변화</h2><div class="lines">${futureLines(c)}</div></section>
     ${flags.length?`<section class="card"><h2 style="font-size:14px;margin:0;font-weight:700">확인이 필요한 점</h2><div class="lines">${flags.map(f=>`<p>${f}</p>`).join('')}</div></section>`:''}<p class="note">공공데이터로 자동 계산한 참고 정보입니다. 매수 전에는 현장과 공식 자료로 직접 확인해 주세요.</p>
     ${reportBtn(c)}
     <details class="src"><summary>자료 출처</summary><ul class="note" style="margin:6px 0 0;padding-left:16px">${M.sources.map(s=>`<li>${s}</li>`).join('')}</ul></details>
+    <section class="pmemo"><h2>현장 메모</h2><i></i><i></i><i></i><i></i></section>
+    <p class="pfoot">우리동네 입지분석(광주) · ${cxUrl(c.id)} · 평가일 ${evLbl()}</p>
   </div>`;
   $('pbody').querySelectorAll('.area').forEach(b=>b.onclick=()=>{S.openCat=S.openCat===b.dataset.cat?null:b.dataset.cat; renderDetail();});
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
   $('star').onclick=()=>toggleCmp(c.id); statFill(c.id);
+  $('dCopy').onclick=async()=>{ const ok=await copyTxt(cxUrl(c.id)); const m=$('dCopyMsg'); if(m) m.textContent=ok?'복사했습니다':'복사하지 못했습니다'; };   // v2.5.0 이 단지 주소(#c=단지번호)
+  $('dPrint').onclick=()=>window.print();   // v2.5.0 임장 메모 인쇄: 인쇄 모양은 theme.css 끝 @media print
 }
 function priceChart(el, list){
   // v1.2.4: 점·선이 축 밖으로 나가지 않게 여백·클립, 점(월)에 마우스·터치하면 그 달 가격 표시
@@ -1492,7 +1536,7 @@ function saveCmp(){ try{ localStorage.setItem('dn10-cmp', JSON.stringify(S.cmp))
 function toggleCmp(id){
   const i=S.cmp.indexOf(id); if (i>=0) S.cmp.splice(i,1); else { if (S.cmp.length>=CMP_MAX) S.cmp.shift(); S.cmp.push(id);
     try{ const c=CX.find(x=>x.id===id); if(c && GC_ON && window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'s/'+id, title:'★ '+c.n+' ('+c.gu+' '+c.dong+')', event:true}); }catch(e){} }   // v2.1.0 별표(비교함 담기) 횟수
-  saveCmp();
+  saveCmp(); if (S.cmp.includes(id)) favBase(id); else favDrop(id);   // v2.5.0 관심 단지 변동의 기준
   setCmpN(); drawMarkers(); if (S.view==='detail') renderDetail();
 }
 function openCmp(){
@@ -1733,10 +1777,9 @@ let rt; addEventListener('resize',()=>{clearTimeout(rt); rt=setTimeout(()=>{if(!
 // 운영 주소(ipji-lab.github.io)에서만 보냄. 주소 끝에 #toggle-goatcounter 를 붙이면 그 브라우저는 집계에서 빠짐(연구원 본인용). 바닥글에 '방문 오늘 N명 · 누적 N명'(설정 'Allow adding visitor counts' 필요, 응답은 최대 4시간 캐시)
 const GC_CODE='ipji';   // 연구원 가입(11.9) · 설정 'Allow adding visitor counts' 켬 확인
 const GC_ON=!!GC_CODE && location.hostname==='ipji-lab.github.io'; let VC_TXT=null, VC_AT=0;
-const kstDay=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);   // 한국 날짜(기기 시간대와 무관)
 if(GC_ON){ window.goatcounter={path:'/gwangju/', title:'우리동네 입지분석(광주)'};   // 화면 안 이동(?v=, #)은 모두 한 페이지로 셈(대시보드에는 /gwangju 로 보임)
   const sc=document.createElement('script'); sc.async=true; sc.src='https://gc.zgo.at/count.js'; sc.setAttribute('data-goatcounter',`https://${GC_CODE}.goatcounter.com/count`);
-  sc.onload=()=>{ try{ const d=kstDay(); if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'d/'+d, title:'방문 '+d, event:true}); }catch(e){} };   // v2.4.6 한국 날짜별 방문 이벤트(바닥글 '오늘 N명'용, 하루에 경로 1개). 본인 제외(#toggle-goatcounter)는 count()가 알아서 건너뜀
+  sc.onload=()=>{ try{ const d=kstDay(); if(window.goatcounter && window.goatcounter.count) window.goatcounter.count({path:'d/'+d, title:'방문 '+d, event:true}); if(START_C) window.goatcounter.count({path:'in/c', title:'단지 주소로 들어옴', event:true}); GCQ.splice(0).forEach(v=>window.goatcounter.count(v)); }catch(e){} };   // v2.4.6 한국 날짜별 방문 이벤트(바닥글 '오늘 N명'용, 하루에 경로 1개). 본인 제외(#toggle-goatcounter)는 count()가 알아서 건너뜀
   document.head.append(sc); }
 const STC=new Map();   // v2.1.0 단지별 조회 수·별표 수(방문 집계 도구의 공개 카운터). 0이거나 못 받으면 표시하지 않음
 function statFill(id){ if(!GC_ON) return; const put=v=>{ const el=document.getElementById('dstat'); if(!el||S.sel!==id) return; el.textContent=v[0]?'조회 '+v[0]:''; el.hidden=!v[0]; const st=document.getElementById('stc'); if(st) st.textContent=v[1]||''; };
@@ -1756,3 +1799,7 @@ function vcFill(){   // v1.7.9: 바닥글(#vc)은 평가기준 창 안에 있어
     const parts=[]; if(a) parts.push(`오늘 ${a.toLocaleString()}명`); if(b) parts.push(`누적 ${b.toLocaleString()}명`);   // 0이거나 못 받으면 그 숫자는 표시하지 않음
     VC_TXT=parts.length?' · 방문 '+parts.join(' · '):''; const e2=document.getElementById('vc'); if(e2) e2.textContent=VC_TXT; });
 }
+// v2.5.0 시작 마무리(방문 집계 변수까지 준비된 뒤에 실행): 단지 주소로 들어오면 그 단지를 엶 · 주소가 바뀌면 따라감 · 관심 단지 기준 채움
+if (START_C) select(START_C);
+addEventListener('hashchange',()=>{ const m=/^#c=([^&]+)/.exec(location.hash); if(!m) return; const id=decodeURIComponent(m[1]); if(id!==S.sel && CX.some(c=>c.id===id)) select(id); });
+favInit();

@@ -10,14 +10,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.4.6">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.5.0">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.4.6</title>
+<title>우리동네 입지분석(광주) v2.5.0</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1002,6 +1002,45 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 .badge-n[hidden]{display:none}
 @media (max-width:900px){ .hbtns .btn{position:relative;overflow:visible} .hbtns .btn .badge-n{position:absolute;top:-6px;right:-3px;margin:0;min-width:17px;height:17px;line-height:17px;font-size:10.5px;padding:0 4px;box-shadow:0 0 0 2px var(--surface);vertical-align:0} }
 .agec .ager{padding-block:3px}
+/* v2.5.0 연구원 ’26.11.21: 단지 상세의 주소 복사·인쇄 줄, 관심 단지 변동 줄 */
+.dact{display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.dact .btn.sm{height:30px;padding:0 11px;font-size:12.5px;border-radius:9px}
+.dact .sm{color:var(--muted)}
+.favn{margin:6px 0 0;font-size:12.5px;font-weight:600;color:var(--accent)}
+.favl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 12px 2px;padding:8px 10px;border-radius:12px;background:var(--accent-soft);font-size:12.5px}
+.favl b{font-weight:700;color:var(--accent);margin-right:2px}
+.favl button{border:0;background:var(--surface);border-radius:8px;padding:5px 9px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink);min-height:30px}
+.favl button span{font-weight:500;color:var(--accent);margin-left:3px}
+.favl .more{color:var(--muted)}
+.favl button.x{margin-left:auto;background:transparent;color:var(--muted);padding:5px 7px;font-weight:400}
+/* v2.5.0 임장 메모 인쇄: 단지 상세만 A4 한 장에(지도·목록·긴 표·동네 인구·미래 변화·제보는 빼고 밝은 바탕, 두 단). 화면에서는 메모 칸·출처 줄을 숨김 */
+.pmemo,.pfoot{display:none}
+@media print{
+  @page{size:A4;margin:10mm 11mm}
+  :root,:root:not([data-theme="light"]),:root[data-theme="dark"]{color-scheme:light;--bg:#fff;--surface:#fff;--surface2:#f3f4f6;--ink:#111;--muted:#444;--line:#bbb}
+  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+  body::before,.gate,.overlay,.mapwrap,.sheet-handle,#ptop,.app>div:first-child,.dact,.star,.stc,.dstat,.favn,.pnone,.src,.card.mine,.chev,.subs,.detail>.note,
+  .hxk,.hxbub,.hxlist,.hxmore,.hxtabs,.hx3,.card table.ty,.card table.ty+.note,#jsold{display:none!important}
+  .app{position:static!important;display:block!important;padding:0!important}
+  .body{display:block!important;position:static!important}
+  .side{display:block!important;position:static!important;height:auto!important;max-height:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;padding:0!important}
+  .pscroll{overflow:visible!important;padding:0!important}
+  .detail{display:block!important;columns:2;column-gap:7mm;padding:0!important;font-size:11px;line-height:1.4}
+  .detail>*{break-inside:avoid;margin:0 0 5px!important}
+  .detail>div:first-child,.detail>.hero,.detail>.pmemo,.detail>.pfoot{column-span:all}
+  .dtitle h1{font-size:18px}
+  .hero{padding:8px 12px!important;border-radius:10px;gap:6px!important}
+  .card{padding:7px 10px!important;gap:5px!important}
+  .sec{gap:4px!important}
+  .pros{gap:6px!important}
+  .area{padding:2px 8px!important;grid-template-columns:104px 1fr 46px!important;gap:8px!important}
+  .kv{gap:1px 8px!important}
+  .hx svg{max-height:120px}
+  .pmemo{display:block;border:1px solid #bbb;border-radius:8px;padding:6px 10px}
+  .pmemo h2{font-size:11.5px;margin:0;font-weight:700}
+  .pmemo i{display:block;height:6mm;border-bottom:1px solid #ccc}
+  .pfoot{display:block;font-size:9px;color:#444}
+}
 
 </style>
 <script>if(location.hostname==='ipji-lab.github.io'){document.write('<script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=x8zz5jjnf9"><\/script>');}</script>
@@ -1107,7 +1146,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=d90a08dd", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5";
+  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=1ac4f7b9", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5";
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

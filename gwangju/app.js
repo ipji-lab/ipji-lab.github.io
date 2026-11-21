@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.6.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.6.1';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -129,12 +129,13 @@ function schFind(q){   // 학교 이름 일부로 찾기: 앞에서 맞는 것 �
   for(const t of ['e','m','h']){ const I=X.sch[t]||{}; for(const n in I){ const L=I[n].filter(r=>CXI.has(r[0])); if(!L.length) continue; if(n.startsWith(k)) A.push({t,n,L}); else if(n.includes(k)) B.push({t,n,L}); } }
   return A.concat(B).slice(0,4); }
 const CXI=new Set(CX.map(c=>c.id));
-function schSet(h){ S.sch=h?{t:h.t, n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); if(h){ fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c))); sheetTo('half'); } }
+function schSet(h){ S.sch=h?{t:h.t, n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); if(h){ sheetTo('half'); setTimeout(()=>{ if(S.sch) fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c))); }, 380); } }   // v2.6.1 목록 판이 자리 잡은 뒤에 지도를 맞춤(먼저 맞추면 판에 가려지거나 다른 지도 이동과 겹침)
 const schMin=c=>{ const v=S.sch&&S.sch.m.get(c.id); return v==null?'도보권 밖':'도보 '+v+'분'; };
 function schLine(){ if(!S.sch) return ''; return `<div class="favl schl"><b>${xEsc(S.sch.n)}</b>${SCHL[S.sch.t]} ${visible().length.toLocaleString()}곳<button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
 function fitCx(L){ if(!L.length) return; try{
   if (typeof NV!=='undefined' && NV){ const b=new naver.maps.LatLngBounds(); L.forEach(c=>b.extend(new naver.maps.LatLng(c.lat,c.lon))); const mobile=matchMedia('(max-width:900px)').matches;
-    if(L.length===1){ flyTo(L[0]); return; } NV.fitBounds(b, mobile?{top:70,right:24,bottom:Math.round(window.innerHeight*0.55),left:24}:{top:40,right:70,bottom:40,left:Math.min(330,NV.getSize().width*0.38)}); return; }
+    if(L.length===1){ flyTo(L[0]); return; } const mr=$('nmap').getBoundingClientRect(), sr=$('side').getBoundingClientRect(), cover=Math.max(0,Math.min(Math.round(mr.bottom-sr.top), Math.round(mr.height*0.6)));   // v2.6.1 휴대폰: 목록 판이 지도를 가린 높이만큼만 아래를 비움(화면 높이의 55%로 잡아 지도보다 커져서 확대가 안 됐음)
+    NV.fitBounds(b, mobile?{top:20,right:56,bottom:cover+16,left:20}:{top:40,right:70,bottom:40,left:Math.min(330,NV.getSize().width*0.38)}); return; }
   const ps=L.map(c=>proj([c.lon,c.lat])), x0=d3.min(ps,p=>p[0]),x1=d3.max(ps,p=>p[0]),y0=d3.min(ps,p=>p[1]),y1=d3.max(ps,p=>p[1]), k=Math.min(8,.6*Math.min(W/Math.max(1,x1-x0),H/Math.max(1,y1-y0)));
   svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2-k*(x0+x1)/2, H/2-k*(y0+y1)/2).scale(k)); }catch(e){} }
 const GHL={price:'㎡당 실거래가',px:'자리값',px1:'자리값',small:'소단지 조건',old:'연식 조건',unit:'소형 조건',nopx:'매매 없음',rentpx:'임대',unsold2:'미분양',mktup:'시장 평가',newmkt:'신축 시세',rank:'점수 순위',v:'기준 변경'};

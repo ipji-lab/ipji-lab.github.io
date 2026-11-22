@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.9.7';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.8';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -179,13 +179,20 @@ function nvSch(){ if(typeof NV==='undefined'||!NV||!X||!X.sl) return; nvZone(); 
 // v2.9.3 연구원(’26.11.22 '초·중·고 아이콘이 겹치는 곳이 너무 많음 · 재개발 단지가 기존 아파트와 겹침'): 학교·입주예정 표시가 단지 이름표나 서로와 겹치면 위·아래로 비켜 놓음
 //   전수조사: 지도에 나오는 학교 302곳 중 30m 안 쌍 41개(같은 부지 초·중·고), 200m 안 89개 · 입주예정 2곳이 기존 단지 자리(방림삼일 재건축↔삼일아파트 1m, 광천동 재개발↔남화아파트 0m)
 //   단지 이름표(겹치면 이미 점으로 줄임)는 그대로 두고, 고른 학교 → 입주예정 → 초 → 중·고 순으로 빈자리(위·아래 1~3줄)를 찾음. 위치 자체는 바꾸지 않고 표시만 옮김(style.translate)
-function nvDeclutter(){ if(typeof NV==='undefined'||!NV) return; requestAnimationFrame(()=>{ const B=[], hit=q=>B.reduce((k,o)=>k+(q[0]<o[2]&&q[2]>o[0]&&q[1]<o[3]&&q[3]>o[1]),0);
-  if(NVL&&NVL.el) NVL.el.querySelectorAll('.nmw > *').forEach(e=>{ const r=e.getBoundingClientRect(); if(r.width) B.push([r.left,r.top,r.right,r.bottom]); });   // v2.9.7 단지 이름표·점·동 이름 모두(위 층이라 겹치면 학교 표시가 안 눌림)
+function nvDeclutter(){ if(typeof NV==='undefined'||!NV) return; requestAnimationFrame(()=>{ try{
+  // v2.9.7: 겹침 무게 — 다른 학교·입주예정 100 · 단지 이름표 10 · 단지 점 3 · 동 이름 2. 가장 가벼운 자리로(학교끼리는 거의 겹치지 않게)
+  const B=[], hit=q=>B.reduce((k,o)=>k+((q[0]<o[2]&&q[2]>o[0]&&q[1]<o[3]&&q[3]>o[1])?o[4]:0),0);
+  if(NVL&&NVL.el) NVL.el.querySelectorAll('.nmw > *').forEach(e=>{ const r=e.getBoundingClientRect(); if(r.width) B.push([r.left,r.top,r.right,r.bottom, e.classList.contains('dot')?3:(e.classList.contains('nmk')?10:2)]); });
   const L=[]; NVS.forEach((m,n)=>{ if(m.getMap()) L.push([m, m.__on?0:(X&&X.sk&&X.sk[n]&&X.sk[n].l!=='e'?3:2)]); }); NVU.forEach(m=>{ if(m.getMap()) L.push([m,1]); });
   L.sort((a,b)=>a[1]-b[1]);
-  for(const [m] of L){ const el=m.getElement&&m.getElement(), t=el&&el.querySelector('.nsch,.nup'); if(!t) continue; el.style.pointerEvents='none'; t.style.pointerEvents='auto'; t.style.translate='';   // v2.9.7 표시를 옮겨도 마커 겉 상자는 제자리라 겹친 학교(문성고·문성중 등)의 클릭을 가로챘음 → 겉 상자는 클릭을 통과 const r=t.getBoundingClientRect(); if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight) continue; const h=r.height+3, w=r.width*.6; let best=[0,0], bk=1e9;   // 위·아래 3줄까지, 그래도 겹치면 옆으로(봉선동처럼 촘촘한 곳)
-    for(const [dx,dy] of [[0,0],[0,-h],[0,h],[0,-2*h],[0,2*h],[0,-3*h],[0,3*h],[w,0],[-w,0],[w,-h],[-w,h],[w,h],[-w,-h]]){ const k=hit([r.left+dx+1,r.top+dy+1,r.right+dx-1,r.bottom+dy-1]); if(k<bk){ bk=k; best=[dx,dy]; if(!k) break; } }
-    if(best[0]||best[1]) t.style.translate=`${Math.round(best[0])}px ${Math.round(best[1])}px`; B.push([r.left+best[0],r.top+best[1],r.right+best[0],r.bottom+best[1]]); } }); }
+  for(const [m] of L){ const el=m.getElement&&m.getElement(), t=el&&el.querySelector('.nsch,.nup'); if(!t) continue;
+    el.style.pointerEvents='none'; t.style.pointerEvents='auto'; t.style.translate='';   // 표시를 옮겨도 마커 겉 상자는 제자리라 겹친 학교(문성고·문성중 등)의 클릭을 가로챘음 → 겉 상자는 클릭 통과
+    const r=t.getBoundingClientRect(); if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight) continue;
+    const h=r.height+3, w=r.width*.6; let best=[0,0], bk=1e9;   // 위·아래 4줄까지, 그다음 옆
+    for(const [dx,dy] of [[0,0],[0,-h],[0,h],[0,-2*h],[0,2*h],[0,-3*h],[0,3*h],[w,0],[-w,0],[w,-h],[-w,h],[w,h],[-w,-h],[0,-4*h],[0,4*h],[w,-2*h],[-w,2*h],[-w,-2*h],[w,2*h]]){ const k=hit([r.left+dx+1,r.top+dy+1,r.right+dx-1,r.bottom+dy-1]); if(k<bk){ bk=k; best=[dx,dy]; if(!k) break; } }
+    if(best[0]||best[1]) t.style.translate=`${Math.round(best[0])}px ${Math.round(best[1])}px`;
+    B.push([r.left+best[0],r.top+best[1],r.right+best[0],r.bottom+best[1],100]); }
+  }catch(e){ console.warn('nvDeclutter', e); } }); }
 // v2.9.0 학교 정보(연구원 ’26.11.22): 초·중·고를 누르면 학교 정보를 그림으로. 자료 = 부가 자료 X.sk(학교알리미 공시·졸업생 진로·학업성취·배정가능고교)
 const SKL={e:'초등학교',m:'중학교',h:'고등학교'};
 const skOf=n=>(X&&X.sk&&X.sk[n])||null;

@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.9.3';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.4';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -182,9 +182,9 @@ function nvDeclutter(){ if(typeof NV==='undefined'||!NV) return; requestAnimatio
   if(NVL&&NVL.el) NVL.el.querySelectorAll('.nmk:not(.dot)').forEach(e=>{ const r=e.getBoundingClientRect(); if(r.width) B.push([r.left,r.top,r.right,r.bottom]); });
   const L=[]; NVS.forEach((m,n)=>{ if(m.getMap()) L.push([m, m.__on?0:(X&&X.sk&&X.sk[n]&&X.sk[n].l!=='e'?3:2)]); }); NVU.forEach(m=>{ if(m.getMap()) L.push([m,1]); });
   L.sort((a,b)=>a[1]-b[1]);
-  for(const [m] of L){ const el=m.getElement&&m.getElement(), t=el&&el.querySelector('.nsch,.nup'); if(!t) continue; t.style.translate=''; const r=t.getBoundingClientRect(); if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight) continue; const h=r.height+3; let best=0, bk=1e9;
-    for(const dy of [0,-h,h,-2*h,2*h,-3*h,3*h]){ const k=hit([r.left+1,r.top+dy+1,r.right-1,r.bottom+dy-1]); if(k<bk){ bk=k; best=dy; if(!k) break; } }
-    if(best) t.style.translate=`0 ${Math.round(best)}px`; B.push([r.left,r.top+best,r.right,r.bottom+best]); } }); }
+  for(const [m] of L){ const el=m.getElement&&m.getElement(), t=el&&el.querySelector('.nsch,.nup'); if(!t) continue; t.style.translate=''; const r=t.getBoundingClientRect(); if(!r.width||r.right<0||r.left>innerWidth||r.bottom<0||r.top>innerHeight) continue; const h=r.height+3, w=r.width*.6; let best=[0,0], bk=1e9;   // 위·아래 3줄까지, 그래도 겹치면 옆으로(봉선동처럼 촘촘한 곳)
+    for(const [dx,dy] of [[0,0],[0,-h],[0,h],[0,-2*h],[0,2*h],[0,-3*h],[0,3*h],[w,0],[-w,0],[w,-h],[-w,h],[w,h],[-w,-h]]){ const k=hit([r.left+dx+1,r.top+dy+1,r.right+dx-1,r.bottom+dy-1]); if(k<bk){ bk=k; best=[dx,dy]; if(!k) break; } }
+    if(best[0]||best[1]) t.style.translate=`${Math.round(best[0])}px ${Math.round(best[1])}px`; B.push([r.left+best[0],r.top+best[1],r.right+best[0],r.bottom+best[1]]); } }); }
 // v2.9.0 학교 정보(연구원 ’26.11.22): 초·중·고를 누르면 학교 정보를 그림으로. 자료 = 부가 자료 X.sk(학교알리미 공시·졸업생 진로·학업성취·배정가능고교)
 const SKL={e:'초등학교',m:'중학교',h:'고등학교'};
 const skOf=n=>(X&&X.sk&&X.sk[n])||null;

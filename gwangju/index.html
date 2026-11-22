@@ -10,14 +10,14 @@
 <meta name="description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="우리동네 입지분석">
-<meta property="og:title" content="우리동네 입지분석(광주) v2.7.2">
+<meta property="og:title" content="우리동네 입지분석(광주) v2.7.3">
 <meta property="og:description" content="방구석 연구원이 소개하는 AI 기반 광주 아파트 입지분석 서비스">
 <meta property="og:image" content="https://ipji-lab.github.io/gwangju/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="ko_KR">
 <meta name="twitter:card" content="summary_large_image">
-<title>우리동네 입지분석(광주) v2.7.2</title>
+<title>우리동네 입지분석(광주) v2.7.3</title>
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -1212,7 +1212,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 <script>
 /* 자료 불러오기(압축 해제) → 화면 코드 실행. 단지 상세는 누를 때 그 묶음만 불러옴 */
 (function(){
-  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=cba7b08a", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5", XF="data/x.json.gz?v=b5edf4fd", SNM={"수창초":"광주수창초","동신중":"광주동신중","광천초":"광주광천초","봉주초":"광주봉주초","경신중":"광주경신중","문화초":"광주문화초","동명중":"광주동명중","서초":"광주서초","서석고":"광주서석고","동성고":"광주동성고","효광중":"광주효광중","송원중":"광주송원중","인성고":"광주인성고","대성초":"광주대성초","서광중":"광주서광중","용산초":"광주용산초","화정중":"광주화정중","풍향초":"광주풍향초","극락초":"광주극락초","농성초":"광주농성초","동신여고":"광주동신여고","서석중":"광주서석중","중앙초":"광주중앙초","양동초":"광주양동초","동성중":"광주동성중","중흥초":"광주중흥초","동운초":"광주동운초","수피아여고":"광주수피아여고","진흥중":"광주진흥중","백운초":"광주백운초","동신여중":"광주동신여중","북성중":"광주북성중","남초":"광주남초","숭일중":"광주숭일중","동성여중":"광주동성여중","진흥고":"광주진흥고","학운초":"광주학운초","동신고":"광주동신고","장원초":"광주장원초","우산초":"광주우산초","충장중":"광주충장중","대동고":"광주대동고","효동초":"광주효동초","제일고":"광주제일고","제석초":"광주제석초","용봉초":"광주용봉초","학강초":"광주학강초","효덕초":"광주효덕초","경신여고":"광주경신여고","무진중":"광주무진중","계림초":"광주계림초","숭일고":"광주숭일고","방림초":"광주방림초","운암초":"광주운암초","서산초":"광주서산초","서림초":"광주서림초","상무초":"광주상무초","수피아여중":"광주수피아여중","월산초":"광주월산초","서석초":"광주서석초","산수초":"광주산수초","석산고":"광주석산고"};   /* XF = 부가 자료 · SNM = 학교 정식 이름표(줄임 → 정식). 둘 다 ops/aux_build.py 가 채움 */
+  var CORE="data/core.json.gz?v=de0df007", DET=["data/d00.json.gz?v=53fecb63", "data/d01.json.gz?v=2bde854a", "data/d02.json.gz?v=4062d45b", "data/d03.json.gz?v=03b3c2f3", "data/d04.json.gz?v=b40853e9", "data/d05.json.gz?v=4e6b3513", "data/d06.json.gz?v=6eb31fe6", "data/d07.json.gz?v=5edb1bee", "data/d08.json.gz?v=646a3639", "data/d09.json.gz?v=850ac88b", "data/d10.json.gz?v=83f0bf11", "data/d11.json.gz?v=27c73384", "data/d12.json.gz?v=be1592fc", "data/d13.json.gz?v=1bdac2dd", "data/d14.json.gz?v=0737971b", "data/d15.json.gz?v=1eb863f1"], APP="app.js?v=4400b408", DASHF="data/rt/trend.json.gz?v=597251b3", TXF="data/rt/tx.json.gz?v=77f412a5", XF="data/x.json.gz?v=770f1788", SNM={"수창초":"광주수창초","동신중":"광주동신중","광천초":"광주광천초","봉주초":"광주봉주초","경신중":"광주경신중","문화초":"광주문화초","동명중":"광주동명중","서초":"광주서초","서석고":"광주서석고","동성고":"광주동성고","효광중":"광주효광중","송원중":"광주송원중","인성고":"광주인성고","대성초":"광주대성초","서광중":"광주서광중","용산초":"광주용산초","화정중":"광주화정중","풍향초":"광주풍향초","극락초":"광주극락초","농성초":"광주농성초","동신여고":"광주동신여고","서석중":"광주서석중","중앙초":"광주중앙초","양동초":"광주양동초","동성중":"광주동성중","중흥초":"광주중흥초","동운초":"광주동운초","수피아여고":"광주수피아여고","진흥중":"광주진흥중","백운초":"광주백운초","동신여중":"광주동신여중","북성중":"광주북성중","남초":"광주남초","숭일중":"광주숭일중","동성여중":"광주동성여중","진흥고":"광주진흥고","학운초":"광주학운초","동신고":"광주동신고","장원초":"광주장원초","우산초":"광주우산초","충장중":"광주충장중","대동고":"광주대동고","효동초":"광주효동초","제일고":"광주제일고","제석초":"광주제석초","용봉초":"광주용봉초","학강초":"광주학강초","효덕초":"광주효덕초","경신여고":"광주경신여고","무진중":"광주무진중","계림초":"광주계림초","숭일고":"광주숭일고","방림초":"광주방림초","운암초":"광주운암초","서산초":"광주서산초","서림초":"광주서림초","상무초":"광주상무초","수피아여중":"광주수피아여중","월산초":"광주월산초","서석초":"광주서석초","산수초":"광주산수초","석산고":"광주석산고"};   /* XF = 부가 자료 · SNM = 학교 정식 이름표(줄임 → 정식). 둘 다 ops/aux_build.py 가 채움 */
   function ff(){ return window.fflate ? Promise.resolve(window.fflate) : new Promise(function(ok,no){ var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js'; s.integrity='sha384-DT0Ls0mO7JmjTnT+oBuMhEJzYJO1zUqzuuMXNdnOmOQRIpN2BgSjvBV/j50NngIT'; s.crossOrigin='anonymous'; s.onload=function(){ok(window.fflate)}; s.onerror=no; document.head.appendChild(s); }); }
   function gunzip(buf){
     if (window.DecompressionStream) return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();

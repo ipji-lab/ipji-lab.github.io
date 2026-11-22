@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.9.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.1';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -86,7 +86,7 @@ function syncHash(){ try{ const want=(S.view==='detail'&&S.sel)?'#c='+encodeURIC
   if (want){ if (cur!==want) history.replaceState(null,'',location.pathname+location.search+want); }
   else if (/^#c=/.test(cur)) history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
 const cxUrl=id=>location.origin+location.pathname+'#c='+encodeURIComponent(id);
-const shUrl=id=>(/^https:\/\/ipji-lab\.github\.io\/gwangju\//.test(location.origin+location.pathname)&&/^[A-Za-z0-9_-]+$/.test(String(id)))?location.origin+location.pathname.replace(/[^/]*$/,'')+'c/'+id+'/':cxUrl(id);   // v2.8.0 공유용: 단지별 페이지(c/단지번호/) — 카카오톡·문자 미리보기에 단지 이름·등급이 보임. 열면 이 화면의 그 단지로 넘어옴
+const shUrl=id=>(/^https:\/\/ipji-lab\.github\.io\/gwangju\//.test(location.origin+location.pathname)&&/^[A-Za-z0-9_-]+$/.test(String(id)))?location.origin+location.pathname.replace(/[^/]*$/,'')+'c/'+id+'/?s=1':cxUrl(id);   // v2.8.0 공유용: 단지별 페이지(c/단지번호/) — 카카오톡·문자 미리보기에 단지 이름·등급이 보임. 열면 이 화면의 그 단지로 넘어옴
 async function copyTxt(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(e){ try{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); return ok; }catch(e2){ return false; } } }
 const kstDay=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);   // 한국 날짜(기기 시간대와 무관)
 const GCQ=[];   // 집계 스크립트가 올라오기 전에 생긴 이벤트를 잠시 담아 둠(단지 주소로 바로 들어오면 스크립트보다 단지가 먼저 열림)
@@ -1822,7 +1822,7 @@ function openMethod(){
       <li>매수 등 중요한 판단 전에는 실거래가·현장·공식 자료로 직접 확인해 주세요. 이용에 따른 판단과 결과의 책임은 이용자에게 있습니다.</li>
       <li>무료 서비스입니다. 상업적 이용은 삼가 주시고, 인용할 때는 출처(방구석 연구원, 우리동네 입지분석)를 밝혀 주세요.</li>
     </ul></section>
-    <section class="by"><p class="sm">우리동네 입지분석(광주) ${APPV} · 평가일 ${evLbl()} · <a href="changes.html" target="_blank" rel="noopener">변경 기록</a> · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
+    <section class="by"><p class="sm">우리동네 입지분석(광주) ${APPV} · 평가일 ${evLbl()} · <a href="changes.html" target="_blank" rel="noopener">변경 기록</a> · <a href="c/">단지 목록</a> · <a href="s/">학교 목록</a> · 만든 사람 <a href="https://blog.naver.com/kwon_austin" target="_blank" rel="noopener">방구석 연구원 블로그</a><span id="vc" class="vc"></span></p><p class="sm vcn">방문 통계: 쿠키나 개인정보 저장 없이 방문 수만 셉니다(GoatCounter). 주소 끝에 #toggle-goatcounter 를 붙여 열면 그 브라우저는 집계에서 빠집니다.</p></section>
   </div></div>`;
   glueDom(ov); $('mtClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
   vcFill();

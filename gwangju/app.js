@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.7.3';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.8.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -69,7 +69,7 @@ function mineClean(v){ if(!v||typeof v!=='object'||Array.isArray(v)) return null
   put('cash',num(v.cash,0,1e7)); put('loan',num(v.loan,0,1e7)); put('inc',num(v.inc,0,1e7)); put('debt',num(v.debt,0,1e7)); put('rate',num(v.rate,0,30)); put('yrs',num(v.yrs,1,50)); put('age',num(v.age,0,120)); put('maxP',num(v.maxP,0,1e13)); put('loanCalc',num(v.loanCalc,0,1e7)); if(/^\d{4}$/.test(String(v.cby))) o.cby=String(v.cby); put('csex',pick(v.csex,['남','여']));
   put('marry',pick(v.marry,['single','new','married'])); put('prod',pick(v.prod,['bank','didim','bogeum','gap','manual'])); put('size',pick(v.size,['S','M','L','all']));
   if(typeof v.child==='boolean') o.child=v.child; if(typeof v.first==='boolean') o.first=v.first; if(typeof v.baby==='boolean') o.baby=v.baby;
-  o.hub=(v.hub==null||v.hub==='')?null:(num(v.hub,0,50)??null);
+  o.hub=(v.hub==null||v.hub==='')?null:(num(v.hub,0,50)??null); o.hub2=(v.hub2==null||v.hub2==='')?null:(num(v.hub2,0,50)??null);
   if(Array.isArray(v.kids)) o.kids=v.kids.slice(0,8).map(k=>({by:/^\d{4}$/.test(String(k&&k.by))?String(k.by):'', sex:pick(k&&k.sex,['남','여'])||''}));
   if(v.w&&typeof v.w==='object'){ o.w={}; for(const a of ['L','S','J','T','D','C','Q']){ const n=num(v.w[a],0,100); if(n!==undefined) o.w[a]=n; } }
   return o; }
@@ -86,6 +86,7 @@ function syncHash(){ try{ const want=(S.view==='detail'&&S.sel)?'#c='+encodeURIC
   if (want){ if (cur!==want) history.replaceState(null,'',location.pathname+location.search+want); }
   else if (/^#c=/.test(cur)) history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
 const cxUrl=id=>location.origin+location.pathname+'#c='+encodeURIComponent(id);
+const shUrl=id=>(/^https:\/\/ipji-lab\.github\.io\/gwangju\//.test(location.origin+location.pathname)&&/^[A-Za-z0-9_-]+$/.test(String(id)))?location.origin+location.pathname.replace(/[^/]*$/,'')+'c/'+id+'/':cxUrl(id);   // v2.8.0 공유용: 단지별 페이지(c/단지번호/) — 카카오톡·문자 미리보기에 단지 이름·등급이 보임. 열면 이 화면의 그 단지로 넘어옴
 async function copyTxt(t){ try{ await navigator.clipboard.writeText(t); return true; }catch(e){ try{ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); return ok; }catch(e2){ return false; } } }
 const kstDay=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);   // 한국 날짜(기기 시간대와 무관)
 const GCQ=[];   // 집계 스크립트가 올라오기 전에 생긴 이벤트를 잠시 담아 둠(단지 주소로 바로 들어오면 스크립트보다 단지가 먼저 열림)
@@ -155,7 +156,13 @@ function fitCx(L){ if(!L.length) return; try{
   svg.transition().duration(450).call(zoom.transform, d3.zoomIdentity.translate(W/2-k*(x0+x1)/2, H/2-k*(y0+y1)/2).scale(k)); }catch(e){} }
 // 지도의 초등학교 표시: 단지가 보이는 확대 단계에서 모두, 학교로 찾는 중에는 그 학교를 늘 표시. 누르면 그 학교로 찾기
 const NVS=new Map();
-function nvSch(){ if(typeof NV==='undefined'||!NV||!X||!X.sl) return; const z=NV.getZoom(), sel=S.sch&&S.sch.n;
+let SZ=null, SZP=null, NVZn=null; const NVZ=[];
+function szLoad(){ if(SZ) return Promise.resolve(SZ); if(SZP) return SZP; if(!(X&&typeof X.szf==='string'&&/^data\/sz\.json\.gz\?v=[0-9a-f]+$/.test(X.szf)&&window.__loadGz)) return Promise.resolve(null);
+  SZP=window.__loadGz(X.szf).then(d=>{ SZ=(d&&typeof d==='object')?d:{}; return SZ; }).catch(()=>{ SZP=null; return null; }); return SZP; }
+function nvZone(){ const sel=S.sch&&S.sch.n||null; if(NVZn===sel) return; NVZ.forEach(p=>p.setMap(null)); NVZ.length=0; NVZn=sel; if(!sel||typeof NV==='undefined'||!NV) return;   // v2.8.0 통학구역 경계(한국지방교육행정연구재단 ’25.9.22)
+  szLoad().then(Z=>{ if(!Z||NVZn!==sel) return; const R=Z[sel]; if(!Array.isArray(R)) return;
+    R.forEach(r=>{ if(!Array.isArray(r)||r.length<4) return; NVZ.push(new naver.maps.Polygon({map:NV, paths:[r.map(q=>new naver.maps.LatLng(+q[0],+q[1]))], fillColor:'#3182f6', fillOpacity:.07, strokeColor:'#3182f6', strokeOpacity:.75, strokeWeight:2, strokeStyle:'shortdash', clickable:false, zIndex:4})); }); }); }
+function nvSch(){ if(typeof NV==='undefined'||!NV||!X||!X.sl) return; nvZone(); const z=NV.getZoom(), sel=S.sch&&S.sch.n;
   for(const n in X.sl){ const v=X.sl[n]; if(!Array.isArray(v)||!X.sch||!X.sch[n]) continue; const show=z>NDZ||n===sel, on=n===sel; let m=NVS.get(n);
     if(!show){ if(m&&m.getMap()) m.setMap(null); continue; }
     if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(+v[0],+v[1]), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}, zIndex:60}); naver.maps.Event.addListener(m,'click',()=>schOpen(n)); NVS.set(n,m); m.__on=null; }
@@ -167,6 +174,14 @@ function ghHTML(c){ const L=X&&X.gh&&X.gh[c.id]; if(!Array.isArray(L)||!L.length
   return '<b>등급 이력</b>'+L.slice(-3).reverse().map(r=>`<span>${xEsc(evShort(r[0]))} ${+r[1]}→${+r[2]}등급${GHL[r[3]]?' · '+GHL[r[3]]:''}</span>`).join(''); }
 // 소음 거리(대표점 − 50m 어림값): 50m 미만은 '50m 안', 그 밖은 10m 단위(’26.11.22 '지상 철도 약 2m' 같은 거짓 정밀 표시)
 const mTx=t=>String(t==null?'':t).replace(/(도로|철도) 약 (\d+)m/g,(s,a,d)=>{ d=+d; return d<50?`${a} 50m 안`:`${a} 약 ${Math.round(d/10)*10}m`; });
+// v2.8.0 같은 예산 다른 선택지(연구원 ’26.11.22): 같은 구·84㎡ 환산가 ±10% 안에서 등급이 더 높은 단지. 블로그 기준(400세대 이상·84㎡형)을 갖추고 최근 1년 매매 3건 이상(가격을 믿을 만한 곳)만. 등급 높은 순 → 가격 가까운 순 3곳
+const has84=c=>(Array.isArray(c.ut)?c.ut:[]).some(r=>Array.isArray(r)&&r[0]>=80&&r[0]<86);
+const p84Of=c=>(c&&c.p&&+c.p.p84>0)?+c.p.p84:null;
+function altsOf(c){ const v=p84Of(c), g=c.grade; if(!v||!g||g<=1||c.rent||!has84(c)) return [];   // 84㎡형이 없는 단지는 84㎡ 환산가가 실제 예산과 달라 빼고
+  return CX.filter(x=>x!==c&&x.gu===c.gu&&!x.rent&&x.grade!=null&&x.grade<g&&(x.u||0)>=400&&has84(x)&&((x.p&&x.p.n12)||0)>=3&&p84Of(x)&&Math.abs(p84Of(x)-v)<=v*0.1)
+    .sort((a,b)=>a.grade-b.grade||Math.abs(p84Of(a)-v)-Math.abs(p84Of(b)-v)).slice(0,3); }
+function altsHTML(c){ const L=altsOf(c); if(!L.length) return '';
+  return `<section class="sec alts"><h2>비슷한 가격 · 더 높은 등급 <span class="sub">${xEsc(c.gu)} · 84㎡ ${eok(p84Of(c))} ±10%</span></h2>${L.map(x=>`<button type="button" class="alt" data-alt="${xEsc(x.id)}"><span class="gchip" style="background:${gCol(x.grade)};color:${gInk(x.grade)}">${x.grade}</span><span class="an">${xEsc(dn(x))}</span><span class="am">84㎡ ${eok(p84Of(x))} · ${(+x.u).toLocaleString()}세대${x.ym?` · ${String(x.ym).slice(0,4)}년`:''}</span></button>`).join('')}</section>`; }
 // 관리비 환산 면적: 84㎡형(전용 80~86㎡)이 있으면 84㎡, 없으면 대표 면적(topEx) — 소형·대형만 있는 단지에 84㎡ 환산값을 보이지 않게
 function mgA(c){ const ut=(Array.isArray(c.ut)?c.ut:[]).filter(r=>Array.isArray(r)&&r[0]>0&&r[1]>0); if(!ut.length||ut.some(r=>r[0]>=80&&r[0]<86)) return 84;
   const t=+topEx(c); return t>0?Math.round(t):84; }
@@ -174,7 +189,8 @@ function mgOf(c){ const v=X&&X.mg&&X.mg.by&&X.mg.by[c.id]; if(!Array.isArray(v)|
   return {A, w:+v[0], man:+v[0]*A/10000, med:(+X.mg.med||0)*A/10000, per:Y.length?(Y.length>1?`${yl(Y[0])}~${yl(Y[Y.length-1])} 평균`:yl(Y[0])):''}; }
 function xSrc(){ if(!X) return []; const o=[]; const ym=y=>`’${String(y).slice(2,4)}.${+String(y).slice(4,6)}`;
   if(X.sl) o.push('초등학교 학생 수: 학교알리미 공시(교육부·한국교육학술정보원, ’26.10 받음) · 학교 위치: 전국초중등학교위치표준데이터');
-  if(X.mg&&X.mg.ym&&X.mg.ym.length) o.push(`관리비: 공동주택 관리비 공개 자료(국토교통부 K-apt, 공공데이터포털) ${ym(X.mg.ym[0])}${X.mg.ym.length>1?'~'+ym(X.mg.ym[X.mg.ym.length-1]):''} 부과분`);
+  if(X.szf) o.push('초등학교 통학구역 경계: 한국지방교육행정연구재단 초등학교통학구역(’25.9.22, 공공데이터포털)');
+  if(X.mg&&X.mg.ym&&X.mg.ym.length){ const Y=X.mg.ym.map(String).sort(); o.push(`관리비: 공동주택 관리비 공개 자료(국토교통부 K-apt, 공공데이터포털) ${ym(Y[0])}${Y.length>1?'~'+ym(Y[Y.length-1]):''} 부과분`); }
   return o; }
 function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료를 아직 못 받았으면 받은 뒤에)
   if(!X){ xLoad().then(x=>{ if(x && S.view==='detail' && S.sel===c.id) xFill(c); }); return; }
@@ -272,9 +288,12 @@ const stageOf=by=>{ if(!by) return null; const age=new Date().getFullYear()-by; 
 const kidsOf=m=>(m&&m.child&&Array.isArray(m.kids)?m.kids:[]).map(k=>({by:+k.by||0,sex:k.sex||'',st:stageOf(+k.by||0)})).filter(k=>k.st);   // 학령기(미취학~고등) 자녀만
 const childStage=m=>{ const ks=kidsOf(m); if(!ks.length) return null; const o={pre:0,elem:1,mid:2,high:3}; return ks.map(k=>k.st).sort((a,b)=>o[a]-o[b])[0]; };   // 가장 어린 학령기 자녀(비중 추천용)
 const STAGE_KO={pre:'미취학',elem:'초등',mid:'중등',high:'고등'};
+const hubsOf=m=>[...new Set([m&&m.hub, m&&m.marry!=='single'?m.hub2:null].filter(h=>h!=null&&h!==''&&M.hubN&&M.hubN[h]!=null))];   // v2.8.0 직장(나·배우자)
 function personalItems(c,m){   // 내 조건으로 바뀐 항목 점수와 설명. 자녀가 여럿이면 자녀마다 계산해 평균
   const out={}, note=[];
-  if (m.hub!=null && c.jh && c.jh[m.hub]!=null){ const t=c.jh[m.hub]; out.Jcar=linC(t,M.jcurve)*10; note.push(`직주근접: ${M.hubN[m.hub]}까지 자가용 ${t}분 → ${f1(out.Jcar)}점`); }
+  const hubs=hubsOf(m);   // v2.8.0 맞벌이: 내 직장·배우자 직장 중 먼 쪽 시간으로 계산(둘 다 다닐 만해야 함)
+  if (hubs.length && c.jh && hubs.every(h=>c.jh[h]!=null)){ const ts=hubs.map(h=>c.jh[h]), t=Math.max(...ts); out.Jcar=linC(t,M.jcurve)*10;
+    note.push(hubs.length>1?`직주근접(맞벌이): ${hubs.map((h,i)=>`${M.hubN[h]} ${ts[i]}분`).join(' · ')} → 먼 쪽 ${t}분 기준 ${f1(out.Jcar)}점`:`직주근접: ${M.hubN[hubs[0]]}까지 자가용 ${t}분 → ${f1(out.Jcar)}점`); }
   const ks=kidsOf(m);
   const midFor=sex=>{ if(!c.ms||!c.ms.length) return null; const ok=c.ms.filter(r=>r[1]==='공'||!sex||r[1]===sex); if(!ok.length) return null; const lim=M.midRmin?M.midRmin:Math.max((M.midK||2)*ok[0][2],1000/60); let top=ok.filter(r=>r[2]<=lim).slice(0,3);   /* v1.8.3 3km 안 최대 3곳(도보 환산) */ if(!top.length) top=[ok[0]];
     const avg=top.reduce((a,r)=>a+r[2],0)/top.length, ach=top.filter(r=>r[3]!=null), car=top.filter(r=>r[4]!=null); return {S3:linC(avg,M.mcurve)*10, S8:car.length?car.reduce((a,r)=>a+linC(r[4],M.schoolC),0)/car.length:null, names:top.map(r=>r[0]), avg, achp:ach.length?ach.reduce((a,r)=>a+r[3],0)/ach.length:null, carp:car.length?car.reduce((a,r)=>a+r[4],0)/car.length:null}; };   /* v1.9.0 r[4] = 특목·자사고 진학률 광주 상위 % */
@@ -944,20 +963,25 @@ function jsHTML(c){
     <p class="note" style="margin:4px 0 0">갱신 계약이 섞여 있어 시세보다 낮게 나올 수 있습니다. 전세가율이 높으면 매매가 대비 전세 수요가 탄탄하다는 뜻이지만, 깡통전세 위험도 함께 커집니다.</p></div>`;
 }
 function rateTxt(v){ if(!v) return '–'; const [n,r]=v; const m=String(r).match(/△\s*(\d+)/); if (m && n==null) return `<span style="color:var(--bad-text)">최종 미달 ${m[1]}</span>`; if (m) return `${n.toLocaleString()}명 <span style="color:var(--bad-text)">미달 ${m[1]}</span>`; return r && r!=='-' ? `${n.toLocaleString()}명 <b>${r}:1</b>` : `${n.toLocaleString()}명`; }
+// v2.8.0 연구원(’26.11.22): 청약홈 모집공고문(PDF)·청약 결과(경쟁률·당첨가점) 바로 열기. 공고문 주소는 빌드가 청약홈 공고 화면에서 받아 둔 것(없으면 공고 화면)
+function upLinks(u){ const a=String(u.url||'').match(/houseManageNo=(\d+)/), b=String(u.url||'').match(/pblancNo=(\d+)/); if(!a) return '';
+  const no=a[1], pb=b?b[1]:no, pdf=X&&X.ap&&X.ap[no], done=u.pbl&&(Date.now()-Date.parse(u.pbl))/864e5>=14;
+  return `<div class="uplk"><a class="btn" href="${xEsc(pdf||u.url)}" target="_blank" rel="noopener">입주자모집공고문 ↗</a>${done?`<a class="btn" href="https://www.applyhome.co.kr/ai/aia/selectAPTCompetitionPopup.do?houseManageNo=${no}&amp;pblancNo=${pb}" target="_blank" rel="noopener">청약 결과 ↗</a>`:''}</div>`; }
 function openUp(id){
-  const u=UP.find(x=>x.id===id), ov=$('ovPrice'); ov.hidden=false;
+  const u=UP.find(x=>x.id===id), ov=$('ovPrice'); ov.hidden=false; if(!X) xLoad().then(()=>{ if(!ov.hidden&&$('upT')&&X&&X.ap) openUp(id); });
   const tyRows=u.tys.map(t=>`<tr><td>${t.ty}${t.pno!==u.pno?' <span style="color:var(--muted)">취소분</span>':''}<br><span style="color:var(--muted);font-size:11px">공급 ${t.ar?t.ar.toFixed(1)+'㎡':'–'}</span></td><td class="num">${t.top?eok(t.top):'–'}</td><td class="num">${t.gen??'–'}${t.sp?`<br><span style="color:var(--muted);font-size:11px">특공 ${t.sp}</span>`:''}</td><td class="num">${rateTxt(t.r1h)}</td><td class="num">${rateTxt(t.r1e)}</td><td class="num">${rateTxt(t.r2h)}</td></tr>`).join('');
   const silv=u.silv.length?`<div class="tblwrap"><table class="t"><thead><tr><th>전용</th><th>거래</th><th>최근 1년 중위</th><th>최근 거래</th></tr></thead><tbody>${u.silv.map(([a,n,md,last,dt])=>`<tr><td>${a}㎡</td><td class="num">${n}건</td><td class="num">${eok(md)}</td><td class="num">${eok(last)} <span style="color:var(--muted)">’${dt}</span></td></tr>`).join('')}</tbody></table></div><p class="note">분양권 전매 실거래(${DATA.rtWin||'최근 2년'}, 해제 거래 제외). 분양가와 비교할 때는 같은 주택형인지 확인하세요.</p>`:`<p class="note">${DATA.rtWin||'최근 2년'} 분양권 전매 실거래가 없습니다(전매 제한 기간이거나 거래 없음).</p>`;
   ov.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="upT"><div class="dh"><h2 id="upT">입주예정 단지</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
     <div><div style="font-weight:700;font-size:17px">${u.n}</div><div class="dmeta">${[u.addr, u.tot?`전체 ${u.u.toLocaleString()}세대${u.genU&&u.genU<u.u?`(모집공고 공급 ${u.genU.toLocaleString()})`:''}`:`${u.u.toLocaleString()}세대(공고 공급)`, u.b].filter(Boolean).join(' · ')}</div>
       <div class="tags" style="margin-top:6px">${u.eloc?`<span class="tag good">예상 입지 ${u.eloc.g}등급</span>`:''}<span class="tag">${u.cf===false?'입주 계획':'입주 예정'} ${ymTxt(u.mvn)}</span>${u.late?`<span class="tag bad">예정월 지남 · 사용승인 전</span>`:``}${u.pre?`<span class="tag bad">착공 전</span>`:''}${u.rent?`<span class="tag">임대</span>`:''}${u.pbl?`<span class="tag">모집공고 ${u.pbl.replace(/-/g,'.').slice(2)}</span>`:(u.cf===false?`<span class="tag bad">청약 공고 없음 · 착공 미확인</span>`:'')}${u.apprv?`<span class="tag">사업승인 ’${u.apprv.slice(2,4)}.${+u.apprv.slice(4,6)}</span>`:''}${u.stc?`<span class="tag">착공 계획 ’${u.stc.slice(2,4)}.${+u.stc.slice(4,6)}</span>`:''}</div></div>
+    ${upLinks(u)}
     ${u.eloc?`<section class="sec" style="margin:0"><h2>예상 입지 등급 <b style="color:var(--accent)">${u.eloc.g}등급</b> <span style="font-size:13px;font-weight:400;color:var(--muted)">(예상 입지 점수 ${f1(u.eloc.s)}점)</span></h2><p class="note">반경 2km 안 기존 단지 ${u.eloc.k||u.eloc.n.length}곳의 입지 점수와 영역 점수를 거리로 가중 평균한 추정값입니다(참고용). 가까운 곳: ${u.eloc.n.join(' · ')}</p></section>${(()=>{ const ea=u.eloc.a||{}, ks=(M.areaOrder||[]).filter(k=>ea[k]!=null); return ks.length?`<section class="sec" style="margin:0"><h2>예상 영역별 점수</h2><div>${ks.map(k=>`<div class="area ea"><span class="an">${AN[k]}</span><span class="bar"><i style="width:${ea[k]*10}%;background:var(--accent)"></i></span><span class="s num">${f1(ea[k])}<small>/10</small></span><span></span></div>`).join('')}</div></section>`:''; })()}`:'<p class="note">반경 2km 안 기존 단지가 2곳 미만이라 예상 입지 등급을 계산하지 않았습니다.</p>'}
     <div class="callout">${u.late?`공고의 입주예정월(${ymTxt(u.mvn)})은 지났지만 건축물대장(사용승인)과 공동주택관리정보에 아직 올라오지 않아 입주예정으로 둡니다. 사용승인이 확인되면 등급 단지로 바꿉니다.<br>`:``}아직 입주 전이라 종합 등급은 매기지 않습니다. 입주 후 실거래·관리 자료가 쌓이면 평가에 넣습니다.${u.approx?'<br>※ 지도 위치는 근사입니다('+u.gsrc.replace('위치 근사: ','')+').':''}</div>
     ${u.src==='permit'?`<p class="note">청약홈 모집공고가 없어 분양가·경쟁률 자료가 없고, 실제 착공 여부도 자료로 확인하지 못했습니다. 입주 계획 ${ymTxt(u.mvn)}은 ${u.mvnEst?`착공 계획월에 ${DATA.upDur||40}개월(공고 단지의 중위 공사기간)을 더한 값입니다(사업자 계획은 ${ymTxt(u.mvnPlan)}).`:'사업자가 낸 사용검사 계획월입니다.'} 늦어지거나 무산될 수 있습니다.</p>`:`<section class="sec"><h2>주택형별 분양가·청약 경쟁률</h2>${u.cmp&&u.cmp.sup?`<p style="margin:0 0 8px">일반공급 <b class="num">${u.cmp.sup.toLocaleString()}</b>세대 · 1순위 접수 <b class="num">${u.cmp.req1.toLocaleString()}</b>건(평균 <b>${u.cmp.rate1}:1</b>)${u.cmp.short?` · <span style="color:var(--bad-text)">2순위까지 미달 ${u.cmp.short.toLocaleString()}세대(${u.cmp.shortPct}%)</span>`:' · 미달 없음'}</p>`:''}${u.unsold!=null?`<p style="margin:0 0 8px">광주시 미분양 현황(${DATA.unsLbl||'’26.9월말'}): ${u.unsold?`<b style="color:var(--bad-text)">미분양 ${u.unsold}세대</b>`:'미분양 없음'}</p>`:''}${u.tys.length?'':'<p class="note">주택형별 경쟁률 자료가 없습니다.</p>'}<div class="tblwrap"${u.tys.length?'':' hidden'}><table class="t"><thead><tr><th>주택형(전용)</th><th>분양 최고가</th><th>일반공급</th><th>1순위 해당지역</th><th>1순위 기타지역</th><th>2순위 해당지역</th></tr></thead><tbody>${tyRows}</tbody></table></div>
       <p class="note">경쟁률 = 1순위 해당지역 접수 기준(청약홈 표기). 미달은 공급보다 접수가 적었던 세대 수입니다${UP.some(x=>x.rg==='east')?'(광양만권 ‘2순위 해당지역’ 칸은 2순위까지 받은 뒤 최종 미달)':''}. 분양가는 주택형별 최고가(발코니 확장·옵션 제외).</p></section>
     <section class="sec"><h2>분양권 실거래</h2>${silv}</section>
     ${u.notes.length?`<p class="note">같은 단지의 추가 공고: ${u.notes.join(' · ')}</p>`:''}
-    <p><a class="btn" href="${u.url}" target="_blank" rel="noopener">청약홈 공고 보기 ↗</a></p>`}
+    `}
     <p class="note">출처: ${DATA.upSrc}</p>
   </div></div>`;
   $('pClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{if(e.target===ov) ov.hidden=true;};
@@ -996,6 +1020,7 @@ function renderDetail(){
     <div class="dinfo">${factsHTML(c)}${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${mTx(m[2])}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
+    ${S.mine?'':altsHTML(c)}
     <section class="sec" id="dsArea"><h2>영역별 점수</h2><div>${areas}</div></section>
     <section class="card" id="dsPrice"><div class="phd"><h2 style="font-size:14px;margin:0;font-weight:700">실거래가</h2>${bandBtn(c)}</div>
       ${priceTop}
@@ -1017,11 +1042,12 @@ function renderDetail(){
   $('pbody').querySelectorAll('[data-pid]').forEach(b=>b.onclick=()=>openPrice(b.dataset.pid));
   typeChartInit(c);
   $('star').onclick=()=>{ const was=S.cmp.includes(c.id); toggleCmp(c.id); toast(was?'비교함에서 뺐습니다':'비교함에 담았습니다'); }; statFill(c.id);
-  $('dShare').onclick=async()=>{ const u=cxUrl(c.id);   // 이 단지 링크(#c=단지번호): 휴대폰은 공유 창, 컴퓨터는 복사
-    if(CAN_SHARE){ try{ await navigator.share({title:dn(c)+' · 우리동네 입지분석', url:u}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
-    const ok=await copyTxt(u); toast(ok?'이 단지 링크를 복사했습니다':'복사하지 못했습니다'); };
+  $('dShare').onclick=async()=>{ const u=shUrl(c.id);   // 이 단지 공유 주소(c/단지번호/): 휴대폰은 공유 창(카카오톡 등), 컴퓨터는 복사
+    if(CAN_SHARE){ try{ await navigator.share({title:dn(c)+(c.grade?` · ${c.grade}등급`:'')+' · 우리동네 입지분석', url:u}); gcEv({path:'share/'+c.id, title:'공유 '+c.n, event:true}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+    const ok=await copyTxt(u); if(ok) gcEv({path:'share/'+c.id, title:'링크 복사 '+c.n, event:true}); toast(ok?'이 단지 링크를 복사했습니다':'복사하지 못했습니다'); };
   if($('dAddr')) $('dAddr').onclick=async()=>{ const ok=await copyTxt(`광주 ${c.gu} ${c.addr} ${c.n}`); toast(ok?'주소를 복사했습니다':'복사하지 못했습니다'); };   // 지번 주소 + 단지 이름(지도 앱에 붙여 넣기)
   $('pbody').querySelectorAll('[data-schg]').forEach(b=>b.onclick=()=>{ if(b.dataset.schg) schOpen(b.dataset.schg); });
+  $('pbody').querySelectorAll('[data-alt]').forEach(b=>b.onclick=()=>{ const x=CX.find(y=>y.id===b.dataset.alt); if(!x) return; gcEv({path:'alt/'+c.id, title:'비슷한 가격 대안 '+c.n+' → '+x.n, event:true}); select(x.id); });
   dtabsInit();
 }
 function priceChart(el, list){
@@ -1214,7 +1240,7 @@ function refresh(){ if (S.view==='detail' && S.sel && !passes(CX.find(c=>c.id===
 function renderBanner(){
   const b=$('banner');
   if (!S.mine){ b.hidden=true; return; }
-  b.hidden=false; b.innerHTML=`내 조건 적용 중 · ${S.mine.prod==='gap'?'갭투자 현금 '+eok(S.mine.cash):'예산 '+eok(S.mine.maxP/10000)}${S.mine.hub!=null?' · '+M.hubN[S.mine.hub]:''}${kidsOf(S.mine).length?' · 자녀 '+kidsOf(S.mine).map(k=>STAGE_KO[k.st]+(k.sex||'')).join('·'):''} · ${visible().length}개 <button id="bEdit">수정</button><button id="bOff">해제</button>`;
+  b.hidden=false; b.innerHTML=`내 조건 적용 중 · ${S.mine.prod==='gap'?'갭투자 현금 '+eok(S.mine.cash):'예산 '+eok(S.mine.maxP/10000)}${hubsOf(S.mine).length?' · '+hubsOf(S.mine).map(h=>M.hubN[h]).join('·'):''}${kidsOf(S.mine).length?' · 자녀 '+kidsOf(S.mine).map(k=>STAGE_KO[k.st]+(k.sex||'')).join('·'):''} · ${visible().length}개 <button id="bEdit">수정</button><button id="bOff">해제</button>`;
   $('bEdit').onclick=openMine; $('bOff').onclick=()=>{S.mine=null; applyMine(); S.sort='score'; refresh();};
 }
 
@@ -1259,7 +1285,7 @@ function maxPriceProd(m){   // cash + loanCap(P) ≥ P + 비용(P) 를 만족하
 }
 const PRESET = { none:{S:15,L:35,J:15,T:5,D:5,C:20,Q:5}, pre:{S:40,L:25,J:5,T:5,D:5,C:15,Q:5}, elem:{S:40,L:25,J:5,T:5,D:5,C:15,Q:5}, mid:{S:40,L:20,J:5,T:5,D:5,C:20,Q:5}, high:{S:35,L:20,J:10,T:5,D:5,C:20,Q:5} };
 function openMine(){
-  const d = Object.assign({cash:20000, loan:30000, inc:0, debt:0, rate:0, yrs:30, age:35, marry:'single', child:false, kids:[{by:'',sex:''}], prod:'bank', hub:null, size:'M', first:false, w:Object.fromEntries(MW.map(m=>[m[0],m[2]]))}, S.mineDraft||{});
+  const d = Object.assign({cash:20000, loan:30000, inc:0, debt:0, rate:0, yrs:30, age:35, marry:'single', child:false, kids:[{by:'',sex:''}], prod:'bank', hub:null, hub2:null, size:'M', first:false, w:Object.fromEntries(MW.map(m=>[m[0],m[2]]))}, S.mineDraft||{});
   if (!Array.isArray(d.kids)||!d.kids.length) d.kids=[{by:d.cby||'',sex:d.csex||''}];
   const ov=$('ovMine'); ov.hidden=false;
   const opt=(id,opts,cur,cols)=>`<div class="opt" id="${id}" style="--n:${cols||opts.length}">${opts.map(([k,l,sub])=>`<button type="button" data-v="${k}" aria-pressed="${String(cur)===String(k)}">${l}${sub?`<small>${sub}</small>`:''}</button>`).join('')}</div>`;
@@ -1291,7 +1317,8 @@ function openMine(){
 
       <section class="blk"><h3><span>3</span>직장</h3>
         <div class="fld"><span class="lb">주로 출근하는 업무지구</span>${opt('mHub',[['','상관없음']].concat((M.hubN||[]).map((n,i)=>[i,n])),d.hub==null?'':d.hub,3)}</div>
-        <p class="hint">직장을 고르면 직주근접은 그 업무지구까지 자가용 시간으로 계산합니다. '상관없음'은 모든 업무지구를 일자리 규모로 가중한 기본값입니다.</p>
+        <div class="fld" id="mHub2Box" ${d.marry==='single'?'hidden':''}><span class="lb">배우자 직장 <small>맞벌이</small></span>${opt('mHub2',[['','없음']].concat((M.hubN||[]).map((n,i)=>[i,n])),d.hub2==null?'':d.hub2,3)}</div>
+        <p class="hint">직장을 고르면 직주근접은 그 업무지구까지 자가용 시간으로 계산합니다. 배우자 직장까지 고르면 둘 중 먼 쪽 시간으로 계산합니다. '상관없음'은 모든 업무지구를 일자리 규모로 가중한 기본값입니다.</p>
       </section>
 
       <section class="blk"><h3><span>4</span>중요하게 보는 것 <small>합계 100</small></h3>
@@ -1303,12 +1330,12 @@ function openMine(){
     </div>
     <div class="df"><button class="btn" id="mOff" ${S.mine?'':'hidden'}>해제</button><button class="btn primary" id="mApply">지도에 표시</button></div>
   </div>`;
-  const st={marry:d.marry, child:!!d.child, prod:d.prod, hub:d.hub, size:d.size, yrs:String(d.yrs||30)};
+  const st={marry:d.marry, child:!!d.child, prod:d.prod, hub:d.hub, hub2:d.hub2, size:d.size, yrs:String(d.yrs||30)};
   const num=id=>+(($(id).value||'').toString().replace(/[^\d]/g,''))||0;
   const readKids=()=>[...$('mKids').querySelectorAll('.kid')].map(el=>({by:+((el.querySelector('.kBy').value||'').replace(/[^\d]/g,''))||0, sex:((el.querySelector('.kSex [aria-pressed="true"]')||{}).dataset||{}).v||''}));
-  const read=()=>({cash:num('mCash'), inc:num('mInc'), debt:num('mDebt'), rate:parseFloat(($('mRate').value||'').replace(/[^\d.]/g,''))||0, yrs:+st.yrs, age:num('mAge'), marry:st.marry, child:st.child, kids:readKids(), prod:st.prod, hub:st.hub===''||st.hub==null?null:+st.hub, loan:num('mLoan'), size:st.size, first:$('mFirst').checked, w:Object.fromEntries(MW.map(([k])=>[k,+$('w_'+k).value]))});
+  const read=()=>({cash:num('mCash'), inc:num('mInc'), debt:num('mDebt'), rate:parseFloat(($('mRate').value||'').replace(/[^\d.]/g,''))||0, yrs:+st.yrs, age:num('mAge'), marry:st.marry, child:st.child, kids:readKids(), prod:st.prod, hub:st.hub===''||st.hub==null?null:+st.hub, hub2:(st.marry==='single'||st.hub2===''||st.hub2==null)?null:+st.hub2, loan:num('mLoan'), size:st.size, first:$('mFirst').checked, w:Object.fromEntries(MW.map(([k])=>[k,+$('w_'+k).value]))});
   const upd=()=>{
-    const m=read(); const L=LOAN[m.prod]; $('mProdDesc').textContent=L.desc+(m.prod==='gap'||m.prod==='manual'?'':` (기준 ${LOAN.asof}, 신청 전 공식 확인)`); $('mLoanBox').hidden=m.prod!=='manual'; $('mRateBox').hidden=(m.prod==='gap'); $('mKids').hidden=!m.child;
+    const m=read(); const L=LOAN[m.prod]; $('mProdDesc').textContent=L.desc+(m.prod==='gap'||m.prod==='manual'?'':` (기준 ${LOAN.asof}, 신청 전 공식 확인)`); $('mLoanBox').hidden=m.prod!=='manual'; $('mRateBox').hidden=(m.prod==='gap'); $('mKids').hidden=!m.child; $('mHub2Box').hidden=m.marry==='single';
     const ks=kidsOf(m); $('mChildNote').textContent = m.child ? (ks.length?ks.map(k=>`${k.by}년생 ${STAGE_KO[k.st]}${k.sex?`(${k.sex})`:''}`).join(' · ')+' → '+({pre:'미취학: 영유아·초등 통학까지 모두 봅니다',elem:'초등: 초등 통학·중학교·학원가를 봅니다',mid:'중등: 초등 항목은 빼고 중학교·학원가·고등학교를 봅니다',high:'고등: 학원가·고등학교만 봅니다'})[childStage(m)]:'출생연도를 넣어 주세요. 성인 자녀는 자녀 없음과 같이 계산합니다') : '';
     const big=m.size==='L';
     if (m.prod==='gap'){ $('mBudget').innerHTML=`<div class="big"><span>보유 현금</span><b>${eok(m.cash)}</b></div><p class="hint">매매 중위가 − 전세 중위가 + 취득세·중개보수가 보유 현금 안인 단지만 보여 줍니다(전세·매매 각 3건 이상 단지). 실거주가 아니며 전세 만기·역전세 위험은 반영하지 않습니다.</p>`; m.maxP=1e13; }
@@ -1324,14 +1351,14 @@ function openMine(){
     return m;
   };
   const bindOpt=(el,fn)=>el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b))); fn(b.dataset.v); upd(); });
-  bindOpt($('mMarry'),v=>st.marry=v); bindOpt($('mChild'),v=>st.child=v==='1'); bindOpt($('mProd'),v=>st.prod=v); bindOpt($('mHub'),v=>st.hub=v); bindOpt($('mSize'),v=>st.size=v); bindOpt($('mYrs'),v=>st.yrs=v);
+  bindOpt($('mMarry'),v=>st.marry=v); bindOpt($('mChild'),v=>st.child=v==='1'); bindOpt($('mProd'),v=>st.prod=v); bindOpt($('mHub'),v=>st.hub=v); bindOpt($('mHub2'),v=>st.hub2=v); bindOpt($('mSize'),v=>st.size=v); bindOpt($('mYrs'),v=>st.yrs=v);
   const bindKids=()=>{ $('mKids').querySelectorAll('.kid').forEach((el,i)=>{ el.querySelector('.kid-h b').textContent='자녀 '+(i+1); bindOpt(el.querySelector('.kSex'),()=>{}); el.querySelector('.kBy').oninput=upd; const x=el.querySelector('.kDel'); if (x) x.onclick=()=>{ el.remove(); bindKids(); $('kAdd').hidden=$('mKids').querySelectorAll('.kid').length>=3; upd(); }; }); };
   bindKids();
   $('kAdd').onclick=()=>{ const n=$('mKids').querySelectorAll('.kid').length; if (n>=3) return; $('kAdd').insertAdjacentHTML('beforebegin', kidRow({by:'',sex:''},n)); bindKids(); $('kAdd').hidden=n+1>=3; upd(); };
   const eqFill=()=>ov.querySelectorAll('.fld .eq').forEach(e=>{ const i=$(e.dataset.for); const v=+String(i&&i.value||'').replace(/[^\d]/g,''); e.textContent=v?'= '+(v>=10000?`${Math.floor(v/10000)}억${v%10000?` ${(v%10000).toLocaleString()}만`:''} 원`:`${v.toLocaleString()}만 원`):''; });
   ov.querySelectorAll('input:not(.kBy)').forEach(i=>i.addEventListener('input',upd)); ov.querySelectorAll('.fld .eq').forEach(e=>{ const i=$(e.dataset.for); if(i) i.addEventListener('input',eqFill); }); eqFill();
   const setW=w=>{ MW.forEach(([k])=>{ $('w_'+k).value=w[k]??0; }); upd(); };
-  $('wAuto').onclick=()=>{ const m=read(); const stg=childStage(m)||'none'; const w=Object.assign({},PRESET[stg]); if (m.hub!=null) { w.J=Math.min(60,w.J+10); w.L=Math.max(0,w.L-10); } setW(w); };
+  $('wAuto').onclick=()=>{ const m=read(); const stg=childStage(m)||'none'; const w=Object.assign({},PRESET[stg]); if (hubsOf(m).length) { w.J=Math.min(60,w.J+10); w.L=Math.max(0,w.L-10); } setW(w); };
   $('wFit').onclick=()=>{ let sum=0; MW.forEach(([k])=>sum+=+$('w_'+k).value); if(!sum) return; let acc=0; MW.forEach(([k],i)=>{ let v=i<MW.length-1?Math.round(+$('w_'+k).value/sum*100):100-acc; acc+=v; $('w_'+k).value=v; }); upd(); };
   $('mReset').onclick=()=>{ setW(Object.fromEntries(MW.map(([k,,v])=>[k,v]))); };
   $('mClose').onclick=()=>{ov.hidden=true;}; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };

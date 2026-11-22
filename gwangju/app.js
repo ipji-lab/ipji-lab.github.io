@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.9.5';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.6';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -243,7 +243,7 @@ function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료�
   const g=document.getElementById('xGh'); if(g){ const h=ghHTML(c); g.innerHTML=h; g.hidden=!h; }
   const m=mgOf(c), f=document.getElementById('xMgF'); if(f && m){ f.innerHTML=`<span class="fl">관리비 · ${m.A}㎡</span><b class="fv num">월 ${m.man.toFixed(1)}만원</b><span class="fs">${m.per}${m.med?` · 중위 ${m.med.toFixed(1)}만`:''}</span>`; f.classList.add('mg'); }
   document.querySelectorAll('[data-schg]').forEach(b=>{ const n=b.querySelector('.fv')&&b.querySelector('.fv').textContent; if(!b.dataset.schg && n && X.sch && X.sch[n]){ b.dataset.schg=n; b.disabled=false; const fs=b.querySelector('.fs'); if(fs) fs.textContent+=' ›'; } });   // 자료가 늦게 오면 그때 누를 수 있게
-  const sc=document.getElementById('xSkC'); if(sc && !sc.dataset.x){ sc.dataset.x='1'; sc.innerHTML=skChips(c); sc.querySelectorAll('[data-sk]').forEach(b=>b.onclick=()=>openSchool(b.dataset.sk)); }
+  // v2.9.6 연구원(’26.11.22): 요약 아래 '중학교 후보·고등학교 후보' 칩은 뺌(학교 정보는 지도·검색·초등학교 줄에서 엶)
   if(f && !m && X.mg){ const late=(()=>{ const Y=(X.mg&&X.mg.ym||[]).map(Number).sort(); const y=Y[Y.length-1], mv=+c.ym||0; return y&&mv&&y<(Math.floor(mv/100)+1)*100+mv%100; })(); const v=f.querySelector('.fv'); if(v) v.textContent=late?'입주 1년 안':'공개 자료 없음'; f.classList.add('na'); }   // v2.9.0 빈칸 대신 이유
   const ul=document.getElementById('xSrcUl'); if(ul && !ul.dataset.x){ ul.dataset.x='1'; xSrc().forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); }); } }
 // 단지 상세 핵심 정보(한눈에): 세대수·입주·주차·용적률·초등학교·관리비(없으면 건폐율)
@@ -1066,7 +1066,7 @@ function renderDetail(){
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="ghist" id="xGh" hidden></div>
     </section>
-    <div class="dinfo">${factsHTML(c)}<div id="xSkC"></div>${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
+    <div class="dinfo">${factsHTML(c)}${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${mTx(m[2])}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
     ${S.mine?'':altsHTML(c)}

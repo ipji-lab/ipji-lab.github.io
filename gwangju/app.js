@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.8.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.0';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -138,7 +138,9 @@ const schNorm=q=>q.replace(/\s+/g,'').replace(/초등학교$/,'초').replace(/�
 function schFind(q){   // 이름 일부로 찾기: 앞에서 맞는 것 먼저(’남초’ → ’광주남초’도), 최대 3곳 [{n(정식 이름), L([[단지번호, 도보 분]])}]
   if(!X||!X.sch) return []; const k=schNorm(q); if(k.length<2) return []; const A=[],B=[];
   for(const n in X.sch){ const L=(X.sch[n]||[]).filter(r=>CXI.has(r[0])); if(!L.length) continue; if(n.startsWith(k)||n.startsWith('광주'+k)) A.push({n,L}); else if(n.includes(k)) B.push({n,L}); }
-  return A.concat(B).slice(0,3); }
+  const k2=q.replace(/\s+/g,'').replace(/(중|고등)학교$/,m=>m==='중학교'?'중':'고').replace(/여자(중|고)$/,'여$1');   // v2.9.0 중·고: 학교 정보
+  if(X.sk) for(const n in X.sk){ const d=X.sk[n]; if(d.l==='e') continue; if(n.startsWith(k2)||n.startsWith('광주'+k2)) A.push({n,lv:d.l}); else if(k2.length>=2&&n.includes(k2)) B.push({n,lv:d.l}); }
+  return A.concat(B).slice(0,4); }
 function schSet(h){ S.sch=h?{n:h.n, m:new Map(h.L)}:null; S.sort=h?'sch':(S.sort==='sch'?'score':S.sort); S.view='list'; S.sel=null; LMORE=300; refresh(); try{ if(typeof NV!=='undefined'&&NV) nvSch(); }catch(e){}
   if(h){ sheetTo('half'); setTimeout(()=>{ if(S.sch) fitCx(CX.filter(c=>S.sch.m.has(c.id)&&passes(c)).concat(schPt(S.sch.n))); }, 380); } }   // 목록 판이 자리 잡은 뒤에 지도를 맞춤(학교 위치도 함께)
 function schOpen(n){ const L=((X&&X.sch&&X.sch[n])||[]).filter(r=>CXI.has(r[0])); if(L.length) schSet({n,L}); }
@@ -147,7 +149,7 @@ const schMin=c=>{ const v=S.sch&&S.sch.m.get(c.id); return v==null?'도보권 �
 const SCH_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z" fill="currentColor"/><path d="M6 10.6V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.4l-6 3.3-6-3.3Z" fill="currentColor" opacity=".72"/></svg>';
 function schInfo(n){ const v=X&&X.sl&&X.sl[n]; if(!Array.isArray(v)) return ''; const t=[]; if(+v[2]>0) t.push(`학생 ${(+v[2]).toLocaleString()}명`); if(+v[3]>0) t.push(`학급당 ${(+v[3]).toFixed(1)}명`); return t.join(' · '); }
 function schLine(){ if(!S.sch) return ''; const inf=schInfo(S.sch.n);
-  return `<div class="schc"><span class="schi">${SCH_ICON}</span><div class="schb"><b>${xEsc(S.sch.n)}</b><span>배정 단지 ${visible().length.toLocaleString()}곳${inf?' · '+xEsc(inf):''}</span></div><button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
+  return `<div class="schc"><span class="schi">${SCH_ICON}</span><div class="schb"><b>${xEsc(S.sch.n)}</b><span>배정 단지 ${visible().length.toLocaleString()}곳${inf?' · '+xEsc(inf):''}</span></div>${skOf(S.sch.n)?`<button class="sinfo" id="schI" type="button">학교 정보</button>`:''}<button class="x" id="schX" aria-label="학교로 찾기 끄기" title="학교로 찾기 끄기">✕</button></div>`; }
 function fitCx(L){ if(!L.length) return; try{
   if (typeof NV!=='undefined' && NV){ const b=new naver.maps.LatLngBounds(); L.forEach(c=>b.extend(new naver.maps.LatLng(c.lat,c.lon))); const mobile=matchMedia('(max-width:900px)').matches;
     if(L.length===1){ flyTo(L[0]); return; } const mr=$('nmap').getBoundingClientRect(), sr=$('side').getBoundingClientRect(), cover=Math.max(0,Math.min(Math.round(mr.bottom-sr.top), Math.round(mr.height*0.6)));   // v2.6.1 휴대폰: 목록 판이 지도를 가린 높이만큼만 아래를 비움
@@ -167,7 +169,40 @@ function nvSch(){ if(typeof NV==='undefined'||!NV||!X||!X.sl) return; nvZone(); 
     if(!show){ if(m&&m.getMap()) m.setMap(null); continue; }
     if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(+v[0],+v[1]), icon:{content:'<div></div>',anchor:new naver.maps.Point(0,0)}, zIndex:60}); naver.maps.Event.addListener(m,'click',()=>schOpen(n)); NVS.set(n,m); m.__on=null; }
     if(m.__on!==on){ m.__on=on; m.setIcon({content:`<div class="nsch${on?' on':''}" title="${xEsc(n)} · 배정 단지 보기">${SCH_ICON}<span>${xEsc(n)}</span></div>`, anchor:new naver.maps.Point(13,13)}); m.setZIndex(on?1500:60); }
+    if(!m.getMap()) m.setMap(NV); }
+  if(X.sk) for(const n in X.sk){ const d=X.sk[n]; if(d.l==='e') continue; const show=z>NDZ&&!S.sch; let m=NVS.get(n);   // v2.9.0 중·고(학교로 찾는 동안에는 숨김)
+    if(!show){ if(m&&m.getMap()) m.setMap(null); continue; }
+    if(!m){ m=new naver.maps.Marker({position:new naver.maps.LatLng(+d.la,+d.lo), icon:{content:`<div class="nsch l${d.l}" title="${xEsc(n)} · 학교 정보">${SCH_ICON}<span>${xEsc(n)}</span></div>`, anchor:new naver.maps.Point(13,13)}, zIndex:55}); naver.maps.Event.addListener(m,'click',()=>openSchool(n)); NVS.set(n,m); }
     if(!m.getMap()) m.setMap(NV); } }
+// v2.9.0 학교 정보(연구원 ’26.11.22): 초·중·고를 누르면 학교 정보를 그림으로. 자료 = 부가 자료 X.sk(학교알리미 공시·졸업생 진로·학업성취·배정가능고교)
+const SKL={e:'초등학교',m:'중학교',h:'고등학교'};
+const skOf=n=>(X&&X.sk&&X.sk[n])||null;
+const skCo=d=>d.co==='공학'?'남녀공학':d.co==='남'?'남학교':d.co==='여'?'여학교':null;
+function skMeter(top,lab){ const w=Math.max(3,101-top); return `<div class="skmt"><span class="skmb" role="img" aria-label="${lab} 광주 상위 ${top}%"><i style="width:${w}%"></i></span><span class="skmv">상위 ${top}%</span></div>`; }
+function openSchool(n){ const d=skOf(n); if(!d) return; const ov=$('ovPrice'), M=(X.skm&&X.skm[d.l])||{}; ov.hidden=false;
+  const L=d.l==='e'?((X.sch&&X.sch[n])||[]).filter(r=>CXI.has(r[0])):[];
+  const tags=[d.f, skCo(d), d.k&&d.k!=='일반고'?d.k:null, d.au?'자율형 공립고':null, d.y?`${d.y}년 개교`:null, d.gu].filter(Boolean);
+  const tile=(l,v,u,m)=>v==null?'':`<div class="skt"><span class="skl">${l}</span><b class="num">${(+v).toLocaleString()}<small>${u}</small></b>${m!=null?`<span class="sks">광주 중앙 ${(+m).toLocaleString()}${u}</span>`:''}</div>`;
+  const tiles=[tile('학생 수',d.s,'명',M.s), tile('학급당 학생',d.pc,'명',M.pc), tile('교원 1인당 학생',d.tc,'명',M.tc)].join('');
+  const g=Array.isArray(d.g)?d.g.map(v=>+v||0):[], gm=Math.max(1,...g);
+  const gch=g.length&&g.some(v=>v>0)?`<section class="sksec"><h3>학년별 학생 수</h3><div class="skg" role="img" aria-label="${g.map((v,i)=>`${i+1}학년 ${v}명`).join(', ')}">${g.map((v,i)=>`<div class="skc" title="${i+1}학년 ${v}명"><span class="skv num">${v}</span><span class="skbar"><i style="height:${Math.max(2,Math.round(v/gm*100))}%"></i></span><span class="skx">${i+1}학년</span></div>`).join('')}</div></section>`:'';
+  const mv=(d.mi!=null&&d.mo!=null)?(()=>{ const mx=Math.max(1,d.mi,d.mo), net=d.mi-d.mo; return `<section class="sksec"><h3>전입·전출 <small>지난 학년도</small></h3><div class="skr"><span>전입</span><span class="skb"><i style="width:${Math.round(d.mi/mx*100)}%"></i></span><b class="num">${d.mi}명</b></div><div class="skr"><span>전출</span><span class="skb"><i class="o" style="width:${Math.round(d.mo/mx*100)}%"></i></span><b class="num">${d.mo}명</b></div><p class="skn">${net>0?`전입이 ${net}명 많음`:net<0?`전출이 ${-net}명 많음`:'전입과 전출이 같음'}</p></section>`; })():'';
+  const cr=d.cr?`<section class="sksec"><h3>특목·자사고 진학 <small>’23~’25 졸업생</small></h3><p class="skhero num">${d.cr[0].toFixed(1)}<small>%</small></p>${d.cr[1]?skMeter(d.cr[1],'특목·자사고 진학률'):'<p class="skn">졸업생이 적어 순위 없음</p>'}<p class="skn">과학고 ${d.cr[2]} · 외고·국제고 ${d.cr[3]} · 자사고 ${d.cr[4]} · 졸업생 ${(+d.cr[5]).toLocaleString()}명</p></section>`:'';
+  const ac=d.ac?`<section class="sksec"><h3>학업성취 <small>${d.l==='m'?'핵심과목 평균 점수':'성취도 A 비율'}</small></h3><p class="skhero num">${d.l==='m'?d.ac[0].toFixed(1)+'<small>점</small>':d.ac[0].toFixed(1)+'<small>%</small>'}</p>${d.ac[1]?skMeter(d.ac[1],'학업성취'):''}</section>`:'';
+  const hs=d.l==='h'?(d.au?`<p class="skn">광주 어디서나 지원하는 자율형 공립고</p>`:(d.hn?`<p class="skn">배정 가능 중학교 ${d.hn[0]?`남학생 ${d.hn[0]}곳`:''}${d.hn[0]&&d.hn[1]?' · ':''}${d.hn[1]?`여학생 ${d.hn[1]}곳`:''}</p>`:'')):'';
+  ov.innerHTML=`<div class="drawer sk" role="dialog" aria-modal="true" aria-labelledby="skT"><div class="dh"><h2 id="skT">${xEsc(n)}</h2><button class="back" id="pClose" aria-label="닫기">✕</button></div><div class="db">
+    <div class="sktop"><span class="sklv l${d.l}">${SCH_ICON}${SKL[d.l]}</span><span class="sktags">${tags.map(t=>`<span class="tag">${xEsc(t)}</span>`).join('')}</span></div>
+    ${d.l==='e'&&L.length?`<button type="button" class="btn primary skgo" id="skGo">배정 단지 ${L.length.toLocaleString()}곳 보기</button>`:''}
+    ${tiles?`<div class="sktiles">${tiles}</div>`:''}
+    ${cr}${ac}${hs}${gch}${mv}
+    <p class="note">출처: 학교알리미 공시(’26)${d.cr?' · 졸업생 진로(’23~’25 합산)':''}${d.ac?' · 교과별 학업성취(’26)':''}${d.l==='h'&&(d.hn||d.au)?' · 광주진로진학지원센터 배정가능고교(’26학년도)':''}</p>
+  </div></div>`;
+  $('pClose').onclick=()=>ov.hidden=true; ov.onclick=e=>{ if(e.target===ov) ov.hidden=true; };
+  if($('skGo')) $('skGo').onclick=()=>{ ov.hidden=true; schOpen(n); };
+  gcEv({path:'school/'+n, title:'학교 '+n, event:true}); }
+// 단지 상세의 중·고 후보(배정 가능성이 높은 학교) — 누르면 학교 정보
+function skChips(c){ const f=(arr,lab)=>{ const ns=[...new Set((arr||[]).map(r=>r&&r[0]).filter(n=>n&&skOf(n)))].slice(0,3); return ns.length?`<div class="skch"><span class="skcl">${lab}</span>${ns.map(n=>`<button type="button" class="tag" data-sk="${xEsc(n)}">${xEsc(n)}</button>`).join('')}</div>`:''; };
+  return f(c.ms,'중학교 후보')+f(c.hs,'고등학교 후보'); }
 const GHL={price:'㎡당 실거래가',px:'자리값',px1:'자리값',small:'소단지 조건',old:'연식 조건',unit:'소형 조건',nopx:'매매 없음',rentpx:'임대',unsold2:'미분양',mktup:'시장 평가',newmkt:'신축 시세',rank:'점수 순위',v:'기준 변경'};
 const evShort=d=>{ const p=String(d||'').split('-'); return p.length===3?`’${p[0].slice(2)}.${+p[1]}.${+p[2]}`:''; };
 function ghHTML(c){ const L=X&&X.gh&&X.gh[c.id]; if(!Array.isArray(L)||!L.length) return '';
@@ -197,12 +232,14 @@ function xFill(c){   // 단지 상세의 부가 자료 자리 채우기(자료�
   const g=document.getElementById('xGh'); if(g){ const h=ghHTML(c); g.innerHTML=h; g.hidden=!h; }
   const m=mgOf(c), f=document.getElementById('xMgF'); if(f && m){ f.innerHTML=`<span class="fl">관리비 · ${m.A}㎡</span><b class="fv num">월 ${m.man.toFixed(1)}만원</b><span class="fs">${m.per}${m.med?` · 중위 ${m.med.toFixed(1)}만`:''}</span>`; f.classList.add('mg'); }
   document.querySelectorAll('[data-schg]').forEach(b=>{ const n=b.querySelector('.fv')&&b.querySelector('.fv').textContent; if(!b.dataset.schg && n && X.sch && X.sch[n]){ b.dataset.schg=n; b.disabled=false; const fs=b.querySelector('.fs'); if(fs) fs.textContent+=' ›'; } });   // 자료가 늦게 오면 그때 누를 수 있게
+  const sc=document.getElementById('xSkC'); if(sc && !sc.dataset.x){ sc.dataset.x='1'; sc.innerHTML=skChips(c); sc.querySelectorAll('[data-sk]').forEach(b=>b.onclick=()=>openSchool(b.dataset.sk)); }
+  if(f && !m && X.mg){ const late=(()=>{ const Y=(X.mg&&X.mg.ym||[]).map(Number).sort(); const y=Y[Y.length-1], mv=+c.ym||0; return y&&mv&&y<(Math.floor(mv/100)+1)*100+mv%100; })(); const v=f.querySelector('.fv'); if(v) v.textContent=late?'입주 1년 안':'공개 자료 없음'; f.classList.add('na'); }   // v2.9.0 빈칸 대신 이유
   const ul=document.getElementById('xSrcUl'); if(ul && !ul.dataset.x){ ul.dataset.x='1'; xSrc().forEach(t=>{ const li=document.createElement('li'); li.textContent=t; ul.appendChild(li); }); } }
 // 단지 상세 핵심 정보(한눈에): 세대수·입주·주차·용적률·초등학교·관리비(없으면 건폐율)
 function factsHTML(c){
   const ym=c.ym?String(c.ym):'', pk=pkU(c), m=/^\s*(\S+초)까지\s*(?:도보 약 (\d+)분)?/.exec((c.raw&&c.raw.S1t)||''), sn=m?m[1]:null, sk=sn&&X&&X.sch&&X.sch[sn]?sn:null;
   const cell=(l,v,s,a='')=>`<div class="fc"${a}><span class="fl">${l}</span><b class="fv num">${v}</b>${s?`<span class="fs">${s}</span>`:''}</div>`;
-  return `<div class="facts">${cell('세대수',`${c.u.toLocaleString()}세대`)}${cell('입주',ym?`${ym.slice(0,4)}.${ym.slice(4)}`:`${c.y}년`,c.age>0?`${c.age}년차`:'올해 입주')}${cell('주차',pk!=null?`세대당 ${pk}대`:'미확인')}${cell('용적률·건폐율',`${c.far?Math.round(c.far)+'%':'–'} · ${c.bcr?c.bcr+'%':'–'}`,c.far&&c.fe?'용적률 추정':'')}`
+  return `<div class="facts">${cell('세대수',`${c.u.toLocaleString()}세대`)}${cell('입주',ym?`${ym.slice(0,4)}.${ym.slice(4)}`:`${c.y}년`,c.age>0?`${c.age}년차`:'올해 입주')}${(()=>{ if(pk!=null) return cell('주차',`세대당 ${pk}대`); const e=/세대당\s*([\d.]+)대\s*\(추정\)/.exec((c.raw&&c.raw.C2)||''); return e?cell('주차',`세대당 ${(+e[1]).toFixed(1)}대`,'추정'):cell('주차','자료 없음'); })()}${cell('용적률·건폐율',`${c.far?Math.round(c.far)+'%':'–'} · ${c.bcr?c.bcr+'%':'–'}`,c.far&&c.fe?'용적률 추정':'')}`
     + (sn?`<button type="button" class="fc fbtn" data-schg="${xEsc(sk||'')}"${sk?'':' disabled'}><span class="fl">초등학교</span><b class="fv">${xEsc(sn)}</b><span class="fs">${m[2]?'도보 '+m[2]+'분':''}${sk?' ›':''}</span></button>`:cell('초등학교','미확인'))
     + `<div class="fc" id="xMgF"><span class="fl">관리비 · ${mgA(c)}㎡</span><b class="fv">–</b></div></div>`; }
 // 최근 본 단지(이 기기 안에만 저장, 서버로 보내지 않음)
@@ -683,6 +720,7 @@ function renderPanel(){
   $('sort').value=S.sort; $('sort').onchange=e=>{S.sort=e.target.value; renderPanel();};
   $('pbody').innerHTML = schLine() + favLine() + (list.length ? `<ul class="list">${list.slice(0,LMORE).map(itemHTML).join('')}</ul>${list.length>LMORE?`<p style="padding:8px 16px 20px"><button class="btn" id="lmore" style="width:100%">더 보기 (${(list.length-LMORE).toLocaleString()}곳 남음)</button></p>`:''}` : `<div class="empty">조건에 맞는 단지가 없습니다.<br>필터를 줄이거나 예산을 늘려 보세요.</div>`);
   if ($('schX')) $('schX').onclick=()=>schSet(null);
+  if ($('schI')) $('schI').onclick=()=>{ if(S.sch) openSchool(S.sch.n); };
   $('pbody').querySelectorAll('[data-fav]').forEach(b=>b.onclick=()=>select(b.dataset.fav)); if ($('favX')) $('favX').onclick=()=>{ S.cmp.forEach(favBase); renderPanel(); };
   $('pbody').querySelectorAll('.item[data-id]').forEach(b=>{ b.onclick=()=>select(b.dataset.id); b.onkeydown=e=>{ if((e.key==='Enter'||e.key===' ')&&e.target===b){ e.preventDefault(); select(b.dataset.id); } }; });
   if ($('lmore')) $('lmore').onclick=()=>{ const y=$('pbody').scrollTop; LMORE+=300; renderPanel(); $('pbody').scrollTop=y; };
@@ -1010,14 +1048,14 @@ function renderDetail(){
   $('pbody').innerHTML = `<div class="detail">
     <div><div class="dtitle"><h1${lwOf(c,13)?' class="lw"':''}>${dn(c)}</h1><span class="stc" id="stc"></span><button class="star sh" id="dShare" aria-label="${CAN_SHARE?'이 단지 공유':'이 단지 링크 복사'}" title="${CAN_SHARE?'이 단지 공유':'이 단지 링크 복사'}">${LINK_ICON}</button><button class="star ${inCmp?'on':''}" id="star" aria-pressed="${inCmp}" aria-label="${inCmp?'비교함에서 빼기':'비교함에 담기'}" title="${inCmp?'비교함에서 빼기':'비교함에 담기'}">${inCmp?'★':'☆'}</button></div>
       <div class="dstat" id="dstat" hidden></div>
-      <div class="dmeta daddr"><span>${c.gu} ${c.addr||''}</span>${c.addr?'<button type="button" class="lnk" id="dAddr">주소 복사</button>':''}</div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}</div>
+      <div class="dmeta daddr"><span>${c.gu} ${c.addr||''}</span></div>${FAVSHOW&&FAVSHOW.id===c.id?`<p class="favn">지난번 본 뒤 ${FAVSHOW.t}</p>`:''}</div>
     <nav class="dtabs" id="dtabs" aria-label="상세 바로가기"><span class="dtt">${dn(c)}${g!=null?` · ${g}등급`:''}</span><span class="dtb"><button type="button" data-go="dsSum">요약</button><button type="button" data-go="dsArea">점수</button><button type="button" data-go="dsPrice">실거래</button><button type="button" data-go="dsTr">교통</button><button type="button" data-go="dsTown">동네</button></span></nav>
     <section class="hero" id="dsSum">
       <div class="ghead">${g==null?`<span class="gnum tent">${c.rent&&!S.mine?'임대':'산출 전'}</span>`:`<span class="gnum" style="background:${gCol(g)};color:${gInk(g)}">${g}등급</span>`}<span class="gwhere">${g==null?(c.rent&&!S.mine?`종합 등급 없음 · 입지 ${c.locG??'-'}등급`:'잠정 평가'):(()=>{ if (c.rent&&!S.mine) return `<span class="nw">임대 단지 · 순위 제외</span><span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; const [rk,nn,pp]=rankOf(c); return `<span class="nw">${c.zn==='gj'||!c.zn?'광주':({sw:'목포권',east:'광양만권'})[c.zn]} ${nn.toLocaleString()}곳 중 ${rk.toLocaleString()}위</span>${pp<1?'':` <span class="nw">(상위 ${Math.round(pp)}%)</span>`}<span class="gtot">종합점수 ${f1(tot)}점${(!S.locMode&&(c.loc??c.locTent)!=null)?` · 입지점수 ${f1(c.loc??c.locTent)}점`:''}</span>`; })()}</span></div>
       ${(()=>{ const w=capWhy(c,g); return w?`<div class="gbase">${w}</div>`:''; })()}
       <div class="ghist" id="xGh" hidden></div>
     </section>
-    <div class="dinfo">${factsHTML(c)}${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
+    <div class="dinfo">${factsHTML(c)}<div id="xSkC"></div>${(c.b||c.offi)?`<div class="dmeta">${c.b?`시공 ${c.b}`:''}${c.b&&c.offi?' · ':''}${c.offi?'같은 건물에 오피스텔 있음(세대수는 아파트만)':''}</div>`:''}<div class="tags">${tagsShow(c)}</div></div>
     ${(c.M&&c.M.length)?`<section class="sec"><h2>보정 감점 <span style="font-weight:500;color:var(--muted);font-size:12px">시장에서 할인되는 단지 특성</span></h2><div>${c.M.map(m=>`<div class="it"><span class="in">${m[0]}</span>${m[1]<0?`<span class="iv num" style="color:var(--accent)">+${f1(-m[1])}</span>`:`<span class="iv num" style="color:var(--bad-text)">−${f1(m[1])}</span>`}<span class="ir">${mTx(m[2])}</span></div>`).join('')}</div></section>`:'<p class="note">보정 감점 없음(복도식·나홀로·소음·유해업소 등 해당 없음)</p>'}
     <section class="pros"><div class="p"><h3>장점</h3><ul>${pro}</ul></div><div class="c"><h3>약점</h3><ul>${con}</ul></div></section>
     ${S.mine?'':altsHTML(c)}
@@ -1045,7 +1083,6 @@ function renderDetail(){
   $('dShare').onclick=async()=>{ const u=shUrl(c.id);   // 이 단지 공유 주소(c/단지번호/): 휴대폰은 공유 창(카카오톡 등), 컴퓨터는 복사
     if(CAN_SHARE){ try{ await navigator.share({title:dn(c)+(c.grade?` · ${c.grade}등급`:'')+' · 우리동네 입지분석', url:u}); gcEv({path:'share/'+c.id, title:'공유 '+c.n, event:true}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
     const ok=await copyTxt(u); if(ok) gcEv({path:'share/'+c.id, title:'링크 복사 '+c.n, event:true}); toast(ok?'이 단지 링크를 복사했습니다':'복사하지 못했습니다'); };
-  if($('dAddr')) $('dAddr').onclick=async()=>{ const ok=await copyTxt(`광주 ${c.gu} ${c.addr} ${c.n}`); toast(ok?'주소를 복사했습니다':'복사하지 못했습니다'); };   // 지번 주소 + 단지 이름(지도 앱에 붙여 넣기)
   $('pbody').querySelectorAll('[data-schg]').forEach(b=>b.onclick=()=>{ if(b.dataset.schg) schOpen(b.dataset.schg); });
   $('pbody').querySelectorAll('[data-alt]').forEach(b=>b.onclick=()=>{ const x=CX.find(y=>y.id===b.dataset.alt); if(!x) return; gcEv({path:'alt/'+c.id, title:'비슷한 가격 대안 '+c.n+' → '+x.n, event:true}); select(x.id); });
   dtabsInit();
@@ -1147,11 +1184,11 @@ $('q').addEventListener('input',e=>{
   if (!q){ suggRecent(); return; }
   const sh=schFind(q);   // 초등학교 이름으로 찾기
   const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,sh.length?6:8);
-  box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn"><span class="sgi">${SCH_ICON}</span>${xEsc(h.n)}</span><span class="sgm">배정 단지 ${h.L.length.toLocaleString()}곳</span></button>`).join('')
+  box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn"><span class="sgi">${SCH_ICON}</span>${xEsc(h.n)}</span><span class="sgm">${h.L?`배정 단지 ${h.L.length.toLocaleString()}곳`:`${SKL[h.lv]} · 학교 정보`}</span></button>`).join('')
     + hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('')) || '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;
   box.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; select(b.dataset.id); });
-  box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; e.target.blur(); schSet(sh[+b.dataset.sch]); });
+  box.querySelectorAll('[data-sch]').forEach(b=>b.onclick=()=>{ box.hidden=true; e.target.value=''; e.target.blur(); const h=sh[+b.dataset.sch]; if(h.L) schSet(h); else openSchool(h.n); });
   if(!X && q.length>=2) xLoad().then(x=>{ if(x && $('q').value.trim()===q) $('q').dispatchEvent(new Event('input')); });   // 자료가 늦게 오면 한 번 다시 찾음
 });
 document.addEventListener('click',e=>{ if(!e.target.closest('.search')) $('sugg').hidden=true; });

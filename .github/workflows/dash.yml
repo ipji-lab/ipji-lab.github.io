@@ -1,8 +1,8 @@
-# 시세 흐름 자동 갱신: 매일 05:20(한국) 국토부 실거래·분양권 API(2006년~, 연도별 보관 data/rt/) → gwangju/data/dash.json.gz
+# 시세 흐름 자동 갱신: 매일 01:20(한국, 예약 지연을 감안) 국토부 실거래·분양권 API(2006년~, 연도별 보관 data/rt/) → gwangju/data/dash.json.gz
 name: dash-update
 on:
   schedule:
-    - cron: "20 20 * * *"   # UTC 20:20 = 한국 05:20
+    - cron: "20 16 * * *"   # UTC 16:20 = 한국 01:20. GitHub 예약이 4~9시간 늦게 돌아(’26.11.20~24) 05:20에서 당김(’26.11.24)
   workflow_dispatch:
 permissions:
   contents: write

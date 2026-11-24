@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ipji-lab.github.io/gwangju/sitemap.xml

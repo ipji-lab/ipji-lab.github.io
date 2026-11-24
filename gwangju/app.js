@@ -13,7 +13,7 @@ const M = DATA.meta, CX = DATA.cx, NOWY = +(String(M.evalDate||'2026').slice(0,4
 // v2.0.2 주민 사실 제보(구글 폼, 로그인·개인정보 없음). url이 비어 있으면 버튼을 보이지 않음. eName = 폼의 '단지 이름' 문항 entry 번호(미리 채움)
 const REPORT = {url:'https://docs.google.com/forms/d/e/1FAIpQLSc3SnLVg6TioQibcOIZ3Hk7ZUuz_NE0KTdB_lED757h9x0PVw/viewform', eName:'1097801489'};
 const reportBtn = c => REPORT.url ? `<section class="card pnone" style="text-align:center"><p class="note" style="margin:0 0 8px">이 단지 정보가 실제와 다른가요? 이름·연락처 없이 알려 주세요. 확인되면 반영하고 '주민 제보로 수정'이라고 표시합니다.</p><a class="vbtn" style="display:inline-block;padding:10px 16px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;text-decoration:none" target="_blank" rel="noopener" href="${REPORT.url}${REPORT.eName?`?usp=pp_url&entry.${REPORT.eName}=${encodeURIComponent(c.n+' ('+c.gu+' '+c.dong+')')}`:''}">이 정보가 달라요 (사실 제보)</a></section>` : '';
-const APPV='v2.9.8';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
+const APPV='v2.9.9';   // 화면에 보이는 버전(상단·평가기준 아래·변경 기록과 같아야 함)
 const evLbl = () => { const p = String(M.evalDate||'').split('-'); return p.length===3 ? `’${p[0].slice(2)}.${+p[1]}.${+p[2]}` : (M.evalDate||''); };   // v1.9.9 자료 기준일(실거래 마지막 거래일)
 /* v1.7.4 연구원(11.6) 화면에 보이는 단지 이름 = 법정동 + 단지명. 화면에서만: 단지명 앞 '광주(광역시)'·법정동 이름과 끝 '아파트'를 빼고, 법정동 괄호(구 구분)도 뺌(구는 아랫줄에 있음).
    같은 동에서 이름이 겹치면 '아파트'를 남김. 검색·자료·계산은 원래 이름 그대로 */
@@ -1202,7 +1202,9 @@ $('q').addEventListener('input',e=>{
   const q=e.target.value.trim(), box=$('sugg');
   if (!q){ suggRecent(); return; }
   const sh=schFind(q);   // 초등학교 이름으로 찾기
-  const hits=CX.filter(c=>(c.dong+' '+c.n+' '+dn(c)+' '+c.gu).includes(q)).slice(0,sh.length?6:8);
+  // v2.9.9: 띄어쓰기와 상관없이, 낱말을 여러 개 쓰면 모두 든 단지만(예: '봉선 아델리움') · 순위 높은 단지부터(이전: 자료 순서라 '아델리움'에 한국아델리움1단지가 안 보였음)
+  const qs=q.split(/\s+/).filter(Boolean), nsp=t=>t.replace(/\s/g,''), qn=nsp(q);
+  const hits=CX.filter(c=>{ const t=c.dong+' '+c.n+' '+dn(c)+' '+c.gu, tn=nsp(t); return tn.includes(qn)||qs.every(w=>tn.includes(w)); }).sort((x,y)=>(x.rk0||9e9)-(y.rk0||9e9)||(x.grade||10)-(y.grade||10)).slice(0,sh.length?6:8);
   box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn"><span class="sgi">${SCH_ICON}</span>${xEsc(h.n)}</span><span class="sgm">${h.L?`배정 단지 ${h.L.length.toLocaleString()}곳`:`${SKL[h.lv]} · 학교 정보`}</span></button>`).join('')
     + hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('')) || '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;

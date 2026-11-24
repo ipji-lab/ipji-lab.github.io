@@ -1204,7 +1204,7 @@ $('q').addEventListener('input',e=>{
   const sh=schFind(q);   // 초등학교 이름으로 찾기
   // v2.9.9: 띄어쓰기와 상관없이, 낱말을 여러 개 쓰면 모두 든 단지만(예: '봉선 아델리움') · 순위 높은 단지부터(이전: 자료 순서라 '아델리움'에 한국아델리움1단지가 안 보였음)
   const qs=q.split(/\s+/).filter(Boolean), nsp=t=>t.replace(/\s/g,''), qn=nsp(q);
-  const hits=CX.filter(c=>{ const t=c.dong+' '+c.n+' '+dn(c)+' '+c.gu, tn=nsp(t); return tn.includes(qn)||qs.every(w=>tn.includes(w)); }).sort((x,y)=>(x.rk0||9e9)-(y.rk0||9e9)||(x.grade||10)-(y.grade||10)).slice(0,sh.length?6:8);
+  const hits=CX.filter(c=>{ const t=c.dong+' '+c.n+' '+dn(c)+' '+c.gu, tn=nsp(t); return tn.includes(qn)||qs.every(w=>tn.includes(w)); }).sort((x,y)=>(x.grade||10)-(y.grade||10)||scoreOf(y)-scoreOf(x)).slice(0,sh.length?6:8);   // 등급 → 점수 순(화면에 보이는 값 그대로)
   box.innerHTML = (sh.map((h,i)=>`<button data-sch="${i}"><span class="sgn"><span class="sgi">${SCH_ICON}</span>${xEsc(h.n)}</span><span class="sgm">${h.L?`배정 단지 ${h.L.length.toLocaleString()}곳`:`${SKL[h.lv]} · 학교 정보`}</span></button>`).join('')
     + hits.map(c=>`<button data-id="${c.id}"><span class="sgn">${dn(c)}</span><span class="sgm">${c.gu} · ${gLab(c)} · ${f1(scoreOf(c))}점</span></button>`).join('')) || '<div class="empty" style="padding:12px">검색 결과 없음</div>';
   box.hidden=false;
